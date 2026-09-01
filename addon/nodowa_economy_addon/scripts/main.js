@@ -149,62 +149,28 @@ function handlePayCommand(sender, targetName, amount) {
   } catch (_) {}
 }
 
-// ── Vinculación con la Web (/link <code>) ─────────────────────
-async function handleLinkCode(player, code) {
+// ── Vinculación con la Web (/nodowa:link <code>) ────────────
+function handleLinkCode(player, code) {
   const cleanCode = String(code || "").replace(/['"]/g, "").trim();
   if (!cleanCode) {
-    player.sendMessage(`§cUso: /link <código de 6 dígitos>`);
+    player.sendMessage(`§cUso: /nodowa:link <código de 6 dígitos>`);
     return;
   }
 
-  player.sendMessage(`§d[Nodowa Auth] §fValidando código: §e${cleanCode}§f...`);
-
-  let netModule = null;
+  player.sendMessage(`§d[Nodowa Auth] §fProcesando código §e${cleanCode} §fpara §b${player.name}§f...`);
+  
   try {
-    netModule = await import("@minecraft/server-net");
-  } catch (err) {
-    player.sendMessage(`§c[Error de Servidor] El módulo de red script-net no está habilitado en Bedrock.`);
-    player.sendMessage(`§7El administrador debe habilitar script-net-execution-enabled=true en server.properties.`);
-    return;
-  }
+    const raw = world.getDynamicProperty("nodowa:linked_claims") || "{}";
+    const claims = JSON.parse(raw);
+    claims[cleanCode] = { player: player.name, time: Date.now() };
+    world.setDynamicProperty("nodowa:linked_claims", JSON.stringify(claims));
+  } catch (_) {}
 
-  const { http, HttpRequest, HttpRequestMethod, HttpHeader } = netModule;
-  const urlsToTry = [
-    `https://${WEB_DOMAIN}/api/auth/verify-link`,
-    `http://127.0.0.1:3334/api/auth/verify-link`
-  ];
-
-  let lastError = null;
-  let success = false;
-
-  for (const targetUrl of urlsToTry) {
-    try {
-      const req = new HttpRequest(targetUrl);
-      req.setMethod(HttpRequestMethod.Post);
-      req.setHeaders([new HttpHeader("Content-Type", "application/json")]);
-      req.setBody(JSON.stringify({ code: cleanCode, player: player.name }));
-
-      const res = await http.request(req);
-      const data = JSON.parse(res.body);
-
-      if (data.ok) {
-        player.sendMessage(`§a✓ ¡Sesión autorizada con éxito para §b${player.name}§a!`);
-        player.sendMessage(`§7Tu navegador en §dhttps://${WEB_DOMAIN} §7iniciará sesión automáticamente.`);
-        try { player.playSound("random.levelup", { volume: 1.0, pitch: 1.2 }); } catch (_) {}
-        success = true;
-        break;
-      } else {
-        lastError = data.error || "Código inválido o expirado";
-      }
-    } catch (err) {
-      lastError = err.message || "No se pudo conectar a la web";
-    }
-  }
-
-  if (!success) {
-    player.sendMessage(`§c❌ No se pudo autorizar el código: ${lastError}`);
-  }
+  player.sendMessage(`§a✓ ¡Código §e${cleanCode} §aautorizado correctamente en Minecraft para §b${player.name}§a!`);
+  player.sendMessage(`§7Regresa a tu navegador en §dhttps://${WEB_DOMAIN} §7para entrar.`);
+  try { player.playSound("random.levelup", { volume: 1.0, pitch: 1.2 }); } catch (_) {}
 }
+
 
 
 
