@@ -1,5 +1,11 @@
-import { world, system, CommandPermissionLevel, CustomCommandParamType, CustomCommandStatus, Player } from "@minecraft/server";
-import { ActionFormData, ModalFormData, MessageFormData } from "@minecraft/server-ui";
+import {
+  world,
+  system,
+  Player,
+  CommandPermissionLevel,
+  CustomCommandParamType,
+  CustomCommandStatus
+} from "@minecraft/server";
 
 // ── Configuración ─────────────────────────────────────────────
 const WEB_DOMAIN = "tienda.nodowa.lat";
@@ -86,13 +92,12 @@ world.afterEvents.playerSpawn.subscribe((event) => {
       player.sendMessage(`§fEscribe §e/menu §fo §e/saldo §fpara ver tu billetera.`);
       player.sendMessage(`§d========================================`);
 
-      // Sonido agradable
       player.playSound("random.levelup", { volume: 0.6, pitch: 1.2 });
     } catch (_) {}
   }, 40);
 });
 
-// ── Registro de Comandos Nativos de Minecraft (Slash Commands) ──
+// ── Registro de Comandos Nativos de Minecraft (customCommandRegistry) ──
 system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
   if (!customCommandRegistry) return;
 
@@ -113,13 +118,13 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     } catch (_) {}
   };
 
-  safeReg("menu", "Abre el menú de economía de Nodowa", null, (p) => openMainMenu(p));
-  safeReg("saldo", "Consulta tu saldo actual de Nodocoins", null, (p) => showBalance(p));
-  safeReg("bal", "Consulta tu saldo actual de Nodocoins", null, (p) => showBalance(p));
-  safeReg("eco", "Menú principal de economía", null, (p) => openMainMenu(p));
-  safeReg("buzon", "Revisa tus compras de la tienda web", null, (p) => checkDeliveries(p));
-  safeReg("link", "Vincula tu cuenta con la tienda web", [{ name: "codigo", type: CustomCommandParamType.String }], (p, [code]) => handleLinkCode(p, code));
-  safeReg("pagar", "Paga Nodocoins a otro jugador", [
+  safeReg("nodowa:menu", "Abre el menú de economía de Nodowa", null, (p) => openMainMenu(p));
+  safeReg("nodowa:saldo", "Consulta tu saldo actual de Nodocoins", null, (p) => showBalance(p));
+  safeReg("nodowa:bal", "Consulta tu saldo actual de Nodocoins", null, (p) => showBalance(p));
+  safeReg("nodowa:eco", "Menú principal de economía", null, (p) => openMainMenu(p));
+  safeReg("nodowa:buzon", "Revisa tus compras de la tienda web", null, (p) => checkDeliveries(p));
+  safeReg("nodowa:link", "Vincula tu cuenta con la tienda web", [{ name: "codigo", type: CustomCommandParamType.String }], (p, [code]) => handleLinkCode(p, code));
+  safeReg("nodowa:pagar", "Paga Nodocoins a otro jugador", [
     { name: "jugador", type: CustomCommandParamType.String },
     { name: "cantidad", type: CustomCommandParamType.Integer }
   ], (p, [target, amount]) => handlePayCommand(p, target, amount));
@@ -143,7 +148,6 @@ world.beforeEvents.chatSend.subscribe((event) => {
   const parts = cmdLine.split(/\s+/);
   const rawCmd = (parts[0] || "").toLowerCase();
 
-  // Soporta prefijos de namespace ej: nodowa:menu o menu
   const cmd = rawCmd.includes(":") ? rawCmd.split(":")[1] : rawCmd;
 
   if (ECONOMY_COMMANDS.has(cmd)) {
@@ -161,13 +165,13 @@ world.beforeEvents.chatSend.subscribe((event) => {
 function showBalance(player) {
   const bal = getPlayerBalance(player);
   player.sendMessage(`§d[Billetera] §fTu saldo actual en mano es: §e§l${bal.toLocaleString()} Nodocoins§r`);
-  player.playSound("random.orb", { volume: 0.6, pitch: 1.1 });
+  try { player.playSound("random.orb", { volume: 0.6, pitch: 1.1 }); } catch (_) {}
 }
 
 function checkDeliveries(player) {
   player.sendMessage(`§a[Buzón] §fVerificando entregas pendientes de la tienda web...`);
   player.sendMessage(`§7Las compras realizadas en §dhttps://${WEB_DOMAIN} §7se entregan automáticamente a tu inventario.`);
-  player.playSound("random.orb", { volume: 0.5, pitch: 1.0 });
+  try { player.playSound("random.orb", { volume: 0.5, pitch: 1.0 }); } catch (_) {}
 }
 
 function handleCommand(player, cmd, args) {
@@ -228,15 +232,16 @@ function handlePayCommand(sender, targetName, amount) {
     return;
   }
 
-  // Transferencia de saldo
   setPlayerBalance(sender, senderBal - amount);
   addPlayerBalance(targetPlayer, amount);
 
   sender.sendMessage(`§a✓ Has transferido §e${amount.toLocaleString()} Nodocoins §aa §f${targetPlayer.name}§a.`);
   targetPlayer.sendMessage(`§a✓ ¡Recibiste §e${amount.toLocaleString()} Nodocoins §ade parte de §f${sender.name}§a!`);
 
-  sender.playSound("random.orb", { volume: 0.8, pitch: 1.2 });
-  targetPlayer.playSound("random.levelup", { volume: 0.8, pitch: 1.0 });
+  try {
+    sender.playSound("random.orb", { volume: 0.8, pitch: 1.2 });
+    targetPlayer.playSound("random.levelup", { volume: 0.8, pitch: 1.0 });
+  } catch (_) {}
 }
 
 // ── Vinculación con la Web (/link <code>) ─────────────────────
@@ -244,55 +249,67 @@ function handleLinkCode(player, code) {
   player.sendMessage(`§d[Nodowa Auth] §fValidando código de 15 minutos: §e${code}§f...`);
   player.sendMessage(`§a✓ ¡Sesión autorizada con éxito para el usuario §b${player.name}§a!`);
   player.sendMessage(`§7Tu navegador en §dhttps://${WEB_DOMAIN} §7iniciará sesión automáticamente.`);
-  player.playSound("random.levelup", { volume: 1.0, pitch: 1.2 });
+  try { player.playSound("random.levelup", { volume: 1.0, pitch: 1.2 }); } catch (_) {}
 }
 
-// ── Menú Nativo Visual (ActionForms) ───────────────────────────
-function openMainMenu(player) {
+// ── Menú Nativo Visual ─────────────────────────────────────────
+async function openMainMenu(player) {
   const bal = getPlayerBalance(player);
-  const form = new ActionFormData();
-  form.title("§5✦ ECONOMÍA NODOWA ✦");
-  form.body(`§fHola, §b${player.name}§f!\n\n§7Saldo en Mano: §e§l${bal.toLocaleString()} Nodocoins\n§7Web Oficial: §dhttps://${WEB_DOMAIN}\n\n§fSelecciona una opción del menú:`);
-  
-  form.button("§d✦ Ver Tienda Web\n§8Abre el catálogo", "textures/items/emerald");
-  form.button("§6✦ Pagar a un Jugador\n§8Transferir monedas", "textures/items/gold_ingot");
-  form.button("§a✦ Mi Buzón de Entregas\n§8Revisar compras", "textures/items/chest");
-  form.button("§9✦ Vincular Cuenta Web\n§8Escribir /link", "textures/items/paper");
 
-  form.show(player).then((res) => {
-    if (res.canceled) return;
+  try {
+    const { ActionFormData } = await import("@minecraft/server-ui");
+    const form = new ActionFormData();
+    form.title("§5✦ ECONOMÍA NODOWA ✦");
+    form.body(`§fHola, §b${player.name}§f!\n\n§7Saldo en Mano: §e§l${bal.toLocaleString()} Nodocoins\n§7Web Oficial: §dhttps://${WEB_DOMAIN}\n\n§fSelecciona una opción del menú:`);
+    
+    form.button("§d✦ Ver Tienda Web\n§8Abre el catálogo", "textures/items/emerald");
+    form.button("§6✦ Pagar a un Jugador\n§8Transferir monedas", "textures/items/gold_ingot");
+    form.button("§a✦ Mi Buzón de Entregas\n§8Revisar compras", "textures/items/chest");
+    form.button("§9✦ Vincular Cuenta Web\n§8Escribir /link", "textures/items/paper");
 
-    if (res.selection === 0) {
-      player.sendMessage(`§d[Tienda] §fAbre tu navegador en: §dhttps://${WEB_DOMAIN} §fpara comprar rangos y kits.`);
-      player.playSound("random.orb", { volume: 0.6, pitch: 1.2 });
-    } else if (res.selection === 1) {
-      openPayModal(player);
-    } else if (res.selection === 2) {
-      checkDeliveries(player);
-    } else if (res.selection === 3) {
-      player.sendMessage(`§d[Nodowa Link] §fVe a §dhttps://${WEB_DOMAIN}§f, haz clic en 'Iniciar Sesión', escribe tu Gamertag y luego ejecuta el comando §e/link <código> §faquí en el chat.`);
-      player.playSound("random.orb", { volume: 0.6, pitch: 1.2 });
-    }
-  }).catch(() => {});
+    form.show(player).then((res) => {
+      if (res.canceled) return;
+
+      if (res.selection === 0) {
+        player.sendMessage(`§d[Tienda] §fAbre tu navegador en: §dhttps://${WEB_DOMAIN} §fpara comprar rangos y kits.`);
+      } else if (res.selection === 1) {
+        openPayModal(player);
+      } else if (res.selection === 2) {
+        checkDeliveries(player);
+      } else if (res.selection === 3) {
+        player.sendMessage(`§d[Nodowa Link] §fVe a §dhttps://${WEB_DOMAIN}§f, haz clic en 'Iniciar Sesión', escribe tu Gamertag y luego ejecuta el comando §e/link <código> §faquí en el chat.`);
+      }
+    }).catch(() => {});
+  } catch (_) {
+    // Si server-ui no está disponible en este motor, fallback a chat informativo impecable
+    showBalance(player);
+    player.sendMessage(`§7Comandos disponibles: §e/saldo§7, §e/pagar <jugador> <cantidad>§7, §e/link <código>§7, §e/buzon`);
+  }
 }
 
-function openPayModal(player) {
+async function openPayModal(player) {
   const bal = getPlayerBalance(player);
-  const form = new ModalFormData();
-  form.title("§6✦ TRANSFERIR NODOCOINS ✦");
-  form.textField(`Saldo disponible: ${bal.toLocaleString()} NC\n\nNombre del Jugador Destino:`, "Ej. Steve");
-  form.textField("Cantidad de Nodocoins a transferir:", "Ej. 500");
 
-  form.show(player).then((res) => {
-    if (res.canceled) return;
-    const [target, amountStr] = res.formValues;
-    const amount = parseInt(amountStr);
+  try {
+    const { ModalFormData } = await import("@minecraft/server-ui");
+    const form = new ModalFormData();
+    form.title("§6✦ TRANSFERIR NODOCOINS ✦");
+    form.textField(`Saldo disponible: ${bal.toLocaleString()} NC\n\nNombre del Jugador Destino:`, "Ej. Steve");
+    form.textField("Cantidad de Nodocoins a transferir:", "Ej. 500");
 
-    if (!target || isNaN(amount) || amount <= 0) {
-      player.sendMessage(`§cPor favor ingresa un jugador y una cantidad válida.`);
-      return;
-    }
+    form.show(player).then((res) => {
+      if (res.canceled) return;
+      const [target, amountStr] = res.formValues;
+      const amount = parseInt(amountStr);
 
-    handlePayCommand(player, target, amount);
-  }).catch(() => {});
+      if (!target || isNaN(amount) || amount <= 0) {
+        player.sendMessage(`§cPor favor ingresa un jugador y una cantidad válida.`);
+        return;
+      }
+
+      handlePayCommand(player, target, amount);
+    }).catch(() => {});
+  } catch (_) {
+    player.sendMessage(`§cUso de transferencia por chat: /pagar <jugador> <cantidad>`);
+  }
 }
