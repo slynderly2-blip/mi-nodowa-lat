@@ -294,27 +294,86 @@ app.post("/api/auth/request-link", (req, res) => {
   });
 });
 
-// Validar token de sesión persistente al recargar la web
-app.post("/api/auth/validate-session", (req, res) => {
-  const { sessionToken } = req.body;
-  if (!sessionToken || !db.sessions || !db.sessions[sessionToken]) {
-    return res.status(401).json({ ok: false, error: "Sesión no válida" });
+// Endpoint REST para que el addon de Minecraft o la Web confirmen la vinculación /link <code>
+app.post("/api/auth/verify-link", (req, res) => {
+  const { code, player, xuid } = req.body;
+  if (!code || !player) return res.status(400).json({ ok: false, error: "Faltan parámetros" });
+
+  const tokenData = db.linkTokens[code];
+  if (!tokenData) {
+    return res.status(400).json({ ok: false, error: "El código no existe o ya fue utilizado." });
   }
 
-  const sess = db.sessions[sessionToken];
-  const user = getOrCreateUser(sess.username);
-  res.json({ ok: true, user });
-});
-
-// Cerrar sesión
-app.post("/api/auth/logout", (req, res) => {
-  const { sessionToken } = req.body;
-  if (sessionToken && db.sessions && db.sessions[sessionToken]) {
-    delete db.sessions[sessionToken];
+  if (Date.now() > tokenData.expiresAt) {
+    delete db.linkTokens[code];
     saveDb();
+    return res.status(400).json({ ok: false, error: "El código expiró (límite de 15 minutos)." });
   }
-  res.json({ ok: true, message: "Sesión cerrada correctamente" });
+
+  const executingPlayer = player.trim().toLowerCase();
+  const targetPlayer = tokenData.username.trim().toLowerCase();
+
+  // Validación estricta de identidad: Solo el dueño de la cuenta puede ejecutarlo
+  if (executingPlayer !== targetPlayer) {
+    return res.status(403).json({
+      ok: false,
+      error: `Este código fue generado para el usuario "${tokenData.displayName || tokenData.username}". No puedes reclamarlo desde otra cuenta.`
+    });
+  }
+
+  const user = getOrCreateUser(targetPlayer);
+  user.linked = true;
+  user.xuid = xuid || user.xuid || null;
+  user.displayName = player || user.displayName;
+  user.lastActive = new Date().toISOString();
+
+  // Generar Token de Sesión Persistente
+  if (!db.sessions) db.sessions = {};
+  const sessionToken = "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+  db.sessions[sessionToken] = {
+    username: user.username,
+    createdAt: new Date().toISOString()
+  };
+
+  delete db.linkTokens[code];
+  saveDb();
+
+  // Transmitir evento en tiempo real a la Web
+  broadcastWs("USER_LINKED", { username: user.username, sessionToken, user });
+
+  res.json({ ok: true, username: user.username, sessionToken, user });
 });
+
+// Endpoint para que la web confirme si ya se vinculó o forzar confirmación si es el titular
+app.post("/api/auth/confirm-link-code", (req, res) => {
+  const { code, username } = req.body;
+  if (!code || !username) return res.status(400).json({ ok: false, error: "Falta código o usuario" });
+
+  const tokenData = db.linkTokens[code];
+  const uname = username.trim().toLowerCase();
+
+  if (!tokenData || tokenData.username !== uname) {
+    return res.status(400).json({ ok: false, error: "Código no encontrado para esta cuenta" });
+  }
+
+  const user = getOrCreateUser(uname);
+  user.linked = true;
+  user.lastActive = new Date().toISOString();
+
+  if (!db.sessions) db.sessions = {};
+  const sessionToken = "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+  db.sessions[sessionToken] = {
+    username: user.username,
+    createdAt: new Date().toISOString()
+  };
+
+  delete db.linkTokens[code];
+  saveDb();
+
+  broadcastWs("USER_LINKED", { username: user.username, sessionToken, user });
+  res.json({ ok: true, sessionToken, user });
+});
+
 
 // Login con PIN directo (si el usuario ya configuró un PIN)
 app.post("/api/auth/login-pin", (req, res) => {

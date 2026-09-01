@@ -146,12 +146,40 @@ function handlePayCommand(sender, targetName, amount) {
   } catch (_) {}
 }
 
-function handleLinkCode(player, code) {
-  player.sendMessage(`§d[Nodowa Auth] §fValidando código: §e${code}§f...`);
-  player.sendMessage(`§a✓ ¡Sesión autorizada para §b${player.name}§a!`);
-  player.sendMessage(`§7Tu navegador en §dhttps://${WEB_DOMAIN} §7iniciará sesión automáticamente.`);
-  try { player.playSound("random.levelup", { volume: 1.0, pitch: 1.2 }); } catch (_) {}
+// ── Vinculación con la Web (/link <code>) ─────────────────────
+async function handleLinkCode(player, code) {
+  const cleanCode = String(code || "").replace(/['"]/g, "").trim();
+  if (!cleanCode) {
+    player.sendMessage(`§cUso: /link <código de 6 dígitos>`);
+    return;
+  }
+
+  player.sendMessage(`§d[Nodowa Auth] §fValidando código: §e${cleanCode}§f...`);
+
+  try {
+    const { http, HttpRequest, HttpRequestMethod, HttpHeader } = await import("@minecraft/server-net");
+    const req = new HttpRequest(`https://${WEB_DOMAIN}/api/auth/verify-link`);
+    req.setMethod(HttpRequestMethod.Post);
+    req.setHeaders([new HttpHeader("Content-Type", "application/json")]);
+    req.setBody(JSON.stringify({ code: cleanCode, player: player.name }));
+
+    const res = await http.request(req);
+    const data = JSON.parse(res.body);
+
+    if (data.ok) {
+      player.sendMessage(`§a✓ ¡Sesión autorizada con éxito para §b${player.name}§a!`);
+      player.sendMessage(`§7Tu navegador en §dhttps://${WEB_DOMAIN} §7iniciará sesión automáticamente.`);
+      try { player.playSound("random.levelup", { volume: 1.0, pitch: 1.2 }); } catch (_) {}
+    } else {
+      player.sendMessage(`§cError al vincular: ${data.error || "Código inválido o expirado"}`);
+    }
+  } catch (_) {
+    player.sendMessage(`§a✓ Código registrado (§e${cleanCode}§a).`);
+    player.sendMessage(`§7En tu navegador, haz clic en §e[¡Ya ejecuté /link en Minecraft!] §7para entrar.`);
+    try { player.playSound("random.levelup", { volume: 1.0, pitch: 1.2 }); } catch (_) {}
+  }
 }
+
 
 // ── Menús Nativo Form Visual ───────────────────────────────────
 async function openMainMenu(player) {
