@@ -1,0 +1,10 @@
+node_modules/
+data/db.json
+public/uploads/receipts/*
+public/uploads/*.png
+public/uploads/*.jpg
+public/uploads/*.jpeg
+public/uploads/*.webp
+!public/uploads/.gitkeep
+.env
+*.log

@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nodowa Network - Tienda Oficial, Economía & Mercado</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- ── Header & Navbar (Tema Claro y Morado) ──────────────────── -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="brand">
+        <div class="brand-icon" id="brand-icon-slot"></div>
+        <div>Nodowa <span class="domain">mi.nodowa.lat</span></div>
+      </a>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="store" id="tab-btn-store">
+          <span class="icon-slot" data-icon="store"></span> Tienda
+        </button>
+        <button class="tab-btn" data-tab="market" id="tab-btn-market">
+          <span class="icon-slot" data-icon="market"></span> Mercado P2P
+        </button>
+        <button class="tab-btn" data-tab="wallet" id="tab-btn-wallet">
+          <span class="icon-slot" data-icon="wallet"></span> Billetera & Banco
+        </button>
+        <button class="tab-btn" data-tab="players" id="tab-btn-players">
+          <span class="icon-slot" data-icon="user"></span> Jugadores
+        </button>
+        <button class="tab-btn" data-tab="deliveries" id="tab-btn-deliveries">
+          <span class="icon-slot" data-icon="mailbox"></span> Buzón
+        </button>
+        <button class="tab-btn" data-tab="leaderboard" id="tab-btn-leaderboard">
+          <span class="icon-slot" data-icon="trophy"></span> Top Ricos
+        </button>
+      </nav>
+
+      <!-- User Auth State -->
+      <div class="user-widget" id="user-widget-container">
+        <button class="btn-auth" id="btn-open-auth">
+          <span class="icon-slot" data-icon="user"></span> Iniciar Sesión
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main Content Container (Ancho y Fluido) ───────────────── -->
+  <main class="main-container">
+
+    <!-- ── TAB: TIENDA OFICIAL ────────────────────────────────── -->
+    <section class="tab-view active" id="view-store">
+      <div class="hero-banner">
+        <div class="hero-content">
+          <h1>Tienda Oficial & Economía</h1>
+          <p>Adquiere rangos, kits legendarios, llaves y paquetes de monedas. Paga con tus Nodocoins en mano o mediante Binance Pay USDT.</p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-box">
+            <div class="val mono" id="hero-coins-circulating">--</div>
+            <div class="lbl">Nodocoins en Juego</div>
+          </div>
+          <div class="stat-box">
+            <div class="val text-emerald mono" id="hero-online-status">ONLINE</div>
+            <div class="lbl">Servidor Bedrock</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">
+          <span class="icon-slot" data-icon="tag"></span>
+          <h2>Catálogo de Artículos</h2>
+        </div>
+        <div class="category-filter">
+          <button class="cat-btn active" data-cat="all">Todos</button>
+          <button class="cat-btn" data-cat="ranks">Rangos</button>
+          <button class="cat-btn" data-cat="coins">Monedas</button>
+          <button class="cat-btn" data-cat="kits">Kits</button>
+          <button class="cat-btn" data-cat="items">Ítems</button>
+          <button class="cat-btn" data-cat="keys">Llaves</button>
+        </div>
+      </div>
+
+      <div class="store-grid" id="store-items-grid">
+        <!-- Tarjeta Rango VIP+ -->
+        <div class="store-card">
+          <div>
+            <div class="card-top">
+              <div class="card-icon"><span class="icon-slot" data-icon="shield"></span></div>
+              <div class="card-badge">Popular</div>
+            </div>
+            <div class="card-body">
+              <h3>Rango VIP+</h3>
+              <p>Rango VIP+ permanente. Incluye prefijo en chat, acceso a /fly, 5 homes y kit mensual exclusivo.</p>
+            </div>
+          </div>
+          <div class="card-footer">
+            <div class="price-tag">
+              <span class="price-coins">5,000 NC</span>
+              <span class="price-usdt">$4.99 USDT</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn-buy-coins" onclick="buyItemWithCoins('vip_plus')">
+                <span class="icon-slot" data-icon="coins"></span> Comprar
+              </button>
+              <button class="btn-buy-binance" onclick="openBinancePayModal('vip_plus')">
+                <span class="icon-slot" data-icon="qr"></span> Binance
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjeta 10k Monedas -->
+        <div class="store-card">
+          <div>
+            <div class="card-top">
+              <div class="card-icon"><span class="icon-slot" data-icon="coins"></span></div>
+              <div class="card-badge">Oferta</div>
+            </div>
+            <div class="card-body">
+              <h3>Paquete 10,000 Nodocoins</h3>
+              <p>Recibe 10,000 Nodocoins para gastar en la tienda oficial o en el mercado P2P entre jugadores.</p>
+            </div>
+          </div>
+          <div class="card-footer">
+            <div class="price-tag">
+              <span class="price-coins" style="color: var(--accent-gold-dark);">10,000 NC</span>
+              <span class="price-usdt">$2.50 USDT</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn-buy-binance" onclick="openBinancePayModal('coins_pack_10k')">
+                <span class="icon-slot" data-icon="qr"></span> Binance
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjeta Kit Gladiador -->
+        <div class="store-card">
+          <div>
+            <div class="card-top">
+              <div class="card-icon"><span class="icon-slot" data-icon="sword"></span></div>
+              <div class="card-badge" style="background: #f0fdf4; color: #047857; border-color: #bbf7d0;">PVP</div>
+            </div>
+            <div class="card-body">
+              <h3>Kit Gladiador Legendario</h3>
+              <p>Set completo de armadura Netherite con Protección IV, Espada con Filo V y 16 Manzanas Doradas.</p>
+            </div>
+          </div>
+          <div class="card-footer">
+            <div class="price-tag">
+              <span class="price-coins">3,500 NC</span>
+              <span class="price-usdt">$3.00 USDT</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn-buy-coins" onclick="buyItemWithCoins('kit_gladiator')">
+                <span class="icon-slot" data-icon="coins"></span> Comprar
+              </button>
+              <button class="btn-buy-binance" onclick="openBinancePayModal('kit_gladiator')">
+                <span class="icon-slot" data-icon="qr"></span> Binance
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjeta Piedra Protección -->
+        <div class="store-card">
+          <div>
+            <div class="card-top">
+              <div class="card-icon"><span class="icon-slot" data-icon="box"></span></div>
+              <div class="card-badge" style="background: #f0f9ff; color: #0369a1; border-color: #bae6fd;">Seguridad</div>
+            </div>
+            <div class="card-body">
+              <h3>Piedra de Protección 100x100</h3>
+              <p>Bloque especial para reclamar y proteger un terreno de 100x100 bloques contra griefing y robos.</p>
+            </div>
+          </div>
+          <div class="card-footer">
+            <div class="price-tag">
+              <span class="price-coins">2,000 NC</span>
+              <span class="price-usdt">$1.99 USDT</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn-buy-coins" onclick="buyItemWithCoins('protection_block_100')">
+                <span class="icon-slot" data-icon="coins"></span> Comprar
+              </button>
+              <button class="btn-buy-binance" onclick="openBinancePayModal('protection_block_100')">
+                <span class="icon-slot" data-icon="qr"></span> Binance
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TAB: MERCADO P2P ───────────────────────────────────── -->
+    <section class="tab-view" id="view-market">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="icon-slot text-purple" data-icon="market"></span>
+          <h2>Mercado P2P entre Jugadores</h2>
+        </div>
+        <div class="p2p-header-actions">
+          <button class="btn-primary" id="btn-open-list-item">
+            <span class="icon-slot" data-icon="plus"></span> Publicar Ítem en Venta
+          </button>
+        </div>
+      </div>
+
+      <p class="text-muted" style="margin-bottom: 1.75rem; font-size: 1.05rem;">Compra y vende ítems con otros jugadores del servidor sin intermediarios. Las transacciones son 100% seguras y se entregan automáticamente a tu buzón.</p>
+
+      <div class="p2p-grid" id="p2p-items-grid">
+        <!-- Tarjeta P2P de Ejemplo -->
+        <div class="p2p-card">
+          <div>
+            <div class="p2p-seller-info" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.85rem; color: var(--text-muted);">
+              <span class="icon-slot" data-icon="user"></span>
+              <span>Vendedor: <strong class="text-purple">Steve</strong></span>
+            </div>
+            <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Pico de Netherite Eficiencia V + Fortuna III</h3>
+            <p class="text-muted" style="font-size: 0.95rem; margin-bottom: 1.25rem;">Pico reparado al 100% listo para minar diamantes y minerales rápido.</p>
+            <div class="mono text-muted" style="font-size: 0.8rem; margin-bottom: 1rem;">minecraft:netherite_pickaxe (x1)</div>
+          </div>
+          <div class="card-footer">
+            <div class="price-coins mono">1,200 NC</div>
+            <button class="btn-primary" onclick="buyP2pListing('p2p_1')">
+              <span class="icon-slot" data-icon="market"></span> Comprar
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TAB: BILLETERA & BANCO ──────────────────────────────── -->
+    <section class="tab-view" id="view-wallet">
+      <div id="wallet-auth-required" class="table-container" style="padding: 3rem; text-align: center;">
+        <div class="brand-icon" style="margin: 0 auto 1.25rem auto; width: 52px; height: 52px;">
+          <span class="icon-slot" data-icon="lock"></span>
+        </div>
+        <h2>Debes iniciar sesión</h2>
+        <p class="text-muted" style="margin: 0.5rem 0 1.5rem 0; font-size: 1rem;">Inicia sesión con tu Gamertag para acceder a tu Billetera, Banco y realizar transferencias.</p>
+        <button class="btn-primary" onclick="openAuthModal()">Iniciar Sesión con mi Cuenta</button>
+      </div>
+
+      <div id="wallet-authenticated-content" style="display: none;">
+        <div class="wallet-grid">
+          <!-- Billetera en mano -->
+          <div class="wallet-card-main">
+            <div class="flex-between">
+              <span style="font-size: 0.9rem; font-weight: 800; text-transform: uppercase; color: var(--accent-purple);">Saldo en Mano (Billetera)</span>
+              <span class="icon-slot text-purple" data-icon="wallet"></span>
+            </div>
+            <div class="balance-huge text-purple" id="user-wallet-balance">0 NC</div>
+            <div class="flex-between" style="gap: 0.75rem;">
+              <input type="number" id="deposit-amount" class="form-input" placeholder="Monto a depositar...">
+              <button class="btn-primary" id="btn-deposit-bank" style="white-space: nowrap;">
+                <span class="icon-slot" data-icon="bank"></span> Depositar al Banco
+              </button>
+            </div>
+          </div>
+
+          <!-- Banco seguro -->
+          <div class="bank-card-main">
+            <div class="flex-between">
+              <span style="font-size: 0.9rem; font-weight: 800; text-transform: uppercase; color: var(--accent-emerald);">Bóveda del Banco</span>
+              <span class="icon-slot text-emerald" data-icon="bank"></span>
+            </div>
+            <div class="balance-huge text-emerald" id="user-bank-balance">0 NC</div>
+            <div class="flex-between" style="gap: 0.75rem;">
+              <input type="number" id="withdraw-amount" class="form-input" placeholder="Monto a retirar...">
+              <button class="btn-auth" id="btn-withdraw-bank" style="white-space: nowrap; background: var(--accent-emerald);">
+                <span class="icon-slot" data-icon="wallet"></span> Retirar a Mano
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transferencia P2P -->
+        <div class="table-container" style="padding: 2rem; margin-bottom: 2rem;">
+          <h3 style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.6rem;">
+            <span class="icon-slot text-purple" data-icon="send"></span> Transferir Nodocoins a otro Jugador
+          </h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: flex-end;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Gamertag Destinatario</label>
+              <input type="text" id="transfer-target" class="form-input" placeholder="Ej. Alex_24">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Cantidad (Nodocoins)</label>
+              <input type="number" id="transfer-amount" class="form-input" placeholder="Ej. 500">
+            </div>
+            <button class="btn-primary" id="btn-send-transfer" style="height: 48px;">
+              <span class="icon-slot" data-icon="send"></span> Enviar Dinero
+            </button>
+          </div>
+        </div>
+
+        <!-- Historial de Transacciones -->
+        <div class="section-title" style="margin-bottom: 1rem;">
+          <span class="icon-slot text-purple" data-icon="clock"></span>
+          <h3>Historial de Movimientos</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Origen / Destino</th>
+                <th>Descripción</th>
+                <th>Monto</th>
+              </tr>
+            </thead>
+            <tbody id="user-transactions-table">
+              <!-- Llenado dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TAB: REGISTRO / DIRECTORIO DE JUGADORES ─────────────── -->
+    <section class="tab-view" id="view-players">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="icon-slot text-purple" data-icon="user"></span>
+          <h2>Registro de Jugadores del Servidor</h2>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <input type="text" id="input-search-players" class="form-input" style="width: 280px;" placeholder="Buscar por Gamertag...">
+          <button class="cat-btn" id="btn-refresh-players">
+            <span class="icon-slot" data-icon="refresh"></span> Actualizar
+          </button>
+        </div>
+      </div>
+      <p class="text-muted" style="margin-bottom: 1.5rem;">Lista de todos los jugadores registrados en el servidor, su estado de vinculación y balances.</p>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Gamertag</th>
+              <th>Vinculado</th>
+              <th>En Mano</th>
+              <th>En Banco</th>
+              <th>Fortuna Total</th>
+              <th>Última Actividad</th>
+            </tr>
+          </thead>
+          <tbody id="players-registry-table-body">
+            <!-- Llenado dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── TAB: BUZÓN DE ENTREGAS ──────────────────────────────── -->
+    <section class="tab-view" id="view-deliveries">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="icon-slot text-purple" data-icon="mailbox"></span>
+          <h2>Buzón de Compras y Recompensas</h2>
+        </div>
+        <button class="cat-btn" id="btn-refresh-deliveries">
+          <span class="icon-slot" data-icon="refresh"></span> Actualizar
+        </button>
+      </div>
+      <p class="text-muted" style="margin-bottom: 1.5rem;">Todos los ítems y paquetes comprados en la web se sincronizan automáticamente con tu inventario cuando entras al servidor de Minecraft.</p>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Artículo</th>
+              <th>Comando / Acción</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="deliveries-table-body">
+            <!-- Llenado dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── TAB: LEADERBOARD ────────────────────────────────────── -->
+    <section class="tab-view" id="view-leaderboard">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="icon-slot text-purple" data-icon="trophy"></span>
+          <h2>Ranking de Millonarios (Top Ricos)</h2>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 80px;">Posición</th>
+              <th>Jugador</th>
+              <th>En Mano</th>
+              <th>En Banco</th>
+              <th>Fortuna Total</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-table-body">
+            <!-- Llenado dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── MODAL: AUTENTICACIÓN / LINK CON MINECRAFT ──────────────── -->
+  <div class="modal-backdrop" id="modal-auth">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+          <span class="icon-slot text-purple" data-icon="user"></span> Iniciar Sesión en Nodowa
+        </h3>
+        <button class="modal-close" onclick="closeAuthModal()">
+          <span class="icon-slot" data-icon="x"></span>
+        </button>
+      </div>
+
+      <!-- Paso 1: Ingresar Gamertag -->
+      <div id="auth-step-1">
+        <p class="text-muted" style="font-size: 0.95rem; margin-bottom: 1.25rem;">Escribe tu Gamertag / Nick exacto de Minecraft. Se generará un código seguro de un solo uso válido por 15 minutos.</p>
+        <div class="form-group">
+          <label class="form-label">Tu Gamertag de Minecraft</label>
+          <input type="text" id="auth-input-username" class="form-input" placeholder="Ej. Steve_Gamer" required>
+        </div>
+        <button class="btn-primary" id="btn-request-link-code" style="width: 100%; margin-top: 1rem; height: 46px;">
+          <span class="icon-slot" data-icon="key"></span> Generar Código /link
+        </button>
+      </div>
+
+      <!-- Paso 2: Código OTP para Minecraft -->
+      <div id="auth-step-2" style="display: none; text-align: center;">
+        <p class="text-secondary" style="font-size: 0.95rem; margin-bottom: 1rem;">
+          Entra a Minecraft con el usuario <strong id="auth-target-player-name" class="text-purple" style="font-size: 1.05rem;">[Usuario]</strong> y escribe en el chat:
+        </p>
+        
+        <div class="copy-field" style="padding: 0.85rem 1rem; margin-bottom: 0.75rem;">
+          <span class="mono text-purple" style="font-size: 1.35rem; font-weight: 900;" id="auth-generated-code">/link ------</span>
+          <button class="btn-copy" id="btn-copy-link-cmd" title="Copiar comando">
+            <span class="icon-slot" data-icon="copy"></span>
+          </button>
+        </div>
+
+        <div style="font-size: 0.825rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 1.25rem;" id="auth-timer-countdown">
+          ⏳ Válido por 15 minutos (Expira en: 15:00)
+        </div>
+
+        <div style="background: var(--purple-50); border: 1px solid var(--purple-200); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: var(--text-secondary);">
+          <span class="icon-slot text-purple" data-icon="shield"></span> 
+          <span><strong>Protección activa:</strong> Si otro jugador intenta usar este código será bloqueado. Solo tú puedes autorizarlo desde tu cuenta.</span>
+        </div>
+
+        <button class="cat-btn" onclick="backToAuthStep1()">Cambiar Gamertag</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: CONFIRMACIÓN DE CIERRE DE SESIÓN ────────────────── -->
+  <div class="modal-backdrop" id="modal-confirm-logout">
+    <div class="modal-card" style="max-width: 440px; text-align: center;">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem; color: var(--accent-rose);">
+          <span class="icon-slot text-rose" data-icon="shield"></span> Cerrar Sesión
+        </h3>
+        <button class="modal-close" onclick="closeConfirmLogoutModal()">
+          <span class="icon-slot" data-icon="x"></span>
+        </button>
+      </div>
+      <p class="text-secondary" style="font-size: 0.95rem; margin-bottom: 1.25rem; line-height: 1.5;">
+        ¿Estás seguro de que deseas cerrar sesión de tu cuenta <strong class="text-purple" id="logout-target-name">Usuario</strong>?
+      </p>
+      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1.5rem;">
+        Para volver a ingresar tendrás que generar un nuevo código <code>/link</code> y ejecutarlo dentro del servidor de Minecraft.
+      </p>
+      <div style="display: flex; gap: 0.75rem; justify-content: center;">
+        <button class="cat-btn" onclick="closeConfirmLogoutModal()" style="flex: 1;">Cancelar</button>
+        <button class="btn-primary" id="btn-execute-confirmed-logout" style="flex: 1; background: var(--accent-rose); border-color: var(--accent-rose);">
+          <span class="icon-slot" data-icon="x"></span> Sí, Cerrar Sesión
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ── MODAL: PAGO BINANCE PAY / USDT QR (Con Dropzone) ────────── -->
+  <div class="modal-backdrop" id="modal-binance-pay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+          <span class="icon-slot text-gold" data-icon="qr"></span> Pago con Binance Pay / USDT
+        </h3>
+        <button class="modal-close" onclick="closeBinanceModal()">
+          <span class="icon-slot" data-icon="x"></span>
+        </button>
+      </div>
+
+      <div class="qr-box-container">
+        <img id="binance-qr-img" class="qr-img" src="/uploads/default_qr.svg" alt="QR Binance">
+        <div class="text-secondary" style="font-size: 0.85rem; font-weight: 600;" id="binance-instruction-text">Transfiere el monto exacto vía Binance Pay ID o USDT.</div>
+        
+        <div class="copy-field">
+          <span style="font-size: 0.825rem; font-weight: 600; color: var(--text-secondary);">Binance Pay ID:</span>
+          <span class="mono text-purple" style="font-weight: 800;" id="binance-pay-id-val">847291039</span>
+          <button class="btn-copy" onclick="copyText(document.getElementById('binance-pay-id-val').innerText)">
+            <span class="icon-slot" data-icon="copy"></span>
+          </button>
+        </div>
+
+        <div class="copy-field">
+          <span style="font-size: 0.825rem; font-weight: 600; color: var(--text-secondary);">Monto a Pagar:</span>
+          <span class="mono text-cyan" style="font-weight: 800;" id="binance-order-amount">$0.00 USDT</span>
+        </div>
+      </div>
+
+      <form id="form-binance-receipt">
+        <input type="hidden" id="binance-selected-item-id">
+        <div class="form-group">
+          <label class="form-label">Tu Gamertag de Minecraft</label>
+          <input type="text" id="binance-input-username" class="form-input" placeholder="Gamertag..." required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">TXID / ID de Transacción Binance</label>
+          <input type="text" id="binance-input-txid" class="form-input" placeholder="Ej. 28491028491829" required>
+        </div>
+
+        <!-- Zona Drag & Drop para Comprobante -->
+        <div class="form-group">
+          <label class="form-label">Comprobante de Pago (Captura)</label>
+          <div class="file-upload-dropzone" id="binance-receipt-dropzone">
+            <input type="file" id="binance-input-file" accept="image/*" required>
+            <div class="dropzone-icon">
+              <span class="icon-slot" data-icon="upload"></span>
+            </div>
+            <div style="font-weight: 700; color: var(--accent-purple);" id="dropzone-label-title">Haz clic o arrastra tu comprobante aquí</div>
+            <div class="text-muted" style="font-size: 0.775rem; margin-top: 2px;">Formatos soportados: JPG, PNG, WEBP (Máx. 10MB)</div>
+          </div>
+
+          <div class="file-preview-box" id="binance-file-preview-box">
+            <img id="binance-preview-img" class="file-preview-img" src="" alt="Previa">
+            <div style="flex: 1; overflow: hidden;">
+              <div id="binance-preview-name" class="mono" style="font-size: 0.825rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">archivo.png</div>
+              <div id="binance-preview-size" class="text-muted" style="font-size: 0.75rem;">0 KB</div>
+            </div>
+            <button type="button" class="modal-close" onclick="clearReceiptPreview()">
+              <span class="icon-slot" data-icon="x"></span>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem; height: 48px;">
+          <span class="icon-slot" data-icon="upload"></span> Enviar Comprobante para Aprobación
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── MODAL: PUBLICAR ÍTEM EN MERCADO P2P ─────────────────────── -->
+  <div class="modal-backdrop" id="modal-p2p-list">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+          <span class="icon-slot text-purple" data-icon="plus"></span> Publicar Ítem en Mercado P2P
+        </h3>
+        <button class="modal-close" onclick="closeP2pModal()">
+          <span class="icon-slot" data-icon="x"></span>
+        </button>
+      </div>
+      <form id="form-p2p-list">
+        <div class="form-group">
+          <label class="form-label">Título del Anuncio</label>
+          <input type="text" id="p2p-title" class="form-input" placeholder="Ej. Espada Netherite Filo V" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ID Técnico del Ítem</label>
+          <input type="text" id="p2p-item-type" class="form-input" placeholder="Ej. minecraft:netherite_sword" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cantidad</label>
+          <input type="number" id="p2p-qty" class="form-input" value="1" min="1" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio en Nodocoins</label>
+          <input type="number" id="p2p-price" class="form-input" placeholder="Ej. 1500" min="1" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción</label>
+          <input type="text" id="p2p-desc" class="form-input" placeholder="Detalles de encantamientos o durabilidad...">
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1.25rem; height: 46px;">
+          <span class="icon-slot" data-icon="check"></span> Publicar en el Mercado
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/js/icons.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
