@@ -193,7 +193,7 @@ function setupAuthEvents() {
         pendingAuthUsername = username.toLowerCase();
         pendingAuthCode = data.code;
         document.getElementById("auth-target-player-name").innerText = username;
-        document.getElementById("auth-generated-code").innerText = `/link ${data.code}`;
+        document.getElementById("auth-generated-code").innerText = `/nodowa:link ${data.code}`;
         document.getElementById("auth-step-1").style.display = "none";
         document.getElementById("auth-step-2").style.display = "block";
         

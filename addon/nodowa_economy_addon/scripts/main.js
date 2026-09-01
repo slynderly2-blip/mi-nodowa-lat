@@ -275,53 +275,64 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     }
   };
 
-  safeReg({
-    name: "nodowa:menu",
-    description: "Abre el menú de economía de Nodowa",
-    permissionLevel: CommandPermissionLevel.Any,
-    cheatsRequired: false
-  }, (p) => openMainMenu(p));
+  // Comandos con prefijo nodowa: y alias directos link:link, menu:menu, etc.
+  const commandsToRegister = [
+    { name: "nodowa:menu", desc: "Abre el menú de economía de Nodowa", fn: (p) => openMainMenu(p) },
+    { name: "menu:menu", desc: "Abre el menú de economía", fn: (p) => openMainMenu(p) },
+    
+    { name: "nodowa:saldo", desc: "Consulta tu saldo actual de Nodocoins", fn: (p) => showBalance(p) },
+    { name: "saldo:saldo", desc: "Consulta tu saldo actual de Nodocoins", fn: (p) => showBalance(p) },
+    
+    { name: "nodowa:bal", desc: "Consulta tu saldo de Nodocoins", fn: (p) => showBalance(p) },
+    { name: "bal:bal", desc: "Consulta tu saldo de Nodocoins", fn: (p) => showBalance(p) },
 
-  safeReg({
-    name: "nodowa:saldo",
-    description: "Consulta tu saldo actual de Nodocoins",
-    permissionLevel: CommandPermissionLevel.Any,
-    cheatsRequired: false
-  }, (p) => showBalance(p));
+    { name: "nodowa:buzon", desc: "Revisa tus entregas de la tienda web", fn: (p) => checkDeliveries(p) },
+    { name: "buzon:buzon", desc: "Revisa tus entregas de la tienda web", fn: (p) => checkDeliveries(p) },
 
-  safeReg({
-    name: "nodowa:bal",
-    description: "Consulta tu saldo de Nodocoins",
-    permissionLevel: CommandPermissionLevel.Any,
-    cheatsRequired: false
-  }, (p) => showBalance(p));
+    { 
+      name: "nodowa:link", 
+      desc: "Vincula tu cuenta con la web", 
+      params: [{ name: "codigo", type: CustomCommandParamType.String }],
+      fn: (p, [code]) => handleLinkCode(p, code)
+    },
+    { 
+      name: "link:link", 
+      desc: "Vincula tu cuenta con la web", 
+      params: [{ name: "codigo", type: CustomCommandParamType.String }],
+      fn: (p, [code]) => handleLinkCode(p, code)
+    },
 
-  safeReg({
-    name: "nodowa:buzon",
-    description: "Revisa tus entregas de la tienda web",
-    permissionLevel: CommandPermissionLevel.Any,
-    cheatsRequired: false
-  }, (p) => checkDeliveries(p));
+    { 
+      name: "nodowa:pagar", 
+      desc: "Paga Nodocoins a un jugador", 
+      params: [
+        { name: "jugador", type: CustomCommandParamType.String },
+        { name: "cantidad", type: CustomCommandParamType.Integer }
+      ],
+      fn: (p, [target, amount]) => handlePayCommand(p, target, amount)
+    },
+    { 
+      name: "pagar:pagar", 
+      desc: "Paga Nodocoins a un jugador", 
+      params: [
+        { name: "jugador", type: CustomCommandParamType.String },
+        { name: "cantidad", type: CustomCommandParamType.Integer }
+      ],
+      fn: (p, [target, amount]) => handlePayCommand(p, target, amount)
+    }
+  ];
 
-  safeReg({
-    name: "nodowa:link",
-    description: "Vincula tu cuenta con la web",
-    permissionLevel: CommandPermissionLevel.Any,
-    cheatsRequired: false,
-    mandatoryParameters: [{ name: "codigo", type: CustomCommandParamType.String }]
-  }, (p, [code]) => handleLinkCode(p, code));
-
-  safeReg({
-    name: "nodowa:pagar",
-    description: "Paga Nodocoins a un jugador",
-    permissionLevel: CommandPermissionLevel.Any,
-    cheatsRequired: false,
-    mandatoryParameters: [
-      { name: "jugador", type: CustomCommandParamType.String },
-      { name: "cantidad", type: CustomCommandParamType.Integer }
-    ]
-  }, (p, [target, amount]) => handlePayCommand(p, target, amount));
+  for (const c of commandsToRegister) {
+    safeReg({
+      name: c.name,
+      description: c.desc,
+      permissionLevel: CommandPermissionLevel.Any,
+      cheatsRequired: false,
+      ...(c.params ? { mandatoryParameters: c.params } : {})
+    }, c.fn);
+  }
 });
+
 
 // ── Captura Opcional de Chat (Solo si antes de eventos existe) ────
 if (world.beforeEvents && typeof world.beforeEvents.chatSend?.subscribe === "function") {
