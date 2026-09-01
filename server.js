@@ -316,11 +316,6 @@ app.post("/api/auth/logout", (req, res) => {
   res.json({ ok: true, message: "Sesión cerrada correctamente" });
 });
 
-  saveDb();
-
-  res.json({ ok: true, code, expiresAt: db.linkTokens[code].expiresAt });
-});
-
 // Login con PIN directo (si el usuario ya configuró un PIN)
 app.post("/api/auth/login-pin", (req, res) => {
   const { username, pin } = req.body;
