@@ -11,6 +11,9 @@ import {
 const WEB_DOMAIN = "tienda.nodowa.lat";
 const SCOREBOARD_NAME = "nodocoins";
 
+console.log("[NodowaEconomy] Plugin Nodowa Economy Connector v1.3.0 cargado.");
+
+
 // ── Inicializar Scoreboard ────────────────────────────────────
 system.run(() => {
   try {
@@ -270,6 +273,7 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
         system.run(() => fn(player, args));
         return { status: CustomCommandStatus.Success };
       });
+      console.log("[NodowaEconomy] Comando /" + def.name + " registrado.");
     } catch (e) {
       console.warn("[NodowaEconomy] skip " + def.name + ": " + e.message);
     }
