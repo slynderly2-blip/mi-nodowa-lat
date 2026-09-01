@@ -2,7 +2,7 @@
   "format_version": 2,
   "header": {
     "name": "Nodowa Economy Connector",
-    "description": "Conector de Economía, Tienda Web y Entregas para mi.nodowa.lat",
+    "description": "Conector de Economía, Tienda Web y Entregas para tienda.nodowa.lat",
     "uuid": "8e9b41a2-3f8c-4a92-b91c-7f5d6e8a1c90",
     "version": [1, 1, 0],
     "min_engine_version": [1, 21, 100]

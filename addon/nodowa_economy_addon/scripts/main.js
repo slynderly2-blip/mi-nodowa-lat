@@ -2,7 +2,7 @@ import { world, system, CommandPermissionLevel, CustomCommandParamType, CustomCo
 import { ActionFormData, ModalFormData, MessageFormData } from "@minecraft/server-ui";
 
 // ── Configuración ─────────────────────────────────────────────
-const WEB_DOMAIN = "mi.nodowa.lat";
+const WEB_DOMAIN = "tienda.nodowa.lat";
 const SCOREBOARD_NAME = "nodocoins";
 
 // ── Inicializar Scoreboard si no existe ────────────────────────

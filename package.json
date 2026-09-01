@@ -1,7 +1,7 @@
 {
   "name": "mi-nodowa-lat",
   "version": "1.0.0",
-  "description": "Plataforma Web de Economía, Tienda, Mercado P2P, Panel Admin Binance y Addon para Minecraft Bedrock (mi.nodowa.lat)",
+  "description": "Plataforma Web de Economía, Tienda, Mercado P2P, Panel Admin Binance y Addon para Minecraft Bedrock (tienda.nodowa.lat)",
   "main": "server.js",
   "type": "module",
   "scripts": {
