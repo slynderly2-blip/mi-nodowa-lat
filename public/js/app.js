@@ -236,8 +236,12 @@ function setupAuthEvents() {
   });
 }
 
+let authPollingInterval = null;
+
 function startAuthCountdown(expiresAt) {
   clearInterval(authCountdownInterval);
+  clearInterval(authPollingInterval);
+
   const timerElem = document.getElementById("auth-timer-countdown");
 
   authCountdownInterval = setInterval(() => {
@@ -252,9 +256,38 @@ function startAuthCountdown(expiresAt) {
 
     if (remaining <= 0) {
       clearInterval(authCountdownInterval);
+      clearInterval(authPollingInterval);
       if (timerElem) timerElem.innerText = `⚠️ El código expiró. Genera uno nuevo.`;
     }
   }, 1000);
+
+  // Sondeo cada 2.5 segundos por si el evento WebSocket se pierde
+  authPollingInterval = setInterval(async () => {
+    if (!pendingAuthCode || !pendingAuthUsername) return;
+
+    try {
+      const res = await fetch(`/api/auth/check-link-status?code=${pendingAuthCode}`);
+      const data = await res.json();
+      if (data.verified) {
+        clearInterval(authCountdownInterval);
+        clearInterval(authPollingInterval);
+        
+        // Re-validar perfil o refrescar usuario
+        const profRes = await fetch(`/api/user/profile?username=${encodeURIComponent(pendingAuthUsername)}`);
+        const profData = await profRes.json();
+        if (profData.ok && profData.user) {
+          currentUser = profData.user;
+          localStorage.setItem("nodowa_user", JSON.stringify(currentUser));
+          updateUserWidget();
+          loadUserProfile();
+          closeAuthModal();
+          showToast(`¡Sesión autorizada en Minecraft para ${currentUser.displayName || currentUser.username}!`, "success");
+          pendingAuthUsername = null;
+          pendingAuthCode = null;
+        }
+      }
+    } catch (_) {}
+  }, 2500);
 }
 
 function openAuthModal() {
@@ -267,13 +300,16 @@ function openAuthModal() {
 function closeAuthModal() {
   document.getElementById("modal-auth").classList.remove("active");
   clearInterval(authCountdownInterval);
+  clearInterval(authPollingInterval);
 }
 
 function backToAuthStep1() {
   document.getElementById("auth-step-1").style.display = "block";
   document.getElementById("auth-step-2").style.display = "none";
   clearInterval(authCountdownInterval);
+  clearInterval(authPollingInterval);
 }
+
 
 function openConfirmLogoutModal() {
   if (!currentUser) return;

@@ -344,6 +344,22 @@ app.post("/api/auth/verify-link", (req, res) => {
   res.json({ ok: true, username: user.username, sessionToken, user });
 });
 
+// Endpoint de sondeo (polling) para que la Web sepa cuando Minecraft verificó el código
+app.get("/api/auth/check-link-status", (req, res) => {
+  const code = req.query.code;
+  if (!code) return res.json({ verified: false });
+
+  // Si el código ya no está en linkTokens pero hay una sesión reciente creada para esa cuenta
+  const tokenData = db.linkTokens[code];
+  if (tokenData) {
+    return res.json({ verified: false, expiresAt: tokenData.expiresAt });
+  }
+
+  // El código ya no existe en linkTokens (fue consumido y verificado)
+  res.json({ verified: true });
+});
+
+
 
 
 
