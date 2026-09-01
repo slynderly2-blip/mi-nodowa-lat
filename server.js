@@ -265,6 +265,52 @@ app.post("/api/addon/sync-players", (req, res) => {
   res.json({ ok: true, synced });
 });
 
+// ── REST API Endpoints para Addon Bedrock (@minecraft/server-net) ──
+
+// Obtener entregas pendientes para un jugador o globales
+app.get("/api/addon/pending-deliveries", (req, res) => {
+  const player = (req.query.player || "").trim().toLowerCase();
+  const pendings = player
+    ? db.deliveries.filter(d => d.username.toLowerCase() === player && d.status === "PENDING")
+    : db.deliveries.filter(d => d.status === "PENDING");
+  res.json({ ok: true, deliveries: pendings });
+});
+
+// Confirmar entrega ejecutada exitosamente en Minecraft
+app.post("/api/addon/ack-delivery", (req, res) => {
+  const { deliveryId } = req.body;
+  if (!deliveryId) return res.status(400).json({ ok: false, error: "Falta deliveryId" });
+
+  const item = db.deliveries.find(d => d.id === deliveryId);
+  if (item) {
+    item.status = "DELIVERED";
+    item.deliveredAt = new Date().toISOString();
+    saveDb();
+    broadcastWs("DELIVERY_UPDATED", item);
+    return res.json({ ok: true, delivery: item });
+  }
+  res.status(404).json({ ok: false, error: "Entrega no encontrada" });
+});
+
+// Consultar saldo de jugador desde el addon
+app.get("/api/addon/get-balance", (req, res) => {
+  const player = (req.query.player || "").trim().toLowerCase();
+  if (!player) return res.status(400).json({ ok: false, error: "Falta el nombre del jugador" });
+  const user = getOrCreateUser(player);
+  res.json({ ok: true, username: user.username, wallet: user.wallet, bank: user.bank, total: user.wallet + user.bank });
+});
+
+// Sincronizar saldo de jugador (Scoreboard -> Web)
+app.post("/api/addon/sync-balance", (req, res) => {
+  const { player, balance } = req.body;
+  if (!player || balance === undefined) return res.status(400).json({ ok: false, error: "Parámetros inválidos" });
+  const user = getOrCreateUser(player);
+  user.wallet = Math.max(0, Number(balance));
+  saveDb();
+  broadcastWs("BALANCE_UPDATE", { username: user.username, wallet: user.wallet });
+  res.json({ ok: true, wallet: user.wallet });
+});
+
 // ── Rutas de Autenticación ─────────────────────────────────────
 
 // Solicitar código temporal de enlace (Válido 15 minutos y de un solo uso)
