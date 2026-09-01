@@ -207,34 +207,7 @@ function setupAuthEvents() {
     }
   });
 
-  document.getElementById("btn-confirm-link-code")?.addEventListener("click", async () => {
-    if (!pendingAuthUsername || !pendingAuthCode) return showToast("Genera un código primero", "error");
 
-    try {
-      const res = await fetch("/api/auth/confirm-link-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: pendingAuthCode, username: pendingAuthUsername })
-      });
-      const data = await res.json();
-      if (data.ok && data.sessionToken) {
-        currentUser = data.user;
-        localStorage.setItem("nodowa_session_token", data.sessionToken);
-        localStorage.setItem("nodowa_user", JSON.stringify(currentUser));
-        clearInterval(authCountdownInterval);
-        updateUserWidget();
-        loadUserProfile();
-        closeAuthModal();
-        showToast(`¡Sesión autorizada para ${currentUser.displayName || currentUser.username}!`, "success");
-        pendingAuthUsername = null;
-        pendingAuthCode = null;
-      } else {
-        showToast(data.error || "No se pudo verificar el código", "error");
-      }
-    } catch (e) {
-      showToast("Error de verificación", "error");
-    }
-  });
 
   document.getElementById("btn-copy-link-cmd")?.addEventListener("click", () => {
     const text = document.getElementById("auth-generated-code").innerText;

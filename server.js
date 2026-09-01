@@ -344,35 +344,7 @@ app.post("/api/auth/verify-link", (req, res) => {
   res.json({ ok: true, username: user.username, sessionToken, user });
 });
 
-// Endpoint para que la web confirme si ya se vinculó o forzar confirmación si es el titular
-app.post("/api/auth/confirm-link-code", (req, res) => {
-  const { code, username } = req.body;
-  if (!code || !username) return res.status(400).json({ ok: false, error: "Falta código o usuario" });
 
-  const tokenData = db.linkTokens[code];
-  const uname = username.trim().toLowerCase();
-
-  if (!tokenData || tokenData.username !== uname) {
-    return res.status(400).json({ ok: false, error: "Código no encontrado para esta cuenta" });
-  }
-
-  const user = getOrCreateUser(uname);
-  user.linked = true;
-  user.lastActive = new Date().toISOString();
-
-  if (!db.sessions) db.sessions = {};
-  const sessionToken = "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
-  db.sessions[sessionToken] = {
-    username: user.username,
-    createdAt: new Date().toISOString()
-  };
-
-  delete db.linkTokens[code];
-  saveDb();
-
-  broadcastWs("USER_LINKED", { username: user.username, sessionToken, user });
-  res.json({ ok: true, sessionToken, user });
-});
 
 
 // Login con PIN directo (si el usuario ya configuró un PIN)
