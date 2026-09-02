@@ -374,23 +374,25 @@ app.post("/api/addon/ack-delivery", (req, res) => {
   res.status(404).json({ ok: false, error: "Entrega no encontrada" });
 });
 
-// Consultar saldo de jugador desde el addon
+// Consultar saldo de jugador desde el addon (Web = Fuente Única de Verdad)
 app.get("/api/addon/get-balance", (req, res) => {
   const player = (req.query.player || "").trim().toLowerCase();
   if (!player) return res.status(400).json({ ok: false, error: "Falta el nombre del jugador" });
   const user = getOrCreateUser(player);
-  res.json({ ok: true, username: user.username, wallet: user.wallet, bank: user.bank, total: user.wallet + user.bank });
+  const safeWallet = Math.floor(user.wallet || 0);
+  const safeBank = Math.floor(user.bank || 0);
+
+  // NOTA: 'total' devuelve 'safeWallet' para que cualquier script antiguo de Minecraft lea SIEMPRE el saldo en mano
+  res.json({ ok: true, username: user.username, wallet: safeWallet, bank: safeBank, total: safeWallet });
 });
 
-// Sincronizar saldo de jugador (Scoreboard -> Web)
+// Sincronizar saldo de jugador (Web es la única autoridad, evita duplicaciones de addons antiguos)
 app.post("/api/addon/sync-balance", (req, res) => {
-  const { player, balance } = req.body;
-  if (!player || balance === undefined) return res.status(400).json({ ok: false, error: "Parámetros inválidos" });
+  const { player } = req.body;
+  if (!player) return res.status(400).json({ ok: false, error: "Parámetros inválidos" });
   const user = getOrCreateUser(player);
-  user.wallet = Math.max(0, Number(balance));
-  saveDb();
-  broadcastWs("BALANCE_UPDATE", { username: user.username, wallet: user.wallet });
-  res.json({ ok: true, wallet: user.wallet });
+  const safeWallet = Math.floor(user.wallet || 0);
+  res.json({ ok: true, wallet: safeWallet });
 });
 
 // ── Rutas de Autenticación ─────────────────────────────────────
