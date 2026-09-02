@@ -204,6 +204,9 @@ function setupAuthEvents() {
       if (data.ok) {
         pendingAuthUsername = username.toLowerCase();
         pendingAuthCode = data.code;
+        if (data.sessionToken) {
+          localStorage.setItem("nodowa_session_token", data.sessionToken);
+        }
         document.getElementById("auth-target-player-name").innerText = username;
         document.getElementById("auth-generated-code").innerText = `/link ${data.code}`;
         document.getElementById("auth-step-1").style.display = "none";

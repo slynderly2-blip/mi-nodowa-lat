@@ -146,6 +146,38 @@ function generateReceiptHash(from, to, amount, timestamp) {
   return "NODOWA-HASH-" + crypto.createHmac("sha256", secret).update(`${from}:${to}:${amount}:${timestamp}`).digest("hex").slice(0, 16).toUpperCase();
 }
 
+// ── Sistema de Intereses Bancarios Reales (1% Diario) ───────────
+function processBankInterest() {
+  const INTEREST_RATE = 0.01; // 1% diario
+  const now = Date.now();
+  let interestApplied = 0;
+
+  for (const uname in db.users) {
+    const user = db.users[uname];
+    if (user.bank && user.bank >= 100) {
+      const lastInterestTime = user.lastInterestAt ? new Date(user.lastInterestAt).getTime() : 0;
+      if (now - lastInterestTime >= 24 * 60 * 60 * 1000) {
+        const interestAmount = Math.floor(user.bank * INTEREST_RATE);
+        if (interestAmount > 0) {
+          user.bank += interestAmount;
+          user.lastInterestAt = new Date().toISOString();
+          interestApplied++;
+          logTransaction("BANCO_CENTRAL", user.displayName || user.username, interestAmount, "BANK_INTEREST", `Interés diario del banco (1%)`);
+          broadcastWs("BALANCE_UPDATE", { username: user.username, wallet: user.wallet, bank: user.bank });
+        }
+      }
+    }
+  }
+
+  if (interestApplied > 0) {
+    saveDb();
+    console.log(`[Banco] Intereses del 1% aplicados a ${interestApplied} cuentas.`);
+  }
+}
+
+// Revisa intereses bancarios cada hora
+setInterval(processBankInterest, 60 * 60 * 1000);
+
 function logTransaction(from, to, amount, type, description) {
   const tx = {
     id: "tx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
@@ -358,18 +390,29 @@ app.post("/api/auth/request-link", (req, res) => {
   const uname = rawName.toLowerCase();
   const user = getOrCreateUser(uname);
 
-  // Generar código aleatorio limpio (ej: 428173 o letras/números)
+  // Generar código aleatorio limpio y token de sesión pre-asociado
   const code = Math.floor(100000 + Math.random() * 900000).toString();
+  if (!db.sessions) db.sessions = {};
+  const sessionToken = "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+
+  db.sessions[sessionToken] = {
+    username: user.username,
+    pending: true, // Pendiente hasta que ejecute /link en Minecraft
+    createdAt: new Date().toISOString()
+  };
+
   db.linkTokens[code] = {
     username: uname,
     displayName: rawName,
-    expiresAt: Date.now() + 15 * 60 * 1000 // 15 minutos exactos
+    sessionToken,
+    expiresAt: Date.now() + 15 * 60 * 1000 // 15 minutos
   };
   saveDb();
 
   res.json({ 
     ok: true, 
-    code, 
+    code,
+    sessionToken,
     expiresInMinutes: 15,
     expiresAt: db.linkTokens[code].expiresAt,
     instruction: `Entra al servidor de Minecraft con la cuenta "${rawName}" y escribe: /link ${code}`
@@ -395,7 +438,6 @@ app.post("/api/auth/verify-link", (req, res) => {
   const executingPlayer = player.trim().toLowerCase();
   const targetPlayer = tokenData.username.trim().toLowerCase();
 
-  // Validación estricta de identidad: Solo el dueño de la cuenta puede ejecutarlo
   if (executingPlayer !== targetPlayer) {
     return res.status(403).json({
       ok: false,
@@ -409,21 +451,20 @@ app.post("/api/auth/verify-link", (req, res) => {
   user.displayName = player || user.displayName;
   user.lastActive = new Date().toISOString();
 
-  // Generar Token de Sesión Persistente
+  // Activar la sesión pre-generada para este dispositivo/navegador
+  const sessionToken = tokenData.sessionToken || ("sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10));
   if (!db.sessions) db.sessions = {};
-  const sessionToken = "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
   db.sessions[sessionToken] = {
     username: user.username,
+    pending: false,
     createdAt: new Date().toISOString()
   };
 
   delete db.linkTokens[code];
   saveDb();
 
-  // Transmitir evento en tiempo real a la Web
-  broadcastWs("USER_LINKED", { username: user.username, sessionToken, user });
-
-  res.json({ ok: true, username: user.username, sessionToken, user });
+  broadcastWs("USER_LINKED", { username: user.username, user, sessionToken });
+  res.json({ ok: true, message: `Cuenta "${user.displayName}" vinculada exitosamente.`, user, sessionToken });
 });
 
 // Endpoint de sondeo (polling) para que la Web sepa cuando Minecraft verificó el código
