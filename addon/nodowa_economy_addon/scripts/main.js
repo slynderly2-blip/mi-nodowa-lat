@@ -375,7 +375,7 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
   });
 
   reg("eco:link", "Vincula tu cuenta con la web (/link <código>)", [
-    { name: "codigo", type: CustomCommandParamType.String }
+    { name: "codigo", type: CustomCommandParamType.Integer }
   ], (o, codigo) => {
     return runForPlayerName(o, (p) => handleLinkCode(p, codigo));
   });
@@ -391,7 +391,7 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     return runForPlayerName(o, (p) => checkDeliveriesForPlayer(p));
   });
 
-  console.log("[NodowaEconomy] v3.2.2 — Comandos /eco:* y chat (/pagar, /saldo, /link) ultra-estables.");
+  console.log("[NodowaEconomy] v3.2.3 — /link acepta código numérico sin comillas.");
 });
 
 // ── Captura de Chat Nacio/Universal (/pagar, /saldo, /link, !pagar, !saldo, !link) ──
