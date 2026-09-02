@@ -476,9 +476,21 @@ async function loadAdminPlayers() {
     const res = await fetch("/api/admin/players", {
       headers: { "x-admin-token": adminToken }
     });
-    const data = await res.json();
 
-    if (!data.ok || !data.players || data.players.length === 0) {
+    let data;
+    try {
+      data = await res.json();
+    } catch (jsonErr) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose);">Error: Respuesta inválida del servidor (status ${res.status})</td></tr>`;
+      return;
+    }
+
+    if (!res.ok || !data.ok) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose);">Error del servidor: ${data.error || res.status}</td></tr>`;
+      return;
+    }
+
+    if (!data.players || data.players.length === 0) {
       tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2rem;">No hay jugadores registrados aún.</td></tr>`;
       return;
     }
@@ -511,8 +523,8 @@ async function loadAdminPlayers() {
     }).join("");
 
     renderIcons(tbody);
-  } catch (_) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose);">Error cargando jugadores.</td></tr>`;
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose);">Error de red: ${err.message}</td></tr>`;
   }
 }
 
