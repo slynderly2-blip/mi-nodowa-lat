@@ -135,16 +135,36 @@ async function checkDeliveriesForPlayer(player, notifyEmpty = true) {
     if (res && res.ok && Array.isArray(res.deliveries) && res.deliveries.length > 0) {
       let count = 0;
       for (const del of res.deliveries) {
+        const cmdsToRun = [];
+        if (typeof del.command === "string" && del.command.trim()) {
+          cmdsToRun.push(del.command);
+        }
         if (Array.isArray(del.commands)) {
-          for (const cmd of del.commands) {
-            const finalCmd = cmd.replace(/\{player\}/g, player.name);
-            world.getDimension("overworld").runCommandAsync(finalCmd);
+          for (const c of del.commands) {
+            if (typeof c === "string" && c.trim()) cmdsToRun.push(c);
           }
         }
+
+        for (const cmd of cmdsToRun) {
+          const cleanCmd = cmd.trim();
+          const finalCmd = cleanCmd.replace(/\{player\}/g, `"${player.name}"`);
+          const cmdToExec = finalCmd.startsWith("/") ? finalCmd.slice(1) : finalCmd;
+          
+          try {
+            await player.runCommandAsync(cmdToExec);
+          } catch (e1) {
+            try {
+              await world.getDimension("overworld").runCommandAsync(cmdToExec);
+            } catch (e2) {
+              console.warn(`[NodowaEconomy] Error ejecutando comando de entrega "${cmdToExec}":`, e2);
+            }
+          }
+        }
+
         await httpPost(`${BACKEND_URL}/api/addon/ack-delivery`, { deliveryId: del.id });
         count++;
       }
-      player.sendMessage(`§a✓ ¡Se han reclamado §e${count} §eentregas de la tienda web!`);
+      player.sendMessage(`§a✓ ¡Se han entregado §e${count} §ecompras de la tienda web!`);
       try { player.playSound("random.levelup", { volume: 1.0, pitch: 1.0 }); } catch (_) {}
       await syncWebBalance(player);
       return;
