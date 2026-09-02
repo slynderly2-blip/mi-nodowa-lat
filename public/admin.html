@@ -156,6 +156,9 @@
           <button class="admin-nav-btn" data-admin-tab="players">
             <span class="icon-slot" data-icon="user"></span> Balances de Jugadores
           </button>
+          <button class="admin-nav-btn" data-admin-tab="reports">
+            <span class="icon-slot" data-icon="shield"></span> Reportes Anti-Estafas
+          </button>
         </aside>
 
         <!-- Contenido Central -->
@@ -296,6 +299,36 @@
                   <span class="icon-slot" data-icon="check"></span> Aplicar Balance
                 </button>
               </form>
+            </div>
+          <!-- ── SUBTAB: REPORTES ANTI-ESTAFAS ────────────────────── -->
+          <div class="admin-tab-view" id="admin-view-reports">
+            <div class="section-header">
+              <div class="section-title">
+                <span class="icon-slot text-rose" data-icon="shield"></span>
+                <h2>Reportes de Usuarios & Estafas</h2>
+              </div>
+              <button class="cat-btn" onclick="loadAdminReports()">
+                <span class="icon-slot" data-icon="refresh"></span> Recargar Reportes
+              </button>
+            </div>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Denunciante</th>
+                    <th>Acusado</th>
+                    <th>Motivo</th>
+                    <th>Detalles & Pruebas</th>
+                    <th>Estado</th>
+                    <th>Acción Admin</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-reports-table-body">
+                  <!-- Llenado dinámicamente -->
+                </tbody>
+              </table>
             </div>
           </div>
 

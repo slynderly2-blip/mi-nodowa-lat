@@ -91,6 +91,7 @@ function setupAdminTabs() {
       if (target === "orders") loadAdminOrders();
       if (target === "qr") loadAdminQrConfig();
       if (target === "catalog") loadAdminCatalog();
+      if (target === "reports") loadAdminReports();
     });
   });
 }
@@ -446,6 +447,77 @@ function setupPlayerBalanceForm() {
       showAdminToast("Error en la solicitud", "error");
     }
   });
+}
+
+// ── Gestión de Reportes Anti-Estafas ───────────────────────────
+async function loadAdminReports() {
+  const tbody = document.getElementById("admin-reports-table-body");
+  if (!tbody) return;
+
+  try {
+    const res = await fetch("/api/admin/reports", {
+      headers: { "x-admin-token": adminToken }
+    });
+    const data = await res.json();
+    if (!data.ok || !data.reports || data.reports.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay reportes de estafas registrados.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.reports.map(r => `
+      <tr>
+        <td class="mono text-muted" style="font-size: 0.8rem;">${new Date(r.createdAt).toLocaleString("es-ES")}</td>
+        <td><strong class="text-purple">${r.reporter}</strong></td>
+        <td><strong class="text-rose">${r.targetUser}</strong></td>
+        <td><span class="badge" style="background: var(--purple-100); color: var(--purple-800);">${r.reason}</span></td>
+        <td style="max-width: 250px;">
+          <div>${r.description}</div>
+          ${r.proof ? `<div class="mono text-muted" style="font-size: 0.75rem; margin-top: 4px;">Evidencia: ${r.proof}</div>` : ''}
+        </td>
+        <td>
+          <span class="badge" style="background: ${r.status === 'OPEN' ? '#fee2e2' : '#dcfce7'}; color: ${r.status === 'OPEN' ? '#991b1b' : '#166534'};">
+            ${r.status === 'OPEN' ? 'PENDIENTE' : 'RESUELTO'}
+          </span>
+        </td>
+        <td>
+          ${r.status === 'OPEN' ? `
+            <button class="cat-btn" style="background: var(--accent-emerald); color: #fff;" onclick="resolveAdminReport('${r.id}', 'RESOLVED')">
+              <span class="icon-slot" data-icon="check"></span> Resolver
+            </button>
+          ` : `<span class="text-muted" style="font-size: 0.8rem;">${r.adminNote || 'Atendido'}</span>`}
+        </td>
+      </tr>
+    `).join("");
+
+    renderIcons(tbody);
+  } catch (_) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--accent-rose);">Error cargando reportes.</td></tr>`;
+  }
+}
+
+async function resolveAdminReport(reportId, status) {
+  const note = prompt("Nota administrativa o resolución:", "Reporte revisado y resuelto por administración");
+  if (note === null) return;
+
+  try {
+    const res = await fetch("/api/admin/reports/resolve", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-token": adminToken
+      },
+      body: JSON.stringify({ reportId, status, note })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showAdminToast("Reporte resuelto correctamente", "success");
+      loadAdminReports();
+    } else {
+      showAdminToast(data.error || "No se pudo resolver el reporte", "error");
+    }
+  } catch (_) {
+    showAdminToast("Error en la solicitud", "error");
+  }
 }
 
 function showAdminToast(message, type = "info") {

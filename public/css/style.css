@@ -936,12 +936,151 @@ tr:hover td { background: var(--purple-50); }
   to { transform: translateX(0); opacity: 1; }
 }
 
+}
+
+/* ── TikTok Mobile Bottom Navigation Bar (< 768px) ────────────── */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1.5px solid var(--purple-100);
+  z-index: 1500;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08);
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 0.5rem;
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex: 1;
+}
+
+.mobile-nav-item svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--text-muted);
+  transition: stroke var(--transition-fast);
+}
+
+.mobile-nav-item.active {
+  color: var(--accent-purple);
+}
+
+.mobile-nav-item.active svg {
+  stroke: var(--accent-purple);
+}
+
+/* ── Botones de Contacto WhatsApp y Discord ──────────────────── */
+.btn-whatsapp {
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  color: #ffffff !important;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.65rem 1.1rem;
+  font-weight: 800;
+  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.btn-whatsapp:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 211, 102, 0.35);
+}
+
+.btn-discord {
+  background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+  color: #ffffff !important;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.65rem 1.1rem;
+  font-weight: 800;
+  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.25);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.btn-discord:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(88, 101, 242, 0.35);
+}
+
+/* ── Comprobante Oficial Digital No Falsificable ─────────────── */
+.official-receipt-card {
+  background: linear-gradient(135deg, #ffffff 0%, #fbfbfe 100%);
+  border: 2px solid var(--purple-200);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  box-shadow: 0 12px 36px rgba(124, 58, 237, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.receipt-verified-watermark {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+  color: #166534;
+  font-size: 0.775rem;
+  font-weight: 900;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.receipt-hash-box {
+  background: var(--purple-50);
+  border: 1.5px dashed var(--purple-300);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  margin: 1.25rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  word-break: break-all;
+  color: var(--purple-900);
+}
+
 /* ── Responsive Adaptations ──────────────────────────────────── */
 @media (max-width: 900px) {
   .header { padding: 0.85rem 1.25rem; }
   .header-inner { flex-direction: column; align-items: stretch; gap: 1rem; }
-  .nav-tabs { overflow-x: auto; width: 100%; justify-content: flex-start; }
-  .main-container { padding: 0 1.25rem 4rem 1.25rem; }
+  .nav-tabs { display: none; } /* Ocultar tabs superiores en movil */
+  .mobile-bottom-nav { display: flex; } /* Mostrar TikTok Nav Bar */
+  .main-container { padding: 0 1rem 5.5rem 1rem; }
   .hero-banner { flex-direction: column; align-items: flex-start; gap: 1.75rem; padding: 1.75rem; }
   .hero-stats { width: 100%; flex-direction: column; gap: 0.85rem; }
   .stat-box { width: 100%; }

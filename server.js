@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 import { WebSocketServer, WebSocket } from "ws";
 import multer from "multer";
 import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -138,6 +139,11 @@ function getOrCreateUser(username) {
     saveDb();
   }
   return db.users[uname];
+}
+
+function generateReceiptHash(from, to, amount, timestamp) {
+  const secret = "nodowa_network_official_key_2026";
+  return "NODOWA-HASH-" + crypto.createHmac("sha256", secret).update(`${from}:${to}:${amount}:${timestamp}`).digest("hex").slice(0, 16).toUpperCase();
 }
 
 function logTransaction(from, to, amount, type, description) {
@@ -496,12 +502,18 @@ app.get("/api/players/registry", (req, res) => {
 });
 
 
-// Transferencias P2P entre usuarios
+// Transferencias P2P entre usuarios con Comprobante Oficial No Falsificable
 app.post("/api/wallet/transfer", (req, res) => {
   const { from, to, amount } = req.body;
   const numAmount = Number(amount);
   if (!from || !to || isNaN(numAmount) || numAmount <= 0) {
     return res.status(400).json({ ok: false, error: "Datos de transferencia inválidos" });
+  }
+
+  const receiverName = to.trim().toLowerCase();
+  const receiverUser = db.users[receiverName];
+  if (!receiverUser) {
+    return res.status(404).json({ ok: false, error: `El jugador "${to}" no existe en el sistema Nodowa. Verifica el Gamertag.` });
   }
 
   const sender = getOrCreateUser(from);
@@ -518,14 +530,34 @@ app.post("/api/wallet/transfer", (req, res) => {
   sender.wallet -= numAmount;
   receiver.wallet += numAmount;
   
-  const tx = logTransaction(sender.displayName || sender.username, receiver.displayName || receiver.username, numAmount, "TRANSFER", `Transferencia P2P de ${numAmount} ${db.config.currencyName}`);
+  const nowIso = new Date().toISOString();
+  const receiptId = "REC-" + Date.now().toString().slice(-6) + Math.floor(100 + Math.random() * 900);
+  const securityHash = generateReceiptHash(sender.username, receiver.username, numAmount, nowIso);
+
+  const receipt = {
+    receiptId,
+    securityHash,
+    from: sender.displayName || sender.username,
+    to: receiver.displayName || receiver.username,
+    amount: numAmount,
+    timestamp: nowIso,
+    status: "VERIFIED"
+  };
+
+  if (!db.receipts) db.receipts = [];
+  db.receipts.unshift(receipt);
+  if (db.receipts.length > 500) db.receipts.pop();
+
+  const tx = logTransaction(sender.displayName || sender.username, receiver.displayName || receiver.username, numAmount, "TRANSFER", `Transferencia P2P [Recibo #${receiptId}]`);
+  tx.receipt = receipt;
+
   saveDb();
 
   broadcastWs("TRANSACTION", tx);
   broadcastWs("BALANCE_UPDATE", { username: sender.username, wallet: sender.wallet });
   broadcastWs("BALANCE_UPDATE", { username: receiver.username, wallet: receiver.wallet });
 
-  res.json({ ok: true, tx, senderWallet: sender.wallet });
+  res.json({ ok: true, tx, receipt, senderWallet: sender.wallet });
 });
 
 // Depósito / Retiro en Banco
@@ -682,8 +714,8 @@ app.get("/api/market/listings", (req, res) => {
   res.json({ ok: true, listings: db.p2pMarket });
 });
 
-app.post("/api/market/list", (req, res) => {
-  const { seller, title, itemType, price, quantity, description } = req.body;
+app.post("/api/market/list", upload.single("image"), (req, res) => {
+  const { seller, title, itemType, price, quantity, description, whatsapp, discord } = req.body;
   const numPrice = Number(price);
   const numQty = Number(quantity || 1);
 
@@ -699,14 +731,102 @@ app.post("/api/market/list", (req, res) => {
     price: numPrice,
     quantity: numQty,
     description: description ? description.trim() : "",
+    whatsapp: whatsapp ? whatsapp.trim() : null,
+    discord: discord ? discord.trim() : null,
+    imageUrl: req.file ? `/uploads/receipts/${req.file.filename}` : null,
     createdAt: new Date().toISOString()
   };
 
+  if (!db.p2pMarket) db.p2pMarket = [];
   db.p2pMarket.unshift(listing);
   saveDb();
 
   broadcastWs("P2P_NEW", listing);
   res.json({ ok: true, listing });
+});
+
+// Editar publicación P2P
+app.post("/api/market/edit", (req, res) => {
+  const { listingId, seller, title, price, quantity, description, whatsapp, discord } = req.body;
+  const listing = (db.p2pMarket || []).find(l => l.id === listingId);
+  if (!listing) return res.status(404).json({ ok: false, error: "Publicación no encontrada" });
+
+  if (listing.seller.toLowerCase() !== seller.trim().toLowerCase()) {
+    return res.status(403).json({ ok: false, error: "No tienes permiso para editar esta publicación" });
+  }
+
+  if (title) listing.title = title.trim();
+  if (price && Number(price) > 0) listing.price = Number(price);
+  if (quantity && Number(quantity) > 0) listing.quantity = Number(quantity);
+  if (description !== undefined) listing.description = description.trim();
+  if (whatsapp !== undefined) listing.whatsapp = whatsapp.trim();
+  if (discord !== undefined) listing.discord = discord.trim();
+
+  saveDb();
+  broadcastWs("P2P_UPDATED", listing);
+  res.json({ ok: true, listing });
+});
+
+// Eliminar publicación P2P
+app.post("/api/market/delete", (req, res) => {
+  const { listingId, seller } = req.body;
+  const idx = (db.p2pMarket || []).findIndex(l => l.id === listingId);
+  if (idx < 0) return res.status(404).json({ ok: false, error: "Publicación no encontrada" });
+
+  const listing = db.p2pMarket[idx];
+  const isAdmin = req.headers["x-admin-token"] === db.config.adminPassword;
+  if (listing.seller.toLowerCase() !== seller.trim().toLowerCase() && !isAdmin) {
+    return res.status(403).json({ ok: false, error: "No tienes permiso para eliminar esta publicación" });
+  }
+
+  db.p2pMarket.splice(idx, 1);
+  saveDb();
+  broadcastWs("P2P_DELETED", { listingId });
+  res.json({ ok: true, message: "Publicación eliminada correctamente" });
+});
+
+// ── Rutas de Reportes Anti-Estafas ──────────────────────────────
+app.post("/api/reports/create", (req, res) => {
+  const { reporter, targetUser, reason, description, proof } = req.body;
+  if (!reporter || !targetUser || !reason) {
+    return res.status(400).json({ ok: false, error: "Faltan campos obligatorios para enviar el reporte" });
+  }
+
+  const report = {
+    id: "rep_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+    reporter: reporter.trim(),
+    targetUser: targetUser.trim(),
+    reason: reason.trim(),
+    description: description ? description.trim() : "",
+    proof: proof ? proof.trim() : "",
+    status: "OPEN",
+    createdAt: new Date().toISOString()
+  };
+
+  if (!db.reports) db.reports = [];
+  db.reports.unshift(report);
+  saveDb();
+
+  broadcastWs("NEW_REPORT", report);
+  res.json({ ok: true, message: "Reporte enviado al equipo de administración", report });
+});
+
+app.get("/api/admin/reports", checkAdminAuth, (req, res) => {
+  res.json({ ok: true, reports: db.reports || [] });
+});
+
+app.post("/api/admin/reports/resolve", checkAdminAuth, (req, res) => {
+  const { reportId, status, note } = req.body;
+  const report = (db.reports || []).find(r => r.id === reportId);
+  if (!report) return res.status(404).json({ ok: false, error: "Reporte no encontrado" });
+
+  report.status = status || "RESOLVED";
+  report.adminNote = note || "Procesado por administración";
+  report.resolvedAt = new Date().toISOString();
+  saveDb();
+
+  broadcastWs("REPORT_RESOLVED", report);
+  res.json({ ok: true, report });
 });
 
 app.post("/api/market/buy", (req, res) => {

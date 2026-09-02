@@ -591,7 +591,7 @@ function closeBinanceModal() {
 function setupP2pEvents() {
   document.getElementById("btn-open-list-item")?.addEventListener("click", () => {
     if (!currentUser) {
-      showToast("Inicia sesión para publicar en el mercado", "error");
+      showToast("Inicia sesión para publicar en el mercado P2P", "error");
       openAuthModal();
       return;
     }
@@ -603,27 +603,31 @@ function setupP2pEvents() {
     if (!currentUser) return;
 
     const title = document.getElementById("p2p-title").value.trim();
-    const itemType = document.getElementById("p2p-item-type").value.trim();
-    const quantity = document.getElementById("p2p-qty").value;
     const price = document.getElementById("p2p-price").value;
+    const quantity = document.getElementById("p2p-qty").value;
+    const whatsapp = document.getElementById("p2p-whatsapp").value.trim();
+    const discord = document.getElementById("p2p-discord").value.trim();
     const description = document.getElementById("p2p-desc").value.trim();
+    const imageFile = document.getElementById("p2p-image-file")?.files[0];
+
+    const formData = new FormData();
+    formData.append("seller", currentUser.displayName || currentUser.username);
+    formData.append("title", title);
+    formData.append("price", price);
+    formData.append("quantity", quantity);
+    if (whatsapp) formData.append("whatsapp", whatsapp);
+    if (discord) formData.append("discord", discord);
+    if (description) formData.append("description", description);
+    if (imageFile) formData.append("image", imageFile);
 
     try {
       const res = await fetch("/api/market/list", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          seller: currentUser.displayName || currentUser.username,
-          title,
-          itemType,
-          quantity,
-          price,
-          description
-        })
+        body: formData
       });
       const data = await res.json();
       if (data.ok) {
-        showToast("¡Ítem publicado con éxito en el mercado P2P!", "success");
+        showToast("¡Anuncio publicado con éxito en el Mercado P2P!", "success");
         closeP2pModal();
         document.getElementById("form-p2p-list").reset();
         loadP2pListings();
@@ -631,6 +635,41 @@ function setupP2pEvents() {
         showToast(data.error || "No se pudo publicar", "error");
       }
     } catch (err) {
+      showToast("Error de conexión", "error");
+    }
+  });
+
+  // Handler para enviar reportes anti-estafas
+  document.getElementById("form-submit-report")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+
+    const targetUser = document.getElementById("report-input-target-user").value;
+    const reason = document.getElementById("report-reason-select").value;
+    const description = document.getElementById("report-description").value.trim();
+    const proof = document.getElementById("report-proof").value.trim();
+
+    try {
+      const res = await fetch("/api/reports/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reporter: currentUser.displayName || currentUser.username,
+          targetUser,
+          reason,
+          description,
+          proof
+        })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showToast("¡Reporte enviado exitosamente a la administración!", "success");
+        closeReportModal();
+        document.getElementById("form-submit-report").reset();
+      } else {
+        showToast(data.error || "Error al enviar reporte", "error");
+      }
+    } catch (_) {
       showToast("Error de conexión", "error");
     }
   });
@@ -652,57 +691,144 @@ async function loadP2pListings() {
 
 function renderP2pCards(listings) {
   const grid = document.getElementById("p2p-items-grid");
-  if (!grid || !listings || listings.length === 0) return;
+  if (!grid) return;
 
-  grid.innerHTML = listings.map(l => `
-    <div class="p2p-card">
-      <div>
-        <div class="p2p-seller-info" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.85rem; color: var(--text-muted);">
-          <span class="icon-slot" data-icon="user"></span>
-          <span>Vendedor: <strong class="text-purple">${l.seller}</strong></span>
+  if (!listings || listings.length === 0) {
+    grid.innerHTML = `<div class="table-container" style="grid-column: 1/-1; padding: 2.5rem; text-align: center; color: var(--text-muted);">No hay anuncios en el mercado P2P. ¡Sé el primero en publicar un ítem!</div>`;
+    return;
+  }
+
+  const currentUname = currentUser ? (currentUser.displayName || currentUser.username).toLowerCase() : "";
+
+  grid.innerHTML = listings.map(l => {
+    const isOwner = currentUname && l.seller.toLowerCase() === currentUname;
+    const cleanWa = l.whatsapp ? l.whatsapp.replace(/[^0-9]/g, '') : null;
+
+    return `
+      <div class="p2p-card">
+        <div>
+          ${l.imageUrl ? `<img src="${l.imageUrl}" alt="${l.title}" style="width: 100%; height: 180px; object-fit: cover; border-radius: var(--radius-md); margin-bottom: 1rem;">` : ''}
+          
+          <div class="p2p-seller-info" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.85rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted);">
+              <span class="icon-slot" data-icon="user"></span>
+              <span>Vendedor: <strong class="text-purple">${l.seller}</strong></span>
+            </div>
+            ${!isOwner ? `
+              <button class="cat-btn" style="padding: 2px 8px; font-size: 0.75rem; color: var(--accent-rose);" onclick="openReportModal('${l.seller}')" title="Reportar este vendedor">
+                <span class="icon-slot" data-icon="shield"></span> Reportar
+              </button>
+            ` : ''}
+          </div>
+
+          <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">${l.title}</h3>
+          <p class="text-muted" style="font-size: 0.95rem; margin-bottom: 1.25rem;">${l.description || 'Sin detalles adicionales'}</p>
+
+          <!-- Botones de contacto WhatsApp y Discord -->
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem;">
+            ${cleanWa ? `
+              <a href="https://wa.me/${cleanWa}?text=${encodeURIComponent('Hola ' + l.seller + ', vi tu anuncio "' + l.title + '" en Nodowa Network por ' + l.price + ' NC.')}" target="_blank" class="btn-whatsapp">
+                📱 Contactar por WhatsApp
+              </a>
+            ` : ''}
+            ${l.discord ? `
+              <button type="button" class="btn-discord" onclick="copyText('${l.discord}'); showToast('Tag de Discord copiado: ${l.discord}', 'info');">
+                🎮 Discord: ${l.discord}
+              </button>
+            ` : ''}
+          </div>
         </div>
-        <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">${l.title}</h3>
-        <p class="text-muted" style="font-size: 0.95rem; margin-bottom: 1.25rem;">${l.description || 'Sin detalles adicionales'}</p>
-        <div class="mono text-muted" style="font-size: 0.8rem; margin-bottom: 1rem;">${l.itemType} (x${l.quantity || 1})</div>
+
+        <div class="card-footer">
+          <div class="price-coins mono" style="font-size: 1.25rem;">${l.price.toLocaleString()} NC</div>
+          ${isOwner ? `
+            <button class="btn-primary" style="background: var(--accent-rose-gradient);" onclick="deleteP2pListing('${l.id}')">
+              <span class="icon-slot" data-icon="x"></span> Eliminar
+            </button>
+          ` : `
+            <button class="btn-primary" onclick="openTransferWithTarget('${l.seller}', ${l.price})">
+              <span class="icon-slot" data-icon="wallet"></span> Pagar al Vendedor
+            </button>
+          `}
+        </div>
       </div>
-      <div class="card-footer">
-        <div class="price-coins mono">${l.price.toLocaleString()} NC</div>
-        <button class="btn-primary" onclick="buyP2pListing('${l.id}')">
-          <span class="icon-slot" data-icon="market"></span> Comprar
-        </button>
-      </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 
   renderIcons(grid);
 }
 
-async function buyP2pListing(listingId) {
+function openTransferWithTarget(targetUser, amount) {
   if (!currentUser) {
-    showToast("Inicia sesión para comprar en el mercado P2P", "error");
+    showToast("Inicia sesión para transferir monedas", "error");
     openAuthModal();
     return;
   }
+  
+  // Cambiar a tab de billetera
+  document.querySelector('[data-tab="wallet"]')?.click();
+  setTimeout(() => {
+    const inputTarget = document.getElementById("transfer-target");
+    const inputAmount = document.getElementById("transfer-amount");
+    if (inputTarget) inputTarget.value = targetUser;
+    if (inputAmount) inputAmount.value = amount;
+    inputTarget?.focus();
+    showToast(`Iniciando transferencia para ${targetUser}. Completa y presiona Enviar.`, "info");
+  }, 200);
+}
+
+async function deleteP2pListing(listingId) {
+  if (!currentUser || !confirm("¿Estás seguro de eliminar este anuncio del mercado P2P?")) return;
 
   try {
-    const res = await fetch("/api/market/buy", {
+    const res = await fetch("/api/market/delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ buyer: currentUser.username, listingId })
+      body: JSON.stringify({ listingId, seller: currentUser.displayName || currentUser.username })
     });
     const data = await res.json();
     if (data.ok) {
-      currentUser.wallet = data.newWallet;
-      updateUserWidget();
-      showToast(data.message, "success");
+      showToast("Anuncio eliminado del mercado P2P", "success");
       loadP2pListings();
-      loadUserProfile();
     } else {
-      showToast(data.error || "No se pudo comprar el ítem", "error");
+      showToast(data.error || "No se pudo eliminar", "error");
     }
-  } catch (e) {
-    showToast("Error en la transacción", "error");
+  } catch (_) {
+    showToast("Error de conexión", "error");
   }
+}
+
+function showOfficialReceipt(receipt) {
+  if (!receipt) return;
+  document.getElementById("receipt-modal-id").innerText = receipt.receiptId || "REC-000000";
+  document.getElementById("receipt-modal-from").innerText = receipt.from || "--";
+  document.getElementById("receipt-modal-to").innerText = receipt.to || "--";
+  document.getElementById("receipt-modal-amount").innerText = `${(receipt.amount || 0).toLocaleString()} NC`;
+  document.getElementById("receipt-modal-date").innerText = new Date(receipt.timestamp).toLocaleString("es-ES");
+  document.getElementById("receipt-modal-hash").innerText = receipt.securityHash || "NODOWA-HASH-OFFICIAL";
+
+  document.getElementById("modal-official-receipt").classList.add("active");
+  renderIcons(document.getElementById("modal-official-receipt"));
+}
+
+function closeReceiptModal() {
+  document.getElementById("modal-official-receipt").classList.remove("active");
+}
+
+function openReportModal(targetUser) {
+  if (!currentUser) {
+    showToast("Inicia sesión para enviar un reporte", "error");
+    openAuthModal();
+    return;
+  }
+  document.getElementById("report-input-target-user").value = targetUser;
+  document.getElementById("report-target-display").value = targetUser;
+  document.getElementById("modal-report-user").classList.add("active");
+  renderIcons(document.getElementById("modal-report-user"));
+}
+
+function closeReportModal() {
+  document.getElementById("modal-report-user").classList.remove("active");
 }
 
 // ── Billetera, Banco y Transferencias ───────────────────────────
@@ -781,6 +907,9 @@ function setupWalletEvents() {
         updateUserWidget();
         loadUserProfile();
         showToast(`¡Transferencia de ${amount} NC enviada a ${to}!`, "success");
+        if (data.receipt) {
+          showOfficialReceipt(data.receipt);
+        }
       } else {
         showToast(data.error || "Error en la transferencia", "error");
       }

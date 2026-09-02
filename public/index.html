@@ -452,7 +452,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3 style="display: flex; align-items: center; gap: 0.5rem;">
-          <span class="icon-slot text-purple" data-icon="plus"></span> Publicar Ítem en Mercado P2P
+          <span class="icon-slot text-purple" data-icon="plus"></span> Publicar Ítem en el Mercado P2P
         </h3>
         <button class="modal-close" onclick="closeP2pModal()">
           <span class="icon-slot" data-icon="x"></span>
@@ -460,31 +460,161 @@
       </div>
       <form id="form-p2p-list">
         <div class="form-group">
-          <label class="form-label">Título del Anuncio</label>
-          <input type="text" id="p2p-title" class="form-input" placeholder="Ej. Espada Netherite Filo V" required>
+          <label class="form-label">Título de la Publicación</label>
+          <input type="text" id="p2p-title" class="form-input" placeholder="Ej. Espada Netherite Filo V + Inrompibilidad III" required>
         </div>
         <div class="form-group">
-          <label class="form-label">ID Técnico del Ítem</label>
-          <input type="text" id="p2p-item-type" class="form-input" placeholder="Ej. minecraft:netherite_sword" required>
+          <label class="form-label">Precio en Nodocoins (NC)</label>
+          <input type="number" id="p2p-price" class="form-input" placeholder="Ej. 1500" min="1" required>
         </div>
         <div class="form-group">
           <label class="form-label">Cantidad</label>
           <input type="number" id="p2p-qty" class="form-input" value="1" min="1" required>
         </div>
         <div class="form-group">
-          <label class="form-label">Precio en Nodocoins</label>
-          <input type="number" id="p2p-price" class="form-input" placeholder="Ej. 1500" min="1" required>
+          <label class="form-label">Número de WhatsApp (opcional para contacto directo)</label>
+          <input type="text" id="p2p-whatsapp" class="form-input" placeholder="Ej. 59170000000 o 521550000000">
         </div>
         <div class="form-group">
-          <label class="form-label">Descripción</label>
-          <input type="text" id="p2p-desc" class="form-input" placeholder="Detalles de encantamientos o durabilidad...">
+          <label class="form-label">Tag de Discord (opcional)</label>
+          <input type="text" id="p2p-discord" class="form-input" placeholder="Ej. usuario#1234 o nick_discord">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Foto / Captura del Ítem (opcional)</label>
+          <input type="file" id="p2p-image-file" class="form-input" accept="image/*">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción & Detalles</label>
+          <textarea id="p2p-desc" class="form-input" rows="3" placeholder="Describe encantamientos, durabilidad, lugar de encuentro..."></textarea>
         </div>
         <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1.25rem; height: 46px;">
-          <span class="icon-slot" data-icon="check"></span> Publicar en el Mercado
+          <span class="icon-slot" data-icon="check"></span> Publicar Anuncio P2P
         </button>
       </form>
     </div>
   </div>
+
+  <!-- ── MODAL: COMPROANTE OFICIAL DIGITAL NO FALSIFICABLE ──────── -->
+  <div class="modal-backdrop" id="modal-official-receipt">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem;" class="text-purple">
+          <span class="icon-slot" data-icon="shield"></span> Comprobante Oficial Verificado
+        </h3>
+        <button class="modal-close" onclick="closeReceiptModal()">
+          <span class="icon-slot" data-icon="x"></span>
+        </button>
+      </div>
+
+      <div class="official-receipt-card">
+        <div class="receipt-verified-watermark">
+          <span class="icon-slot" data-icon="check"></span> VERIFICADO
+        </div>
+        <div style="font-size: 0.8rem; font-weight: 800; color: var(--accent-purple); text-transform: uppercase; margin-bottom: 0.5rem;">Nodowa Network Official Receipt</div>
+        <h2 style="font-size: 1.5rem; margin-bottom: 1rem;" id="receipt-modal-title">Transacción Registrada</h2>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+          <div class="flex-between">
+            <span class="text-muted">Nº de Recibo:</span>
+            <strong class="mono" id="receipt-modal-id">REC-000000</strong>
+          </div>
+          <div class="flex-between">
+            <span class="text-muted">Emisor (De):</span>
+            <strong id="receipt-modal-from">--</strong>
+          </div>
+          <div class="flex-between">
+            <span class="text-muted">Destinatario (A):</span>
+            <strong id="receipt-modal-to">--</strong>
+          </div>
+          <div class="flex-between">
+            <span class="text-muted">Monto Transferido:</span>
+            <strong class="text-emerald mono" id="receipt-modal-amount">0 NC</strong>
+          </div>
+          <div class="flex-between">
+            <span class="text-muted">Fecha y Hora:</span>
+            <span class="text-secondary" id="receipt-modal-date">--</span>
+          </div>
+        </div>
+
+        <div class="receipt-hash-box">
+          <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px;">Firma Digital Criptográfica (SHA-256):</div>
+          <div id="receipt-modal-hash">NODOWA-HASH-0000000000000000</div>
+        </div>
+
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Este comprobante ha sido firmado digitalmente por el servidor. No puede ser alterado ni falsificado.</div>
+      </div>
+
+      <button class="btn-primary" style="width: 100%; margin-top: 1.25rem;" onclick="copyText(document.getElementById('receipt-modal-hash').innerText)">
+        <span class="icon-slot" data-icon="copy"></span> Copiar Hash de Verificación
+      </button>
+    </div>
+  </div>
+
+  <!-- ── MODAL: REPORTAR USUARIO / ESTAFA ───────────────────────── -->
+  <div class="modal-backdrop" id="modal-report-user">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem;" class="text-rose">
+          <span class="icon-slot" data-icon="shield"></span> Reportar Usuario o Estafa
+        </h3>
+        <button class="modal-close" onclick="closeReportModal()">
+          <span class="icon-slot" data-icon="x"></span>
+        </button>
+      </div>
+
+      <form id="form-submit-report">
+        <input type="hidden" id="report-input-target-user">
+        <div class="form-group">
+          <label class="form-label">Usuario Acusado</label>
+          <input type="text" id="report-target-display" class="form-input" readonly style="background: var(--bg-secondary);">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Motivo del Reporte</label>
+          <select id="report-reason-select" class="form-input" required>
+            <option value="Incumplimiento de Trato P2P">Incumplimiento de Trato P2P</option>
+            <option value="Intento de Estafa / Scammer">Intento de Estafa / Scammer</option>
+            <option value="Suplantación de Identidad">Suplantación de Identidad</option>
+            <option value="Publicación Falsa o Contenido Inapropiado">Publicación Falsa o Contenido Inapropiado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Detalles del Suceso</label>
+          <textarea id="report-description" class="form-input" rows="4" placeholder="Explica detalladamente qué ocurrió, fecha, lugar..." required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nº de Recibo / Link / Evidencia (opcional)</label>
+          <input type="text" id="report-proof" class="form-input" placeholder="Ej. REC-948120 o captura de pantalla">
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem; background: var(--accent-rose-gradient);">
+          <span class="icon-slot" data-icon="shield"></span> Enviar Reporte a Administración
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── TikTok Mobile Bottom Navigation Bar (< 768px) ────────────── -->
+  <nav class="mobile-bottom-nav">
+    <button class="mobile-nav-item active" data-tab="store">
+      <span class="icon-slot" data-icon="store"></span>
+      <span>Tienda</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="market">
+      <span class="icon-slot" data-icon="market"></span>
+      <span>P2P</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="wallet">
+      <span class="icon-slot" data-icon="wallet"></span>
+      <span>Billetera</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="deliveries">
+      <span class="icon-slot" data-icon="mailbox"></span>
+      <span>Buzón</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="players">
+      <span class="icon-slot" data-icon="user"></span>
+      <span>Jugadores</span>
+    </button>
+  </nav>
 
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
