@@ -650,30 +650,28 @@ app.post("/api/user/update-profile", upload.single("avatar"), (req, res) => {
 // Transferencias P2P entre usuarios con Comprobante Oficial No Falsificable
 app.post("/api/wallet/transfer", (req, res) => {
   const { from, to, amount } = req.body;
-  const numAmount = Number(amount);
+  const numAmount = Math.floor(Number(amount));
   if (!from || !to || isNaN(numAmount) || numAmount <= 0) {
     return res.status(400).json({ ok: false, error: "Datos de transferencia inválidos" });
   }
 
-  const receiverName = to.trim().toLowerCase();
-  const receiverUser = db.users[receiverName];
-  if (!receiverUser) {
-    return res.status(404).json({ ok: false, error: `El jugador "${to}" no existe en el sistema Nodowa. Verifica el Gamertag.` });
-  }
-
   const sender = getOrCreateUser(from);
   const receiver = getOrCreateUser(to);
+
+  if (!sender || !receiver) {
+    return res.status(404).json({ ok: false, error: "Usuario de origen o destino no encontrado" });
+  }
 
   if (sender.username === receiver.username) {
     return res.status(400).json({ ok: false, error: "No puedes transferirte a ti mismo" });
   }
 
   if (sender.wallet < numAmount) {
-    return res.status(400).json({ ok: false, error: "Saldo insuficiente en billetera" });
+    return res.status(400).json({ ok: false, error: `Saldo en mano insuficiente. Tienes ${sender.wallet.toLocaleString()} NC en mano.` });
   }
 
-  sender.wallet -= numAmount;
-  receiver.wallet += numAmount;
+  sender.wallet = Math.floor(sender.wallet - numAmount);
+  receiver.wallet = Math.floor(receiver.wallet + numAmount);
   
   const nowIso = new Date().toISOString();
   const receiptId = "REC-" + Date.now().toString().slice(-6) + Math.floor(100 + Math.random() * 900);
@@ -699,8 +697,8 @@ app.post("/api/wallet/transfer", (req, res) => {
   saveDb();
 
   broadcastWs("TRANSACTION", tx);
-  broadcastWs("BALANCE_UPDATE", { username: sender.username, wallet: sender.wallet });
-  broadcastWs("BALANCE_UPDATE", { username: receiver.username, wallet: receiver.wallet });
+  broadcastWs("BALANCE_UPDATE", { username: sender.username, wallet: sender.wallet, bank: sender.bank });
+  broadcastWs("BALANCE_UPDATE", { username: receiver.username, wallet: receiver.wallet, bank: receiver.bank });
 
   res.json({ ok: true, tx, receipt, senderWallet: sender.wallet });
 });
