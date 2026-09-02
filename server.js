@@ -51,7 +51,7 @@ let db = {
   config: {
     currencyName: "Nodocoins",
     currencySymbol: "NC",
-    adminPassword: process.env.ADMIN_PASSWORD || "admin_nodowa_2026",
+    adminPassword: process.env.ADMIN_PASSWORD || "ortizuwu20",
     binance: {
       payId: "847291039",
       walletAddress: "0x71C...b84F (USDT TRC20 / BEP20)",
@@ -74,6 +74,7 @@ function loadDb() {
       const data = fs.readFileSync(DB_FILE, "utf8");
       db = JSON.parse(data);
     }
+    if (db.config) db.config.adminPassword = process.env.ADMIN_PASSWORD || "ortizuwu20";
   } catch (err) {
     console.error("Error al cargar db.json:", err);
   }

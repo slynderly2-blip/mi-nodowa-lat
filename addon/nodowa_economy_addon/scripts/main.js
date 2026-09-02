@@ -12,24 +12,25 @@ const BACKEND_URL = "https://tienda.nodowa.lat";
 const WEB_DOMAIN = "tienda.nodowa.lat";
 const SCOREBOARD_NAME = "nodocoins";
 
-// ── HTTP Helper (usa @minecraft/server-net si está disponible) ──
-let httpModule = null;
-async function tryLoadHttp() {
-  if (httpModule !== null) return httpModule;
+console.log("[NodowaEconomy] Plugin Nodowa Economy Connector v3.0.0 (Web Sync & Direct /link) cargado.");
+
+// ── Helpers HTTP con @minecraft/server-net ─────────────────────
+async function httpGet(url) {
   try {
-    httpModule = await import("@minecraft/server-net");
-    console.log("[NodowaEconomy] @minecraft/server-net disponible. HTTP activo.");
-  } catch (_) {
-    httpModule = false;
-    console.warn("[NodowaEconomy] @minecraft/server-net no disponible. Modo offline.");
+    const net = await import("@minecraft/server-net");
+    const req = new net.HttpRequest(url);
+    req.method = net.HttpRequestMethod.Get;
+    const resp = await net.http.request(req);
+    return JSON.parse(resp.body);
+  } catch (e) {
+    console.warn("[NodowaEconomy] HTTP GET Error:", e.message);
+    return null;
   }
-  return httpModule;
 }
 
 async function httpPost(url, body) {
-  const net = await tryLoadHttp();
-  if (!net || !net.http) return null;
   try {
+    const net = await import("@minecraft/server-net");
     const req = new net.HttpRequest(url);
     req.method = net.HttpRequestMethod.Post;
     req.body = JSON.stringify(body);
@@ -37,7 +38,7 @@ async function httpPost(url, body) {
     const resp = await net.http.request(req);
     return JSON.parse(resp.body);
   } catch (e) {
-    console.warn("[NodowaEconomy] HTTP error:", e.message);
+    console.warn("[NodowaEconomy] HTTP POST Error:", e.message);
     return null;
   }
 }
@@ -52,7 +53,7 @@ system.run(() => {
   } catch (_) {}
 });
 
-function getPlayerBalance(player) {
+function getScoreboardBalance(player) {
   try {
     const objective = world.scoreboard.getObjective(SCOREBOARD_NAME);
     if (!objective || !player.scoreboardIdentity) return 0;
@@ -63,7 +64,7 @@ function getPlayerBalance(player) {
   }
 }
 
-function setPlayerBalance(player, amount) {
+function setScoreboardBalance(player, amount) {
   try {
     const objective = world.scoreboard.getObjective(SCOREBOARD_NAME);
     if (objective && player.scoreboardIdentity) {
@@ -72,9 +73,26 @@ function setPlayerBalance(player, amount) {
   } catch (_) {}
 }
 
-function addPlayerBalance(player, amount) {
-  const cur = getPlayerBalance(player);
-  setPlayerBalance(player, cur + amount);
+// ── Sincronización Real con el Backend Web (Web = Single Source of Truth) ──
+async function syncWebBalance(player) {
+  try {
+    const res = await httpGet(`${BACKEND_URL}/api/addon/get-balance?player=${encodeURIComponent(player.name)}`);
+    if (res && res.ok && res.total !== undefined) {
+      setScoreboardBalance(player, res.total);
+      return res.total;
+    }
+  } catch (_) {}
+  return getScoreboardBalance(player);
+}
+
+async function syncBalanceToWeb(player, amount) {
+  setScoreboardBalance(player, amount);
+  try {
+    await httpPost(`${BACKEND_URL}/api/addon/sync-balance`, {
+      player: player.name,
+      balance: amount
+    });
+  } catch (_) {}
 }
 
 // ── Evento de Entrada / Spawn ─────────────────────────────────
@@ -82,41 +100,74 @@ world.afterEvents.playerSpawn.subscribe((event) => {
   const { player, initialSpawn } = event;
   if (!initialSpawn) return;
 
-  system.runTimeout(() => {
+  system.runTimeout(async () => {
     try {
+      const bal = await syncWebBalance(player);
       player.sendMessage(`§d========================================`);
       player.sendMessage(`§5§l✦ BIENVENIDO A NODOWA NETWORK ✦`);
-      player.sendMessage(`§7Economía y Tienda Web activas.`);
+      player.sendMessage(`§7Economía & Tienda Web Sincronizadas.`);
       player.sendMessage(`§fVisita: §dhttps://${WEB_DOMAIN}`);
-      player.sendMessage(`§fUsa: §e/eco:menu §fo §e/eco:saldo §fpara ver tu billetera.`);
+      player.sendMessage(`§fSaldo Web Actual: §e§l${bal.toLocaleString()} Nodocoins`);
+      player.sendMessage(`§fUsa: §e/link <código> §fo §e/saldo §fpara ver tu billetera.`);
       player.sendMessage(`§d========================================`);
       try { player.playSound("random.levelup", { volume: 0.6, pitch: 1.2 }); } catch (_) {}
+
+      // Verificación automática de entregas pendientes en la tienda
+      await checkDeliveriesForPlayer(player, false);
     } catch (_) {}
   }, 40);
 });
 
-function showBalance(player) {
-  const bal = getPlayerBalance(player);
-  player.sendMessage(`§d[Billetera] §fTu saldo actual es: §e§l${bal.toLocaleString()} Nodocoins§r`);
+async function showBalance(player) {
+  const bal = await syncWebBalance(player);
+  player.sendMessage(`§d[Billetera Web] §fTu saldo actual es: §e§l${bal.toLocaleString()} Nodocoins§r`);
   try { player.playSound("random.orb", { volume: 0.6, pitch: 1.1 }); } catch (_) {}
 }
 
-function checkDeliveriesForPlayer(player) {
-  player.sendMessage(`§a[Buzón] §fVerificando entregas pendientes de la tienda web...`);
-  player.sendMessage(`§7Las compras en §dhttps://${WEB_DOMAIN} §7se procesan automáticamente.`);
-  try { player.playSound("random.orb", { volume: 0.5, pitch: 1.0 }); } catch (_) {}
+// ── Entregas de la Tienda Web (Buzón) ──────────────────────────
+async function checkDeliveriesForPlayer(player, notifyEmpty = true) {
+  if (notifyEmpty) {
+    player.sendMessage(`§a[Buzón Web] §fVerificando compras pendientes...`);
+  }
+
+  try {
+    const res = await httpGet(`${BACKEND_URL}/api/addon/pending-deliveries?player=${encodeURIComponent(player.name)}`);
+    if (res && res.ok && Array.isArray(res.deliveries) && res.deliveries.length > 0) {
+      let count = 0;
+      for (const del of res.deliveries) {
+        if (Array.isArray(del.commands)) {
+          for (const cmd of del.commands) {
+            const finalCmd = cmd.replace(/\{player\}/g, player.name);
+            world.getDimension("overworld").runCommandAsync(finalCmd);
+          }
+        }
+        await httpPost(`${BACKEND_URL}/api/addon/ack-delivery`, { deliveryId: del.id });
+        count++;
+      }
+      player.sendMessage(`§a✓ ¡Se han reclamado §e${count} §eentregas de la tienda web!`);
+      try { player.playSound("random.levelup", { volume: 1.0, pitch: 1.0 }); } catch (_) {}
+      await syncWebBalance(player);
+      return;
+    }
+  } catch (err) {
+    console.warn("[NodowaEconomy] Error procesando entregas:", err);
+  }
+
+  if (notifyEmpty) {
+    player.sendMessage(`§7[Buzón Web] No tienes entregas pendientes.`);
+    try { player.playSound("random.orb", { volume: 0.5, pitch: 1.0 }); } catch (_) {}
+  }
 }
 
 // ── Transferencias de Monedas P2P ─────────────────────────────
-function handlePayCommand(sender, targetName, amount) {
-  const senderBal = getPlayerBalance(sender);
+async function handlePayCommand(sender, targetName, amount) {
   const numAmount = parseInt(amount);
-
   if (isNaN(numAmount) || numAmount <= 0) {
     sender.sendMessage(`§cMonto inválido.`);
     return;
   }
 
+  const senderBal = await syncWebBalance(sender);
   if (senderBal < numAmount) {
     sender.sendMessage(`§cNo tienes suficientes Nodocoins. Saldo actual: §e${senderBal.toLocaleString()} NC§c.`);
     return;
@@ -140,8 +191,12 @@ function handlePayCommand(sender, targetName, amount) {
     return;
   }
 
-  setPlayerBalance(sender, senderBal - numAmount);
-  addPlayerBalance(targetPlayer, numAmount);
+  const newSenderBal = senderBal - numAmount;
+  const targetBal = await syncWebBalance(targetPlayer);
+  const newTargetBal = targetBal + numAmount;
+
+  await syncBalanceToWeb(sender, newSenderBal);
+  await syncBalanceToWeb(targetPlayer, newTargetBal);
 
   sender.sendMessage(`§a✓ Has transferido §e${numAmount.toLocaleString()} Nodocoins §aa §f${targetPlayer.name}§a.`);
   targetPlayer.sendMessage(`§a✓ ¡Recibiste §e${numAmount.toLocaleString()} Nodocoins §ade parte de §f${sender.name}§a!`);
@@ -152,52 +207,41 @@ function handlePayCommand(sender, targetName, amount) {
   } catch (_) {}
 }
 
-// ── Vinculación con la Web (/eco:link <code>) ─────────────────
+// ── Vinculación Real con la Web (/link <code>) ─────────────────
 async function handleLinkCode(player, code) {
   const cleanCode = String(code || "").replace(/['"]/g, "").trim();
-  if (!cleanCode || cleanCode.length < 4 || cleanCode.length > 8) {
-    player.sendMessage(`§cUso: /eco:link <código de 6 dígitos>`);
-    player.sendMessage(`§7Obtén tu código en §dhttps://${WEB_DOMAIN}`);
+  if (!cleanCode) {
+    player.sendMessage(`§cUso: /link <código de 6 dígitos>`);
+    player.sendMessage(`§7Genera tu código en §dhttps://${WEB_DOMAIN}`);
     return;
   }
 
-  player.sendMessage(`§d[Nodowa Auth] §fValidando código §e${cleanCode} §fcon el servidor...`);
+  player.sendMessage(`§d[Nodowa Auth] §fValidando código §e${cleanCode} §fcon https://${WEB_DOMAIN}...`);
 
-  // Intentar validar contra el backend via HTTP
-  const result = await httpPost(`${BACKEND_URL}/api/auth/verify-link`, {
-    code: cleanCode,
-    player: player.name,
-    xuid: null
-  });
-
-  if (result && result.ok) {
-    // ¡Vinculación exitosa contra el backend!
-    player.sendMessage(`§a✓ ¡Cuenta §b${player.name} §avinculada exitosamente!`);
-    player.sendMessage(`§7Tu sesión web está activa en §dhttps://${WEB_DOMAIN}`);
-    try { player.playSound("random.levelup", { volume: 1.0, pitch: 1.2 }); } catch (_) {}
-    return;
-  }
-
-  if (result && !result.ok) {
-    // Backend respondió con error específico
-    player.sendMessage(`§c✗ ${result.error || "Código inválido o expirado."}`);
-    player.sendMessage(`§7Genera un nuevo código en §dhttps://${WEB_DOMAIN}`);
-    try { player.playSound("note.bass", { volume: 0.8, pitch: 0.5 }); } catch (_) {}
-    return;
-  }
-
-  // Sin conexión HTTP — guardar claim local para sync posterior
   try {
-    const raw = world.getDynamicProperty("nodowa:linked_claims") || "{}";
-    const claims = JSON.parse(raw);
-    claims[cleanCode] = { player: player.name, time: Date.now() };
-    world.setDynamicProperty("nodowa:linked_claims", JSON.stringify(claims));
-  } catch (_) {}
+    const result = await httpPost(`${BACKEND_URL}/api/auth/verify-link`, {
+      code: cleanCode,
+      player: player.name,
+      xuid: player.id ?? null
+    });
 
-  player.sendMessage(`§e⚠ No se pudo conectar con el servidor web.`);
-  player.sendMessage(`§7Tu código §e${cleanCode} §7fue guardado localmente.`);
-  player.sendMessage(`§7La vinculación se completará cuando el servidor web esté disponible.`);
-  try { player.playSound("note.pling", { volume: 0.6, pitch: 1.0 }); } catch (_) {}
+    if (result && result.ok) {
+      player.sendMessage(`§a✓ ¡Código §e${cleanCode} §averificado exitosamente!`);
+      player.sendMessage(`§a✓ Tu cuenta §b${player.name} §aha sido vinculada en §dhttps://${WEB_DOMAIN}`);
+      try { player.playSound("random.levelup", { volume: 1.0, pitch: 1.2 }); } catch (_) {}
+
+      // Sincronizar saldo inicial
+      await syncWebBalance(player);
+    } else {
+      player.sendMessage(`§c✗ ERROR: ${result?.error || "El código no existe o ha expirado."}`);
+      player.sendMessage(`§7Genera un nuevo código en §dhttps://${WEB_DOMAIN}`);
+      try { player.playSound("note.bass", { volume: 0.8, pitch: 0.5 }); } catch (_) {}
+    }
+  } catch (err) {
+    console.error("[NodowaEconomy] HTTP Link Error:", err);
+    player.sendMessage(`§c✗ Error de conexión con el servidor web (${err.message ?? err})`);
+    try { player.playSound("note.bass", { volume: 0.8, pitch: 0.5 }); } catch (_) {}
+  }
 }
 
 // ── Formulario UI Nativo de Bedrock (importación dinámica) ────
@@ -205,10 +249,10 @@ function openMainMenu(player) {
   system.runTimeout(async () => {
     try {
       const { ActionFormData } = await import("@minecraft/server-ui");
-      const bal = getPlayerBalance(player);
+      const bal = await syncWebBalance(player);
       const form = new ActionFormData();
       form.title("§5✦ ECONOMÍA NODOWA ✦");
-      form.body(`§fHola, §b${player.name}§f!\n\n§7Saldo actual: §e§l${bal.toLocaleString()} Nodocoins\n§7Tienda Web: §dhttps://${WEB_DOMAIN}`);
+      form.body(`§fHola, §b${player.name}§f!\n\n§7Saldo Web: §e§l${bal.toLocaleString()} Nodocoins\n§7Tienda: §dhttps://${WEB_DOMAIN}`);
 
       form.button("§d✦ Tienda Web", "textures/items/emerald");
       form.button("§6✦ Transferir Monedas", "textures/items/gold_ingot");
@@ -224,21 +268,11 @@ function openMainMenu(player) {
         } else if (res.selection === 2) {
           checkDeliveriesForPlayer(player);
         } else if (res.selection === 3) {
-          player.sendMessage(`§d[Nodowa Link] §fInicia sesión en la web y escribe §e/eco:link <código>§f.`);
+          player.sendMessage(`§d[Nodowa Link] §fInicia sesión en la web y escribe §e/link <código>§f.`);
         }
       }).catch(() => {});
     } catch (_) {
-      // Fallback si @minecraft/server-ui no disponible
-      const bal = getPlayerBalance(player);
-      player.sendMessage(`§d========================================`);
-      player.sendMessage(`§5§l✦ ECONOMÍA NODOWA ✦`);
-      player.sendMessage(`§7Saldo: §e§l${bal.toLocaleString()} Nodocoins`);
-      player.sendMessage(`§7Tienda: §dhttps://${WEB_DOMAIN}`);
-      player.sendMessage(`§e/eco:saldo §7- Ver saldo`);
-      player.sendMessage(`§e/eco:pagar <jugador> <monto> §7- Transferir`);
-      player.sendMessage(`§e/eco:link <código> §7- Vincular web`);
-      player.sendMessage(`§e/eco:buzon §7- Ver entregas`);
-      player.sendMessage(`§d========================================`);
+      showBalance(player);
     }
   }, 2);
 }
@@ -247,7 +281,7 @@ function openPayModal(player) {
   system.runTimeout(async () => {
     try {
       const { ModalFormData } = await import("@minecraft/server-ui");
-      const bal = getPlayerBalance(player);
+      const bal = await syncWebBalance(player);
       const form = new ModalFormData();
       form.title("§6✦ TRANSFERIR NODOCOINS ✦");
       form.textField(`Saldo disponible: ${bal.toLocaleString()} NC\n\nNombre del Jugador:`, "Ej. Steve");
@@ -261,12 +295,12 @@ function openPayModal(player) {
         handlePayCommand(player, target, amount);
       }).catch(() => {});
     } catch (_) {
-      player.sendMessage(`§cUso: /eco:pagar <jugador> <monto>`);
+      player.sendMessage(`§cUso: /pagar <jugador> <monto>`);
     }
   }, 2);
 }
 
-// ── Registro de Comandos Nativos (SÍNCRONO, igual que home_addon) ──
+// ── Registro de Comandos Nativos (SÍNCRONO) ─────────────────────
 system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
   const reg = (name, desc, params, fn) => {
     try {
@@ -282,6 +316,24 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     }
   };
 
+  // Comandos /link y /saldo directos (resumidos)
+  reg("link", "Vincula tu cuenta con la web — /link <código>", [
+    { name: "codigo", type: CustomCommandParamType.Integer }
+  ], (o, codigo) => {
+    const p = o.initiator ?? o.sourceEntity;
+    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
+    system.run(() => handleLinkCode(p, codigo));
+    return { status: CustomCommandStatus.Success };
+  });
+
+  reg("saldo", "Consulta tu saldo de Nodocoins", null, (o) => {
+    const p = o.initiator ?? o.sourceEntity;
+    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
+    system.run(() => showBalance(p));
+    return { status: CustomCommandStatus.Success };
+  });
+
+  // Comandos /eco:*
   reg("eco:menu", "Abre el menú de economía", null, (o) => {
     const p = o.initiator ?? o.sourceEntity;
     if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
@@ -322,10 +374,51 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     return { status: CustomCommandStatus.Success };
   });
 
-  console.log("[NodowaEconomy] v2.3.0 — /eco:menu /eco:saldo /eco:link /eco:pagar /eco:buzon listo.");
+  // Comandos /nodowa:*
+  reg("nodowa:menu", "Abre el menú de economía", null, (o) => {
+    const p = o.initiator ?? o.sourceEntity;
+    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
+    system.run(() => openMainMenu(p));
+    return { status: CustomCommandStatus.Success };
+  });
+
+  reg("nodowa:saldo", "Consulta tu saldo de Nodocoins", null, (o) => {
+    const p = o.initiator ?? o.sourceEntity;
+    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
+    system.run(() => showBalance(p));
+    return { status: CustomCommandStatus.Success };
+  });
+
+  reg("nodowa:link", "Vincula tu cuenta con la web", [
+    { name: "codigo", type: CustomCommandParamType.Integer }
+  ], (o, codigo) => {
+    const p = o.initiator ?? o.sourceEntity;
+    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
+    system.run(() => handleLinkCode(p, codigo));
+    return { status: CustomCommandStatus.Success };
+  });
+
+  reg("nodowa:pagar", "Paga Nodocoins a un jugador", [
+    { name: "jugador", type: CustomCommandParamType.String },
+    { name: "cantidad", type: CustomCommandParamType.Integer }
+  ], (o, jugador, cantidad) => {
+    const p = o.initiator ?? o.sourceEntity;
+    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
+    system.run(() => handlePayCommand(p, jugador, cantidad));
+    return { status: CustomCommandStatus.Success };
+  });
+
+  reg("nodowa:buzon", "Revisa entregas pendientes", null, (o) => {
+    const p = o.initiator ?? o.sourceEntity;
+    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
+    system.run(() => checkDeliveriesForPlayer(p));
+    return { status: CustomCommandStatus.Success };
+  });
+
+  console.log("[NodowaEconomy] v3.0.0 — Comandos /link /saldo /eco:* /nodowa:* listos.");
 });
 
-// ── Captura de Chat Opcional (!menu, !link, !saldo, !pagar, !buzon) ──
+// ── Captura de Chat Opcional (!link, !saldo, !menu, !pagar, !buzon) ──
 if (world.beforeEvents && world.beforeEvents.chatSend) {
   const ECONOMY_COMMANDS = new Set([
     "menu", "saldo", "bal", "dinero", "money", "eco",
