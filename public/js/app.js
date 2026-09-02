@@ -339,7 +339,22 @@ function updateUserWidget() {
   if (!container) return;
 
   if (currentUser) {
+    const avatarUrl = currentUser.avatar || `https://mc-heads.net/avatar/${encodeURIComponent(currentUser.username)}/100`;
+    container.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <div class="user-badge-card" onclick="openEditProfileModal()" title="Editar Mi Perfil (Foto, Bio, WhatsApp, Discord)">
+          <img src="${avatarUrl}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--purple-300);">
+          <div class="user-info-mini">
+            <span class="name">${currentUser.displayName || currentUser.username}</span>
+            <span class="balance">${(currentUser.wallet || 0).toLocaleString()} NC</span>
+          </div>
+        </div>
+        <button class="cat-btn" onclick="openConfirmLogoutModal()" style="padding: 6px 10px; font-size: 0.8rem;" title="Cerrar Sesión">
+          <span class="icon-slot" data-icon="x"></span>
+        </button>
+      </div>
     `;
+    renderIcons(container);
   } else {
     container.innerHTML = `
       <button class="btn-auth" id="btn-open-auth" onclick="openAuthModal()">
