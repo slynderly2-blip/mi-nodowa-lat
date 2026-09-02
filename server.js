@@ -150,21 +150,28 @@ function generateReceiptHash(from, to, amount, timestamp) {
 function processBankInterest() {
   const INTEREST_RATE = 0.01; // 1% diario
   const now = Date.now();
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
   let interestApplied = 0;
 
   for (const uname in db.users) {
     const user = db.users[uname];
-    if (user.bank && user.bank >= 100) {
-      const lastInterestTime = user.lastInterestAt ? new Date(user.lastInterestAt).getTime() : 0;
-      if (now - lastInterestTime >= 24 * 60 * 60 * 1000) {
-        const interestAmount = Math.floor(user.bank * INTEREST_RATE);
-        if (interestAmount > 0) {
-          user.bank += interestAmount;
-          user.lastInterestAt = new Date().toISOString();
-          interestApplied++;
-          logTransaction("BANCO_CENTRAL", user.displayName || user.username, interestAmount, "BANK_INTEREST", `Interés diario del banco (1%)`);
-          broadcastWs("BALANCE_UPDATE", { username: user.username, wallet: user.wallet, bank: user.bank });
-        }
+    if (!user.bank || user.bank < 100) continue;
+
+    if (!user.lastInterestAt) {
+      // Primera vez: registrar hora actual SIN pagar intereses
+      user.lastInterestAt = new Date().toISOString();
+      continue;
+    }
+
+    const lastInterestTime = new Date(user.lastInterestAt).getTime();
+    if (now - lastInterestTime >= ONE_DAY_MS) {
+      const interestAmount = Math.floor(user.bank * INTEREST_RATE);
+      if (interestAmount > 0) {
+        user.bank += interestAmount;
+        user.lastInterestAt = new Date().toISOString();
+        interestApplied++;
+        logTransaction("BANCO_CENTRAL", user.displayName || user.username, interestAmount, "BANK_INTEREST", `Interés diario del banco (1%)`);
+        broadcastWs("BALANCE_UPDATE", { username: user.username, wallet: user.wallet, bank: user.bank });
       }
     }
   }
@@ -172,6 +179,8 @@ function processBankInterest() {
   if (interestApplied > 0) {
     saveDb();
     console.log(`[Banco] Intereses del 1% aplicados a ${interestApplied} cuentas.`);
+  } else {
+    saveDb(); // Guardar marcas de tiempo iniciales
   }
 }
 
