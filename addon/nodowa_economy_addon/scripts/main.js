@@ -77,9 +77,9 @@ function setScoreboardBalance(player, amount) {
 async function syncWebBalance(player) {
   try {
     const res = await httpGet(`${BACKEND_URL}/api/addon/get-balance?player=${encodeURIComponent(player.name)}`);
-    if (res && res.ok && res.total !== undefined) {
-      setScoreboardBalance(player, res.total);
-      return res.total;
+    if (res && res.ok && res.wallet !== undefined) {
+      setScoreboardBalance(player, res.wallet);
+      return res.wallet;
     }
   } catch (_) {}
   return getScoreboardBalance(player);
@@ -107,7 +107,7 @@ world.afterEvents.playerSpawn.subscribe((event) => {
       player.sendMessage(`§5§l✦ BIENVENIDO A NODOWA NETWORK ✦`);
       player.sendMessage(`§7Economía & Tienda Web Sincronizadas.`);
       player.sendMessage(`§fVisita: §dhttps://${WEB_DOMAIN}`);
-      player.sendMessage(`§fSaldo Web Actual: §e§l${bal.toLocaleString()} Nodocoins`);
+      player.sendMessage(`§fSaldo en Mano (Billetera): §e§l${bal.toLocaleString()} Nodocoins`);
       player.sendMessage(`§fUsa: §e/link <código> §fo §e/saldo §fpara ver tu billetera.`);
       player.sendMessage(`§d========================================`);
       try { player.playSound("random.levelup", { volume: 0.6, pitch: 1.2 }); } catch (_) {}
@@ -120,7 +120,8 @@ world.afterEvents.playerSpawn.subscribe((event) => {
 
 async function showBalance(player) {
   const bal = await syncWebBalance(player);
-  player.sendMessage(`§d[Billetera Web] §fTu saldo actual es: §e§l${bal.toLocaleString()} Nodocoins§r`);
+  player.sendMessage(`§d[Billetera Web] §fTu saldo en mano es: §e§l${bal.toLocaleString()} Nodocoins§r`);
+  player.sendMessage(`§7(Tus ahorros en el Banco están seguros en la web ganando +1% de interés diario)`);
   try { player.playSound("random.orb", { volume: 0.6, pitch: 1.1 }); } catch (_) {}
 }
 
