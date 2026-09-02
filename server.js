@@ -14,10 +14,10 @@ const wss = new WebSocketServer({ server });
 
 const PORT = process.env.PORT || 3334;
 
-// ── Rutas de carpetas ─────────────────────────────────────────
-const DATA_DIR = path.join(__dirname, "data");
+// ── Rutas de carpetas (Soporta Railway Persistent Volumes) ──────
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const DB_FILE = path.join(DATA_DIR, "db.json");
-const UPLOADS_DIR = path.join(__dirname, "public", "uploads");
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, "public", "uploads");
 const RECEIPTS_DIR = path.join(UPLOADS_DIR, "receipts");
 
 for (const dir of [DATA_DIR, UPLOADS_DIR, RECEIPTS_DIR]) {
