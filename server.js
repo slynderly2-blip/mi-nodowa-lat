@@ -129,7 +129,7 @@ function getOrCreateUser(username) {
       username: uname,
       displayName: username.trim(),
       pin: null,
-      wallet: 0, // Saldo inicial 0
+      wallet: 0,
       bank: 0,
       linked: false,
       xuid: null,
@@ -138,6 +138,11 @@ function getOrCreateUser(username) {
     };
     saveDb();
   }
+
+  // Sanear saldos para evitar números flotantes con decimales
+  db.users[uname].wallet = Math.floor(db.users[uname].wallet || 0);
+  db.users[uname].bank = Math.floor(db.users[uname].bank || 0);
+
   return db.users[uname];
 }
 
@@ -701,7 +706,7 @@ app.post("/api/wallet/transfer", (req, res) => {
 // Depósito / Retiro en Banco
 app.post("/api/wallet/bank-action", (req, res) => {
   const { username, action, amount } = req.body; // action: "deposit" | "withdraw"
-  const numAmount = Number(amount);
+  const numAmount = Math.floor(Number(amount));
   if (!username || isNaN(numAmount) || numAmount <= 0) {
     return res.status(400).json({ ok: false, error: "Monto inválido" });
   }
@@ -710,19 +715,20 @@ app.post("/api/wallet/bank-action", (req, res) => {
 
   if (action === "deposit") {
     if (user.wallet < numAmount) return res.status(400).json({ ok: false, error: "Saldo insuficiente en mano" });
-    user.wallet -= numAmount;
-    user.bank += numAmount;
+    user.wallet = Math.floor(user.wallet - numAmount);
+    user.bank = Math.floor(user.bank + numAmount);
     logTransaction(user.username, "BANCO", numAmount, "BANK_DEPOSIT", `Depósito en banco de ${numAmount} ${db.config.currencyName}`);
   } else if (action === "withdraw") {
     if (user.bank < numAmount) return res.status(400).json({ ok: false, error: "Saldo insuficiente en el banco" });
-    user.bank -= numAmount;
-    user.wallet += numAmount;
+    user.bank = Math.floor(user.bank - numAmount);
+    user.wallet = Math.floor(user.wallet + numAmount);
     logTransaction("BANCO", user.username, numAmount, "BANK_WITHDRAW", `Retiro del banco de ${numAmount} ${db.config.currencyName}`);
   } else {
     return res.status(400).json({ ok: false, error: "Acción no válida" });
   }
 
   saveDb();
+  broadcastWs("BALANCE_UPDATE", { username: user.username, wallet: user.wallet, bank: user.bank });
   res.json({ ok: true, wallet: user.wallet, bank: user.bank });
 });
 
