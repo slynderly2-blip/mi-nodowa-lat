@@ -188,13 +188,14 @@ async function checkDeliveriesForPlayer(player, notifyEmpty = true) {
 async function handlePayCommand(sender, targetName, amount) {
   const numAmount = parseInt(amount);
   if (isNaN(numAmount) || numAmount <= 0) {
-    sender.sendMessage(`§cMonto inválido.`);
+    sender.sendMessage(`§cUso: /pagar <jugador> <monto>`);
     return;
   }
 
   const senderBal = await syncWebBalance(sender);
   if (senderBal < numAmount) {
-    sender.sendMessage(`§cNo tienes suficientes Nodocoins. Saldo actual: §e${senderBal.toLocaleString()} NC§c.`);
+    sender.sendMessage(`§cSaldo en mano insuficiente. Tienes §e${senderBal.toLocaleString()} NC §cen tu billetera en mano.`);
+    sender.sendMessage(`§7(Retira dinero de tu Banco en la web si deseas transferir tus ahorros)`);
     return;
   }
 
@@ -206,30 +207,31 @@ async function handlePayCommand(sender, targetName, amount) {
     }
   }
 
-  if (!targetPlayer) {
-    sender.sendMessage(`§cEl jugador "${targetName}" no está conectado.`);
-    return;
-  }
-
-  if (targetPlayer.name.toLowerCase() === sender.name.toLowerCase()) {
-    sender.sendMessage(`§cNo puedes transferirte monedas a ti mismo.`);
-    return;
-  }
-
-  const newSenderBal = senderBal - numAmount;
-  const targetBal = await syncWebBalance(targetPlayer);
-  const newTargetBal = targetBal + numAmount;
-
-  await syncBalanceToWeb(sender, newSenderBal);
-  await syncBalanceToWeb(targetPlayer, newTargetBal);
-
-  sender.sendMessage(`§a✓ Has transferido §e${numAmount.toLocaleString()} Nodocoins §aa §f${targetPlayer.name}§a.`);
-  targetPlayer.sendMessage(`§a✓ ¡Recibiste §e${numAmount.toLocaleString()} Nodocoins §ade parte de §f${sender.name}§a!`);
-
   try {
-    sender.playSound("random.orb", { volume: 0.8, pitch: 1.2 });
-    targetPlayer.playSound("random.levelup", { volume: 0.8, pitch: 1.0 });
-  } catch (_) {}
+    const res = await httpPost(`${BACKEND_URL}/api/wallet/transfer`, {
+      from: sender.name,
+      to: targetName,
+      amount: numAmount
+    });
+
+    if (res && res.ok) {
+      await syncWebBalance(sender);
+      if (targetPlayer) await syncWebBalance(targetPlayer);
+
+      sender.sendMessage(`§a✓ Has transferido §e${numAmount.toLocaleString()} Nodocoins §aa §f${res.receipt ? res.receipt.to : targetName}§a.`);
+      if (targetPlayer) {
+        targetPlayer.sendMessage(`§a✓ ¡Recibiste §e${numAmount.toLocaleString()} Nodocoins §ade parte de §f${sender.name}§a!`);
+      }
+      try {
+        sender.playSound("random.orb", { volume: 0.8, pitch: 1.2 });
+        if (targetPlayer) targetPlayer.playSound("random.levelup", { volume: 0.8, pitch: 1.0 });
+      } catch (_) {}
+    } else {
+      sender.sendMessage(`§cError: ${res ? (res.error || "No se pudo realizar la transferencia") : "Error de comunicación"}`);
+    }
+  } catch (err) {
+    sender.sendMessage(`§cError al conectar con el servidor web.`);
+  }
 }
 
 // ── Vinculación Real con la Web (/link <code>) ─────────────────
