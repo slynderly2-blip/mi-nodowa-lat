@@ -1177,6 +1177,42 @@ app.post("/api/admin/store/delete-item", checkAdminAuth, (req, res) => {
   res.json({ ok: true, message: "Artículo eliminado" });
 });
 
+// Carga Masiva de Productos al Catálogo (Por JSON / Texto o Preset Equilibrado)
+app.post("/api/admin/store/bulk-import", checkAdminAuth, (req, res) => {
+  const { items, mode } = req.body; // mode: "replace" | "append"
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ ok: false, error: "Debes enviar un arreglo de productos válido en formato JSON." });
+  }
+
+  const validItems = items.map((item, idx) => ({
+    id: item.id || `item_bulk_${Date.now()}_${idx}`,
+    name: (item.name || "Producto sin nombre").trim(),
+    category: (item.category || "items").trim().toLowerCase(),
+    priceCoins: Math.max(0, Math.floor(Number(item.priceCoins || 0))),
+    priceUsdt: Math.max(0, Number(item.priceUsdt || 0)),
+    description: (item.description || "").trim(),
+    iconType: (item.iconType || "box").trim(),
+    command: item.command ? item.command.trim() : null,
+    giveCoins: Math.max(0, Math.floor(Number(item.giveCoins || 0))),
+    badge: item.badge ? item.badge.trim() : null,
+    imageUrl: item.imageUrl ? item.imageUrl.trim() : null
+  }));
+
+  if (mode === "replace") {
+    db.storeItems = validItems;
+  } else {
+    validItems.forEach(newItem => {
+      const idx = db.storeItems.findIndex(i => i.id === newItem.id);
+      if (idx >= 0) db.storeItems[idx] = newItem;
+      else db.storeItems.push(newItem);
+    });
+  }
+
+  saveDb();
+  broadcastWs("STORE_UPDATED", db.storeItems);
+  res.json({ ok: true, count: validItems.length, storeItems: db.storeItems });
+});
+
 // Ajuste de Saldo de Jugador por el Administrador
 app.post("/api/admin/player/adjust-balance", checkAdminAuth, (req, res) => {
   const { username, amount, action } = req.body; // action: "set" | "add" | "sub"

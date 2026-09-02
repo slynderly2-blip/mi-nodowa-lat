@@ -243,10 +243,14 @@
               <div class="section-title">
                 <span class="icon-slot text-gold" data-icon="box"></span>
                 <h2>Gestión de Artículos de la Tienda</h2>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button class="cat-btn" onclick="openBulkImportModal()" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3);">
+                  <span class="icon-slot" data-icon="terminal"></span> Cargar Catálogo Masivo / Texto
+                </button>
+                <button class="btn-primary" onclick="openCreateItemModal()">
+                  <span class="icon-slot" data-icon="plus"></span> Nuevo Artículo
+                </button>
               </div>
-              <button class="btn-primary" onclick="openCreateItemModal()">
-                <span class="icon-slot" data-icon="plus"></span> Nuevo Artículo
-              </button>
             </div>
 
             <div class="table-container">
@@ -415,6 +419,45 @@
         <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">
           <span class="icon-slot" data-icon="check"></span> Guardar Artículo
         </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Carga Masiva de Productos (Texto / JSON) -->
+  <div class="modal-overlay" id="modal-bulk-import" style="display: none;">
+    <div class="modal" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Carga Masiva de Productos al Catálogo</h3>
+        <button class="modal-close" onclick="closeBulkImportModal()">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <span class="text-muted" style="font-size: 0.85rem;">Pega un JSON de productos o carga el catálogo oficial preestablecido:</span>
+        <button type="button" class="btn-primary" onclick="loadOfficialPresetCatalog()" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; background: linear-gradient(135deg, #8b5cf6, #ec4899);">
+          ⚡ Cargar Catálogo Oficial Equilibrado
+        </button>
+      </div>
+
+      <form id="form-bulk-import">
+        <div class="form-group">
+          <label class="form-label">Lista de Productos (Formato JSON Array / Texto)</label>
+          <textarea id="bulk-items-json" class="form-input mono" rows="12" placeholder='[\n  {\n    "name": "Rango VIP",\n    "category": "rangos",\n    "priceCoins": 5000,\n    "priceUsdt": 2.99,\n    "description": "Permiso de vuelo y 3 sethomes",\n    "command": "lp user {player} parent add vip"\n  }\n]' style="font-size: 0.8rem; line-height: 1.4; font-family: monospace;" required></textarea>
+        </div>
+
+        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+          <label class="form-label" style="margin: 0; min-width: 100px;">Modo de Carga:</label>
+          <select id="bulk-import-mode" class="form-input" style="flex: 1;">
+            <option value="replace">Reemplazar Todo el Catálogo Actual</option>
+            <option value="append">Añadir a los Productos Existentes</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+          <button type="button" class="cat-btn" onclick="closeBulkImportModal()">Cancelar</button>
+          <button type="submit" class="btn-primary" style="background: var(--accent-rose);">
+            <span class="icon-slot" data-icon="check"></span> Importar Productos al Catálogo
+          </button>
+        </div>
       </form>
     </div>
   </div>

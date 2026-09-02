@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupAdminTabs();
   setupQrForm();
   setupCatalogForm();
+  setupBulkImportForm();
   setupPlayerBalanceForm();
 
   if (adminToken) {
@@ -547,4 +548,252 @@ function showAdminToast(message, type = "info") {
     toast.style.opacity = "0";
     setTimeout(() => toast.remove(), 200);
   }, 3500);
+}
+
+// ── Carga Masiva de Productos (JSON / Preset Equilibrado) ──────
+const OFFICIAL_PRESET_CATALOG = [
+  {
+    "id": "rank_vip",
+    "name": "Rango VIP (30 Días)",
+    "category": "rangos",
+    "priceCoins": 5000,
+    "priceUsdt": 2.99,
+    "description": "Prefijo [VIP] en chat, /fly en lobby, 3 sethomes y kit VIP cada 24h.",
+    "iconType": "crown",
+    "command": "lp user {player} parent add vip",
+    "giveCoins": 0,
+    "badge": "Popular"
+  },
+  {
+    "id": "rank_vip_plus",
+    "name": "Rango VIP+ (30 Días)",
+    "category": "rangos",
+    "priceCoins": 12000,
+    "priceUsdt": 5.99,
+    "description": "Prefijo [VIP+], acceso a /enderchest, 5 sethomes, kit VIP+ y 1,000 NC gratis.",
+    "iconType": "crown",
+    "command": "lp user {player} parent add vip_plus",
+    "giveCoins": 1000,
+    "badge": "Recomendado"
+  },
+  {
+    "id": "rank_mvp",
+    "name": "Rango MVP (30 Días)",
+    "category": "rangos",
+    "priceCoins": 25000,
+    "priceUsdt": 9.99,
+    "description": "Prefijo [MVP], /fly en supervivencia, 10 sethomes, kit MVP y 2,500 NC gratis.",
+    "iconType": "crown",
+    "command": "lp user {player} parent add mvp",
+    "giveCoins": 2500,
+    "badge": "Pro"
+  },
+  {
+    "id": "rank_elite",
+    "name": "Rango ELITE (Permanente)",
+    "category": "rangos",
+    "priceCoins": 55000,
+    "priceUsdt": 19.99,
+    "description": "Prefijo [ELITE] animado, todos los comandos /fly, /workbench, 20 sethomes y 5,000 NC.",
+    "iconType": "crown",
+    "command": "lp user {player} parent add elite",
+    "giveCoins": 5000,
+    "badge": "Leyenda"
+  },
+  {
+    "id": "kit_warrior",
+    "name": "Kit Guerrero Divino",
+    "category": "kits",
+    "priceCoins": 2000,
+    "priceUsdt": 1.49,
+    "description": "Armadura de Diamante Protección IV, Espada Filo V y 3 Manzanas Doradas.",
+    "iconType": "shield",
+    "command": "kit warrior {player}",
+    "giveCoins": 0,
+    "badge": "PvP"
+  },
+  {
+    "id": "kit_miner",
+    "name": "Kit Minero Estelar",
+    "category": "kits",
+    "priceCoins": 1500,
+    "priceUsdt": 0.99,
+    "description": "Pico de Netherite Eficiencia V y Fortuna III, 64 Antorchas y 5 Pociones de Visión Nocturna.",
+    "iconType": "box",
+    "command": "kit miner {player}",
+    "giveCoins": 0,
+    "badge": "Útil"
+  },
+  {
+    "id": "kit_builder",
+    "name": "Kit Maestro Constructor",
+    "category": "kits",
+    "priceCoins": 3000,
+    "priceUsdt": 1.99,
+    "description": "64 Bloques de Vidrio de Colores, 64 Cuarzo, 64 Piedra Pulida y Varita de Construcción.",
+    "iconType": "box",
+    "command": "kit builder {player}",
+    "giveCoins": 0,
+    "badge": "Build"
+  },
+  {
+    "id": "key_mythic",
+    "name": "Llave Cofre Mítico x3",
+    "category": "keys",
+    "priceCoins": 1200,
+    "priceUsdt": 0.99,
+    "description": "3 Llaves para abrir el Cofre Mítico en el Spawn. ¡Premios de hasta 10,000 NC!",
+    "iconType": "key",
+    "command": "crate givekey {player} mythic 3",
+    "giveCoins": 0,
+    "badge": "Suerte"
+  },
+  {
+    "id": "key_bould",
+    "name": "Llave Bóveda Real x1",
+    "category": "keys",
+    "priceCoins": 2500,
+    "priceUsdt": 1.99,
+    "description": "1 Llave Suprema de la Bóveda Real. ¡Garantiza armadura Netherite o rango temporal!",
+    "iconType": "key",
+    "command": "crate givekey {player} royal 1",
+    "giveCoins": 0,
+    "badge": "Épico"
+  },
+  {
+    "id": "cmd_fly",
+    "name": "Permiso /fly (Volar 30 Días)",
+    "category": "comandos",
+    "priceCoins": 8000,
+    "priceUsdt": 3.99,
+    "description": "Vuela libremente por el mundo Survival sin restricciones por 30 días.",
+    "iconType": "zap",
+    "command": "lp user {player} permission set temp ess.fly true 30d",
+    "giveCoins": 0,
+    "badge": "Vuelo"
+  },
+  {
+    "id": "cmd_heal_feed",
+    "name": "Comandos /heal y /feed",
+    "category": "comandos",
+    "priceCoins": 4000,
+    "priceUsdt": 2.49,
+    "description": "Recupera tu vida y comida al máximo al instante con un cooldown de 5 minutos.",
+    "iconType": "zap",
+    "command": "lp user {player} permission set ess.heal true",
+    "giveCoins": 0,
+    "badge": "Salud"
+  },
+  {
+    "id": "item_elytra",
+    "name": "Elytra + Irrompibilidad III",
+    "category": "items",
+    "priceCoins": 7000,
+    "priceUsdt": 3.49,
+    "description": "Alas de Elytra encantadas con Irrompibilidad III y Reparación Mending.",
+    "iconType": "star",
+    "command": "give {player} elytra{Enchantments:[{id:unbreaking,lvl:3},{id:mending,lvl:1}]} 1",
+    "giveCoins": 0,
+    "badge": "Top"
+  },
+  {
+    "id": "pack_netherite",
+    "name": "Pack 4 Lingotes de Netherite",
+    "category": "items",
+    "priceCoins": 5000,
+    "priceUsdt": 2.99,
+    "description": "4 Lingotes de Netherite puro para mejorar tu equipo completo a Netherite.",
+    "iconType": "gem",
+    "command": "give {player} netherite_ingot 4",
+    "giveCoins": 0,
+    "badge": "Recursos"
+  },
+  {
+    "id": "coin_pack_small",
+    "name": "Bolsa de 1,000 Nodocoins",
+    "category": "coins",
+    "priceCoins": 0,
+    "priceUsdt": 0.99,
+    "description": "Acredita 1,000 Nodocoins directamente a tu billetera en mano.",
+    "iconType": "coins",
+    "command": "",
+    "giveCoins": 1000,
+    "badge": "+1,000 NC"
+  },
+  {
+    "id": "coin_pack_large",
+    "name": "Cofre de 10,000 Nodocoins",
+    "category": "coins",
+    "priceCoins": 0,
+    "priceUsdt": 7.99,
+    "description": "Acredita 10,000 Nodocoins directos + 1,000 NC de Bono gratis.",
+    "iconType": "coins",
+    "command": "",
+    "giveCoins": 11000,
+    "badge": "+11,000 NC Bonus"
+  }
+];
+
+function openBulkImportModal() {
+  const modal = document.getElementById("modal-bulk-import");
+  if (modal) {
+    modal.style.display = "flex";
+    modal.classList.add("active");
+  }
+}
+
+function closeBulkImportModal() {
+  const modal = document.getElementById("modal-bulk-import");
+  if (modal) {
+    modal.style.display = "none";
+    modal.classList.remove("active");
+  }
+}
+
+function loadOfficialPresetCatalog() {
+  const textarea = document.getElementById("bulk-items-json");
+  if (textarea) {
+    textarea.value = JSON.stringify(OFFICIAL_PRESET_CATALOG, null, 2);
+    showAdminToast("¡Catálogo Oficial Equilibrado cargado en el editor!", "info");
+  }
+}
+
+function setupBulkImportForm() {
+  document.getElementById("form-bulk-import")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const rawJson = document.getElementById("bulk-items-json").value.trim();
+    const mode = document.getElementById("bulk-import-mode").value;
+
+    if (!rawJson) return showAdminToast("Pega o carga una lista de productos en formato JSON", "error");
+
+    let parsedItems = [];
+    try {
+      parsedItems = JSON.parse(rawJson);
+      if (!Array.isArray(parsedItems)) throw new Error("Debe ser un arreglo de objetos JSON [...]");
+    } catch (err) {
+      return showAdminToast("Error en formato JSON: " + err.message, "error");
+    }
+
+    try {
+      const res = await fetch("/api/admin/store/bulk-import", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": adminToken
+        },
+        body: JSON.stringify({ items: parsedItems, mode })
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        showAdminToast(`¡${data.count} productos importados al catálogo exitosamente!`, "success");
+        closeBulkImportModal();
+        loadAdminCatalog();
+      } else {
+        showAdminToast(data.error || "No se pudo importar el catálogo", "error");
+      }
+    } catch (err) {
+      showAdminToast("Error de comunicación al importar catálogo", "error");
+    }
+  });
 }
