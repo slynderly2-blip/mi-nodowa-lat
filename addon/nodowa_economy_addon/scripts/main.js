@@ -349,24 +349,7 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     }
   };
 
-  // Comandos /link y /saldo directos (resumidos)
-  reg("link", "Vincula tu cuenta con la web — /link <código>", [
-    { name: "codigo", type: CustomCommandParamType.Integer }
-  ], (o, codigo) => {
-    const p = o.initiator ?? o.sourceEntity;
-    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
-    system.run(() => handleLinkCode(p, codigo));
-    return { status: CustomCommandStatus.Success };
-  });
-
-  reg("saldo", "Consulta tu saldo de Nodocoins", null, (o) => {
-    const p = o.initiator ?? o.sourceEntity;
-    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
-    system.run(() => showBalance(p));
-    return { status: CustomCommandStatus.Success };
-  });
-
-  // Comandos /eco:*
+  // Único namespace permitido por Bedrock 1.21 Script API: "eco"
   reg("eco:menu", "Abre el menú de economía", null, (o) => {
     const p = o.initiator ?? o.sourceEntity;
     if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
@@ -374,15 +357,15 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     return { status: CustomCommandStatus.Success };
   });
 
-  reg("eco:saldo", "Consulta tu saldo de Nodocoins", null, (o) => {
+  reg("eco:saldo", "Consulta tu saldo de Nodocoins en mano", null, (o) => {
     const p = o.initiator ?? o.sourceEntity;
     if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
     system.run(() => showBalance(p));
     return { status: CustomCommandStatus.Success };
   });
 
-  reg("eco:link", "Vincula tu cuenta con la web", [
-    { name: "codigo", type: CustomCommandParamType.Integer }
+  reg("eco:link", "Vincula tu cuenta con la web (/link <código>)", [
+    { name: "codigo", type: CustomCommandParamType.String }
   ], (o, codigo) => {
     const p = o.initiator ?? o.sourceEntity;
     if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
@@ -390,7 +373,7 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     return { status: CustomCommandStatus.Success };
   });
 
-  reg("eco:pagar", "Paga Nodocoins a un jugador", [
+  reg("eco:pagar", "Transfiere Nodocoins en mano a un jugador (/pagar <jugador> <monto>)", [
     { name: "jugador", type: CustomCommandParamType.String },
     { name: "cantidad", type: CustomCommandParamType.Integer }
   ], (o, jugador, cantidad) => {
@@ -400,58 +383,17 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     return { status: CustomCommandStatus.Success };
   });
 
-  reg("eco:buzon", "Revisa entregas pendientes", null, (o) => {
+  reg("eco:buzon", "Revisa entregas pendientes de la tienda web", null, (o) => {
     const p = o.initiator ?? o.sourceEntity;
     if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
     system.run(() => checkDeliveriesForPlayer(p));
     return { status: CustomCommandStatus.Success };
   });
 
-  // Comandos /nodowa:*
-  reg("nodowa:menu", "Abre el menú de economía", null, (o) => {
-    const p = o.initiator ?? o.sourceEntity;
-    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
-    system.run(() => openMainMenu(p));
-    return { status: CustomCommandStatus.Success };
-  });
-
-  reg("nodowa:saldo", "Consulta tu saldo de Nodocoins", null, (o) => {
-    const p = o.initiator ?? o.sourceEntity;
-    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
-    system.run(() => showBalance(p));
-    return { status: CustomCommandStatus.Success };
-  });
-
-  reg("nodowa:link", "Vincula tu cuenta con la web", [
-    { name: "codigo", type: CustomCommandParamType.Integer }
-  ], (o, codigo) => {
-    const p = o.initiator ?? o.sourceEntity;
-    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
-    system.run(() => handleLinkCode(p, codigo));
-    return { status: CustomCommandStatus.Success };
-  });
-
-  reg("nodowa:pagar", "Paga Nodocoins a un jugador", [
-    { name: "jugador", type: CustomCommandParamType.String },
-    { name: "cantidad", type: CustomCommandParamType.Integer }
-  ], (o, jugador, cantidad) => {
-    const p = o.initiator ?? o.sourceEntity;
-    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
-    system.run(() => handlePayCommand(p, jugador, cantidad));
-    return { status: CustomCommandStatus.Success };
-  });
-
-  reg("nodowa:buzon", "Revisa entregas pendientes", null, (o) => {
-    const p = o.initiator ?? o.sourceEntity;
-    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
-    system.run(() => checkDeliveriesForPlayer(p));
-    return { status: CustomCommandStatus.Success };
-  });
-
-  console.log("[NodowaEconomy] v3.0.0 — Comandos /link /saldo /eco:* /nodowa:* listos.");
+  console.log("[NodowaEconomy] v3.2.1 — Comandos /eco:* y chat (/pagar, /saldo, /link) listos.");
 });
 
-// ── Captura de Chat Opcional (!link, !saldo, !menu, !pagar, !buzon) ──
+// ── Captura de Chat Nacio/Universal (/pagar, /saldo, /link, !pagar, !saldo, !link) ──
 if (world.beforeEvents && world.beforeEvents.chatSend) {
   const ECONOMY_COMMANDS = new Set([
     "menu", "saldo", "bal", "dinero", "money", "eco",
@@ -464,7 +406,7 @@ if (world.beforeEvents && world.beforeEvents.chatSend) {
     if (!trimmed) return;
 
     const firstChar = trimmed.charAt(0);
-    const isPrefix = firstChar === "!" || firstChar === "." || firstChar === ";";
+    const isPrefix = firstChar === "/" || firstChar === "!" || firstChar === "." || firstChar === ";";
     if (!isPrefix) return;
 
     const cmdLine = trimmed.slice(1).trim();
