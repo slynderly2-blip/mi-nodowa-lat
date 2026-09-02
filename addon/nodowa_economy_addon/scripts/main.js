@@ -151,12 +151,16 @@ async function checkDeliveriesForPlayer(player, notifyEmpty = true) {
           const cmdToExec = finalCmd.startsWith("/") ? finalCmd.slice(1) : finalCmd;
           
           try {
-            await player.runCommandAsync(cmdToExec);
+            player.runCommand(cmdToExec);
           } catch (e1) {
             try {
-              await world.getDimension("overworld").runCommandAsync(cmdToExec);
+              player.dimension.runCommand(cmdToExec);
             } catch (e2) {
-              console.warn(`[NodowaEconomy] Error ejecutando comando de entrega "${cmdToExec}":`, e2);
+              try {
+                world.getDimension("overworld").runCommand(cmdToExec);
+              } catch (e3) {
+                console.warn(`[NodowaEconomy] Error ejecutando comando de entrega "${cmdToExec}":`, e3.message);
+              }
             }
           }
         }
