@@ -349,48 +349,49 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     }
   };
 
-  // Único namespace permitido por Bedrock 1.21 Script API: "eco"
-  reg("eco:menu", "Abre el menú de economía", null, (o) => {
-    const p = o.initiator ?? o.sourceEntity;
-    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
-    system.run(() => openMainMenu(p));
+  // Safe Player Resolver
+  const runForPlayerName = (o, callback) => {
+    try {
+      const p = o.initiator ?? o.sourceEntity;
+      if (p && p instanceof Player) {
+        const name = p.name;
+        system.run(() => {
+          try {
+            const freshPlayer = world.getAllPlayers().find(x => x.name === name);
+            if (freshPlayer) callback(freshPlayer);
+          } catch (_) {}
+        });
+      }
+    } catch (_) {}
     return { status: CustomCommandStatus.Success };
+  };
+
+  reg("eco:menu", "Abre el menú de economía", null, (o) => {
+    return runForPlayerName(o, (p) => openMainMenu(p));
   });
 
   reg("eco:saldo", "Consulta tu saldo de Nodocoins en mano", null, (o) => {
-    const p = o.initiator ?? o.sourceEntity;
-    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
-    system.run(() => showBalance(p));
-    return { status: CustomCommandStatus.Success };
+    return runForPlayerName(o, (p) => showBalance(p));
   });
 
   reg("eco:link", "Vincula tu cuenta con la web (/link <código>)", [
     { name: "codigo", type: CustomCommandParamType.String }
   ], (o, codigo) => {
-    const p = o.initiator ?? o.sourceEntity;
-    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
-    system.run(() => handleLinkCode(p, codigo));
-    return { status: CustomCommandStatus.Success };
+    return runForPlayerName(o, (p) => handleLinkCode(p, codigo));
   });
 
   reg("eco:pagar", "Transfiere Nodocoins en mano a un jugador (/pagar <jugador> <monto>)", [
     { name: "jugador", type: CustomCommandParamType.String },
     { name: "cantidad", type: CustomCommandParamType.Integer }
   ], (o, jugador, cantidad) => {
-    const p = o.initiator ?? o.sourceEntity;
-    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
-    system.run(() => handlePayCommand(p, jugador, cantidad));
-    return { status: CustomCommandStatus.Success };
+    return runForPlayerName(o, (p) => handlePayCommand(p, jugador, cantidad));
   });
 
   reg("eco:buzon", "Revisa entregas pendientes de la tienda web", null, (o) => {
-    const p = o.initiator ?? o.sourceEntity;
-    if (!(p instanceof Player)) return { status: CustomCommandStatus.Failure };
-    system.run(() => checkDeliveriesForPlayer(p));
-    return { status: CustomCommandStatus.Success };
+    return runForPlayerName(o, (p) => checkDeliveriesForPlayer(p));
   });
 
-  console.log("[NodowaEconomy] v3.2.1 — Comandos /eco:* y chat (/pagar, /saldo, /link) listos.");
+  console.log("[NodowaEconomy] v3.2.2 — Comandos /eco:* y chat (/pagar, /saldo, /link) ultra-estables.");
 });
 
 // ── Captura de Chat Nacio/Universal (/pagar, /saldo, /link, !pagar, !saldo, !link) ──
@@ -401,30 +402,36 @@ if (world.beforeEvents && world.beforeEvents.chatSend) {
   ]);
 
   world.beforeEvents.chatSend.subscribe((event) => {
-    const { sender, message } = event;
-    const trimmed = message.trim();
-    if (!trimmed) return;
+    try {
+      const { sender, message } = event;
+      if (!sender || !message) return;
+      const trimmed = message.trim();
+      if (!trimmed) return;
 
-    const firstChar = trimmed.charAt(0);
-    const isPrefix = firstChar === "/" || firstChar === "!" || firstChar === "." || firstChar === ";";
-    if (!isPrefix) return;
+      const firstChar = trimmed.charAt(0);
+      const isPrefix = firstChar === "/" || firstChar === "!" || firstChar === "." || firstChar === ";";
+      if (!isPrefix) return;
 
-    const cmdLine = trimmed.slice(1).trim();
-    const parts = cmdLine.split(/\s+/);
-    const rawCmd = (parts[0] || "").toLowerCase();
-    const cmd = rawCmd.includes(":") ? rawCmd.split(":")[1] : rawCmd;
+      const cmdLine = trimmed.slice(1).trim();
+      const parts = cmdLine.split(/\s+/);
+      const rawCmd = (parts[0] || "").toLowerCase();
+      const cmd = rawCmd.includes(":") ? rawCmd.split(":")[1] : rawCmd;
 
-    if (ECONOMY_COMMANDS.has(cmd)) {
-      event.cancel = true;
-      system.run(() => {
-        try {
-          if (cmd === "saldo" || cmd === "bal" || cmd === "money" || cmd === "dinero") showBalance(sender);
-          else if (cmd === "menu" || cmd === "eco" || cmd === "tienda") openMainMenu(sender);
-          else if (cmd === "link" && parts[1]) handleLinkCode(sender, parts[1]);
-          else if ((cmd === "pagar" || cmd === "pay") && parts[1] && parts[2]) handlePayCommand(sender, parts[1], parseInt(parts[2]));
-          else if (cmd === "buzon" || cmd === "reclamar") checkDeliveriesForPlayer(sender);
-        } catch (_) {}
-      });
-    }
+      if (ECONOMY_COMMANDS.has(cmd)) {
+        try { event.cancel = true; } catch (_) {}
+        const senderName = sender.name;
+        system.run(() => {
+          try {
+            const p = world.getAllPlayers().find(x => x.name === senderName);
+            if (!p) return;
+            if (cmd === "saldo" || cmd === "bal" || cmd === "money" || cmd === "dinero") showBalance(p);
+            else if (cmd === "menu" || cmd === "eco" || cmd === "tienda") openMainMenu(p);
+            else if (cmd === "link" && parts[1]) handleLinkCode(p, parts[1]);
+            else if ((cmd === "pagar" || cmd === "pay") && parts[1] && parts[2]) handlePayCommand(p, parts[1], parseInt(parts[2]));
+            else if (cmd === "buzon" || cmd === "reclamar") checkDeliveriesForPlayer(p);
+          } catch (_) {}
+        });
+      }
+    } catch (_) {}
   });
 }
