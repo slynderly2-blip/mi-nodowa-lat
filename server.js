@@ -1115,13 +1115,19 @@ app.post("/api/admin/qr/update", checkAdminAuth, upload.single("qrImage"), (req,
   res.json({ ok: true, message: "Configuración de Binance actualizada", binance: db.config.binance });
 });
 
-// Gestión de Catálogo de Tienda
-app.post("/api/admin/store/save-item", checkAdminAuth, (req, res) => {
-  const { id, name, category, priceCoins, priceUsdt, description, iconType, command, giveCoins, badge } = req.body;
+// Gestión de Catálogo de Tienda (Con soporte para imágenes)
+app.post("/api/admin/store/save-item", checkAdminAuth, upload.single("image"), (req, res) => {
+  const { id, name, category, priceCoins, priceUsdt, description, iconType, command, giveCoins, badge, imageUrl } = req.body;
   if (!name) return res.status(400).json({ ok: false, error: "Nombre obligatorio" });
 
   const itemId = id || "item_" + Date.now();
   const existingIdx = db.storeItems.findIndex(i => i.id === itemId);
+  const existingItem = existingIdx >= 0 ? db.storeItems[existingIdx] : null;
+
+  let finalImage = imageUrl ? imageUrl.trim() : null;
+  if (req.file) {
+    finalImage = `/uploads/receipts/${req.file.filename}`;
+  }
 
   const itemObj = {
     id: itemId,
@@ -1133,7 +1139,8 @@ app.post("/api/admin/store/save-item", checkAdminAuth, (req, res) => {
     iconType: iconType || "box",
     command: command ? command.trim() : null,
     giveCoins: Number(giveCoins || 0),
-    badge: badge ? badge.trim() : null
+    badge: badge ? badge.trim() : null,
+    imageUrl: finalImage || (existingItem ? existingItem.imageUrl : null)
   };
 
   if (existingIdx >= 0) {

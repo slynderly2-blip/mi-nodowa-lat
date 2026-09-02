@@ -401,7 +401,8 @@ function renderStoreCards() {
   grid.innerHTML = filtered.map(item => `
     <div class="store-card">
       <div>
-        <div class="card-top">
+        ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.name}" style="width: 100%; height: 160px; object-fit: cover; border-radius: var(--radius-md) var(--radius-md) 0 0; margin-bottom: 0.75rem;">` : ''}
+        <div class="card-top" style="${item.imageUrl ? 'padding-top: 0;' : ''}">
           <div class="card-icon">
             <span class="icon-slot" data-icon="${item.iconType || 'box'}"></span>
           </div>

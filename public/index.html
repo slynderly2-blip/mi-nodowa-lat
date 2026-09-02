@@ -70,16 +70,18 @@
     <section class="tab-view active" id="view-store">
       <div class="hero-banner">
         <div class="hero-content">
-          <h1>Tienda Oficial & Economía</h1>
-          <p>Adquiere rangos, kits legendarios, llaves y paquetes de monedas. Paga con tus Nodocoins en mano o mediante Binance Pay USDT.</p>
+          <h1>Tienda Oficial & Economía Nodowa</h1>
+          <p>Adquiere rangos, kits legendarios, llaves y paquetes de monedas. Tu economía se sincroniza en tiempo real con el servidor de Minecraft Bedrock.</p>
         </div>
         <div class="hero-stats">
           <div class="stat-box">
             <div class="val mono" id="hero-coins-circulating">--</div>
             <div class="lbl">Nodocoins en Juego</div>
           </div>
-          <div class="stat-box">
-            <div class="val text-emerald mono" id="hero-online-status">ONLINE</div>
+          <div class="stat-box" style="padding: 0.65rem 1rem;">
+            <div class="val text-emerald mono" style="font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;" id="hero-online-status">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span> mi.nodowa.lat:19132
+            </div>
             <div class="lbl">Servidor Bedrock</div>
           </div>
         </div>
@@ -119,7 +121,7 @@
         </div>
       </div>
 
-      <p class="text-muted" style="margin-bottom: 1.75rem; font-size: 1.05rem;">Compra y vende ítems con otros jugadores del servidor sin intermediarios. Las transacciones son 100% seguras y se entregan automáticamente a tu buzón.</p>
+      <p class="text-muted" style="margin-bottom: 1.75rem; font-size: 1.05rem;">Compra y vende ítems con otros jugadores del servidor sin intermediarios. Puedes contactar directamente por WhatsApp o Discord para acordar el trato.</p>
 
       <div class="p2p-grid" id="p2p-items-grid">
         <!-- Renderizado dinámico de publicaciones P2P -->
@@ -146,6 +148,7 @@
               <span class="icon-slot text-purple" data-icon="wallet"></span>
             </div>
             <div class="balance-huge text-purple" id="user-wallet-balance">0 NC</div>
+            <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 1rem;">💡 <strong>En Minecraft:</strong> Tu comando <code>/saldo</code> refleja exactamente tus Nodocoins en Mano.</p>
             <div class="flex-between" style="gap: 0.75rem;">
               <input type="number" id="deposit-amount" class="form-input" placeholder="Monto a depositar...">
               <button class="btn-primary" id="btn-deposit-bank" style="white-space: nowrap;">
@@ -161,6 +164,7 @@
               <span class="icon-slot text-emerald" data-icon="bank"></span>
             </div>
             <div class="balance-huge text-emerald" id="user-bank-balance">0 NC</div>
+            <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 1rem;">📈 <strong>Interés Diario (+1%):</strong> El banco te paga un 1% de interés diario automático sobre tus ahorros guardados aquí.</p>
             <div class="flex-between" style="gap: 0.75rem;">
               <input type="number" id="withdraw-amount" class="form-input" placeholder="Monto a retirar...">
               <button class="btn-auth" id="btn-withdraw-bank" style="white-space: nowrap; background: var(--accent-emerald);">

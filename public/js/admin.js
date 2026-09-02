@@ -355,6 +355,7 @@ function openEditItemModal(itemId) {
   document.getElementById("item-input-command").value = item.command || "";
   document.getElementById("item-input-give-coins").value = item.giveCoins || 0;
   document.getElementById("item-input-desc").value = item.description || "";
+  document.getElementById("item-input-image-url").value = item.imageUrl || "";
 
   document.getElementById("modal-edit-item").classList.add("active");
 }
@@ -374,15 +375,28 @@ function setupCatalogForm() {
     const command = document.getElementById("item-input-command").value.trim();
     const giveCoins = document.getElementById("item-input-give-coins").value;
     const description = document.getElementById("item-input-desc").value.trim();
+    const imageUrl = document.getElementById("item-input-image-url").value.trim();
+    const imageFile = document.getElementById("item-input-image-file")?.files[0];
+
+    const formData = new FormData();
+    formData.append("id", id);
+    formData.append("name", name);
+    formData.append("category", category);
+    formData.append("priceCoins", priceCoins);
+    formData.append("priceUsdt", priceUsdt);
+    if (command) formData.append("command", command);
+    if (giveCoins) formData.append("giveCoins", giveCoins);
+    if (description) formData.append("description", description);
+    if (imageUrl) formData.append("imageUrl", imageUrl);
+    if (imageFile) formData.append("image", imageFile);
 
     try {
       const res = await fetch("/api/admin/store/save-item", {
         method: "POST",
         headers: { 
-          "Content-Type": "application/json",
           "x-admin-token": adminToken
         },
-        body: JSON.stringify({ id, name, category, priceCoins, priceUsdt, command, giveCoins, description })
+        body: formData
       });
       const data = await res.json();
       if (data.ok) {
