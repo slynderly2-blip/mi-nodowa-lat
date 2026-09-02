@@ -552,186 +552,84 @@ function showAdminToast(message, type = "info") {
 
 // ── Carga Masiva de Productos (JSON / Preset Equilibrado) ──────
 const OFFICIAL_PRESET_CATALOG = [
-  {
-    "id": "rank_vip",
-    "name": "Rango VIP (30 Días)",
-    "category": "rangos",
-    "priceCoins": 5000,
-    "priceUsdt": 2.99,
-    "description": "Prefijo [VIP] en chat, /fly en lobby, 3 sethomes y kit VIP cada 24h.",
-    "iconType": "crown",
-    "command": "lp user {player} parent add vip",
-    "giveCoins": 0,
-    "badge": "Popular"
-  },
-  {
-    "id": "rank_vip_plus",
-    "name": "Rango VIP+ (30 Días)",
-    "category": "rangos",
-    "priceCoins": 12000,
-    "priceUsdt": 5.99,
-    "description": "Prefijo [VIP+], acceso a /enderchest, 5 sethomes, kit VIP+ y 1,000 NC gratis.",
-    "iconType": "crown",
-    "command": "lp user {player} parent add vip_plus",
-    "giveCoins": 1000,
-    "badge": "Recomendado"
-  },
-  {
-    "id": "rank_mvp",
-    "name": "Rango MVP (30 Días)",
-    "category": "rangos",
-    "priceCoins": 25000,
-    "priceUsdt": 9.99,
-    "description": "Prefijo [MVP], /fly en supervivencia, 10 sethomes, kit MVP y 2,500 NC gratis.",
-    "iconType": "crown",
-    "command": "lp user {player} parent add mvp",
-    "giveCoins": 2500,
-    "badge": "Pro"
-  },
-  {
-    "id": "rank_elite",
-    "name": "Rango ELITE (Permanente)",
-    "category": "rangos",
-    "priceCoins": 55000,
-    "priceUsdt": 19.99,
-    "description": "Prefijo [ELITE] animado, todos los comandos /fly, /workbench, 20 sethomes y 5,000 NC.",
-    "iconType": "crown",
-    "command": "lp user {player} parent add elite",
-    "giveCoins": 5000,
-    "badge": "Leyenda"
-  },
-  {
-    "id": "kit_warrior",
-    "name": "Kit Guerrero Divino",
-    "category": "kits",
-    "priceCoins": 2000,
-    "priceUsdt": 1.49,
-    "description": "Armadura de Diamante Protección IV, Espada Filo V y 3 Manzanas Doradas.",
-    "iconType": "shield",
-    "command": "kit warrior {player}",
-    "giveCoins": 0,
-    "badge": "PvP"
-  },
-  {
-    "id": "kit_miner",
-    "name": "Kit Minero Estelar",
-    "category": "kits",
-    "priceCoins": 1500,
-    "priceUsdt": 0.99,
-    "description": "Pico de Netherite Eficiencia V y Fortuna III, 64 Antorchas y 5 Pociones de Visión Nocturna.",
-    "iconType": "box",
-    "command": "kit miner {player}",
-    "giveCoins": 0,
-    "badge": "Útil"
-  },
-  {
-    "id": "kit_builder",
-    "name": "Kit Maestro Constructor",
-    "category": "kits",
-    "priceCoins": 3000,
-    "priceUsdt": 1.99,
-    "description": "64 Bloques de Vidrio de Colores, 64 Cuarzo, 64 Piedra Pulida y Varita de Construcción.",
-    "iconType": "box",
-    "command": "kit builder {player}",
-    "giveCoins": 0,
-    "badge": "Build"
-  },
-  {
-    "id": "key_mythic",
-    "name": "Llave Cofre Mítico x3",
-    "category": "keys",
-    "priceCoins": 1200,
-    "priceUsdt": 0.99,
-    "description": "3 Llaves para abrir el Cofre Mítico en el Spawn. ¡Premios de hasta 10,000 NC!",
-    "iconType": "key",
-    "command": "crate givekey {player} mythic 3",
-    "giveCoins": 0,
-    "badge": "Suerte"
-  },
-  {
-    "id": "key_bould",
-    "name": "Llave Bóveda Real x1",
-    "category": "keys",
-    "priceCoins": 2500,
-    "priceUsdt": 1.99,
-    "description": "1 Llave Suprema de la Bóveda Real. ¡Garantiza armadura Netherite o rango temporal!",
-    "iconType": "key",
-    "command": "crate givekey {player} royal 1",
-    "giveCoins": 0,
-    "badge": "Épico"
-  },
-  {
-    "id": "cmd_fly",
-    "name": "Permiso /fly (Volar 30 Días)",
-    "category": "comandos",
-    "priceCoins": 8000,
-    "priceUsdt": 3.99,
-    "description": "Vuela libremente por el mundo Survival sin restricciones por 30 días.",
-    "iconType": "zap",
-    "command": "lp user {player} permission set temp ess.fly true 30d",
-    "giveCoins": 0,
-    "badge": "Vuelo"
-  },
-  {
-    "id": "cmd_heal_feed",
-    "name": "Comandos /heal y /feed",
-    "category": "comandos",
-    "priceCoins": 4000,
-    "priceUsdt": 2.49,
-    "description": "Recupera tu vida y comida al máximo al instante con un cooldown de 5 minutos.",
-    "iconType": "zap",
-    "command": "lp user {player} permission set ess.heal true",
-    "giveCoins": 0,
-    "badge": "Salud"
-  },
-  {
-    "id": "item_elytra",
-    "name": "Elytra + Irrompibilidad III",
-    "category": "items",
-    "priceCoins": 7000,
-    "priceUsdt": 3.49,
-    "description": "Alas de Elytra encantadas con Irrompibilidad III y Reparación Mending.",
-    "iconType": "star",
-    "command": "give {player} elytra{Enchantments:[{id:unbreaking,lvl:3},{id:mending,lvl:1}]} 1",
-    "giveCoins": 0,
-    "badge": "Top"
-  },
-  {
-    "id": "pack_netherite",
-    "name": "Pack 4 Lingotes de Netherite",
-    "category": "items",
-    "priceCoins": 5000,
-    "priceUsdt": 2.99,
-    "description": "4 Lingotes de Netherite puro para mejorar tu equipo completo a Netherite.",
-    "iconType": "gem",
-    "command": "give {player} netherite_ingot 4",
-    "giveCoins": 0,
-    "badge": "Recursos"
-  },
-  {
-    "id": "coin_pack_small",
-    "name": "Bolsa de 1,000 Nodocoins",
-    "category": "coins",
-    "priceCoins": 0,
-    "priceUsdt": 0.99,
-    "description": "Acredita 1,000 Nodocoins directamente a tu billetera en mano.",
-    "iconType": "coins",
-    "command": "",
-    "giveCoins": 1000,
-    "badge": "+1,000 NC"
-  },
-  {
-    "id": "coin_pack_large",
-    "name": "Cofre de 10,000 Nodocoins",
-    "category": "coins",
-    "priceCoins": 0,
-    "priceUsdt": 7.99,
-    "description": "Acredita 10,000 Nodocoins directos + 1,000 NC de Bono gratis.",
-    "iconType": "coins",
-    "command": "",
-    "giveCoins": 11000,
-    "badge": "+11,000 NC Bonus"
-  }
+  // ── PAQUETES DE MONEDAS (10 PAQUETES) ──
+  { "id": "coin_micro", "name": "Bolsa Micro (500 Nodocoins)", "category": "coins", "priceCoins": 0, "priceUsdt": 0.49, "description": "500 Nodocoins acreditados a tu billetera en mano.", "iconType": "coins", "command": "", "giveCoins": 500, "badge": "Básico" },
+  { "id": "coin_bronce", "name": "Bolsa Bronce (1,000 Nodocoins)", "category": "coins", "priceCoins": 0, "priceUsdt": 0.99, "description": "1,000 Nodocoins directos a tu billetera.", "iconType": "coins", "command": "", "giveCoins": 1000, "badge": "Bronce" },
+  { "id": "coin_plata", "name": "Bolsa Plata (2,200 Nodocoins)", "category": "coins", "priceCoins": 0, "priceUsdt": 1.99, "description": "2,000 NC + 200 NC de Bono gratis (+10%).", "iconType": "coins", "command": "", "giveCoins": 2200, "badge": "+10% Bonus" },
+  { "id": "coin_oro", "name": "Cofre de Oro (4,600 Nodocoins)", "category": "coins", "priceCoins": 0, "priceUsdt": 3.99, "description": "4,000 NC + 600 NC de Bono gratis (+15%).", "iconType": "coins", "command": "", "giveCoins": 4600, "badge": "+15% Bonus" },
+  { "id": "coin_diamante", "name": "Cofre Diamante (8,500 Nodocoins)", "category": "coins", "priceCoins": 0, "priceUsdt": 6.99, "description": "7,000 NC + 1,500 NC de Bono gratis (+20%).", "iconType": "coins", "command": "", "giveCoins": 8500, "badge": "+20% Bonus" },
+  { "id": "coin_esmeralda", "name": "Cofre Esmeralda (13,000 Nodocoins)", "category": "coins", "priceCoins": 0, "priceUsdt": 9.99, "description": "10,000 NC + 3,000 NC de Bono gratis (+30%).", "iconType": "coins", "command": "", "giveCoins": 13000, "badge": "Popular" },
+  { "id": "coin_netherite", "name": "Bóveda Netherite (20,000 Nodocoins)", "category": "coins", "priceCoins": 0, "priceUsdt": 14.99, "description": "15,000 NC + 5,000 NC de Bono gratis (+35%).", "iconType": "coins", "command": "", "giveCoins": 20000, "badge": "+35% Bonus" },
+  { "id": "coin_rey", "name": "Bóveda Real (35,000 Nodocoins)", "category": "coins", "priceCoins": 0, "priceUsdt": 24.99, "description": "25,000 NC + 10,000 NC de Bono gratis (+40%).", "iconType": "coins", "command": "", "giveCoins": 35000, "badge": "Rey" },
+  { "id": "coin_titan", "name": "Bóveda Titán (75,000 Nodocoins)", "category": "coins", "priceCoins": 0, "priceUsdt": 49.99, "description": "50,000 NC + 25,000 NC de Bono gratis (+50%).", "iconType": "coins", "command": "", "giveCoins": 75000, "badge": "Titán" },
+  { "id": "coin_boveda", "name": "Bóveda Suprema (160,000 Nodocoins)", "category": "coins", "priceCoins": 0, "priceUsdt": 99.99, "description": "100,000 NC + 60,000 NC de Bono gratis (+60%).", "iconType": "coins", "command": "", "giveCoins": 160000, "badge": "Leyenda" },
+
+  // ── COMIDA (8 ÍTEMS) ──
+  { "id": "food_gapple_stack", "name": "Pack 64 Manzanas Doradas", "category": "items", "priceCoins": 3000, "priceUsdt": 1.99, "description": "64 Manzanas Doradas para combate y regeneración.", "iconType": "star", "command": "give {player} golden_apple 64", "giveCoins": 0, "badge": "PvP" },
+  { "id": "food_god_apple", "name": "Pack 8 Manzanas Notched Encantadas", "category": "items", "priceCoins": 4500, "priceUsdt": 2.99, "description": "8 Manzanas Encantadas de muesca dorada de inmortalidad.", "iconType": "star", "command": "give {player} enchanted_golden_apple 8", "giveCoins": 0, "badge": "Épico" },
+  { "id": "food_steak_stack", "name": "Pack 64 Filetes de Ternera", "category": "items", "priceCoins": 800, "priceUsdt": 0.49, "description": "64 Filetes asados para saciar el hambre al máximo.", "iconType": "box", "command": "give {player} cooked_beef 64", "giveCoins": 0, "badge": "Comida" },
+  { "id": "food_pork_stack", "name": "Pack 64 Chuletas de Cerdo", "category": "items", "priceCoins": 800, "priceUsdt": 0.49, "description": "64 Chuletas cocinadas de alta nutrición.", "iconType": "box", "command": "give {player} cooked_porkchop 64", "giveCoins": 0, "badge": "Comida" },
+  { "id": "food_golden_carrot", "name": "Pack 64 Zanahorias Doradas", "category": "items", "priceCoins": 1500, "priceUsdt": 0.99, "description": "64 Zanahorias Doradas de máxima saturación.", "iconType": "star", "command": "give {player} golden_carrot 64", "giveCoins": 0, "badge": "Top Comida" },
+  { "id": "food_bread_stack", "name": "Pack 64 Panes de Trigo", "category": "items", "priceCoins": 500, "priceUsdt": 0.29, "description": "64 Panes recién horneados.", "iconType": "box", "command": "give {player} bread 64", "giveCoins": 0, "badge": "Básico" },
+  { "id": "food_salmon_stack", "name": "Pack 64 Salmones Cocinados", "category": "items", "priceCoins": 600, "priceUsdt": 0.39, "description": "64 Salmones asados listos para comer.", "iconType": "box", "command": "give {player} cooked_salmon 64", "giveCoins": 0, "badge": "Comida" },
+  { "id": "food_cake_stack", "name": "Pack 16 Pasteles / Tartas", "category": "items", "priceCoins": 900, "priceUsdt": 0.59, "description": "16 Pasteles deliciosos para tu base.", "iconType": "box", "command": "give {player} cake 16", "giveCoins": 0, "badge": "Fiesta" },
+
+  // ── MINERALES Y RECURSOS BÁSICOS (9 ÍTEMS) ──
+  { "id": "res_diamond_stack", "name": "Pack 64 Diamantes Puros", "category": "items", "priceCoins": 2500, "priceUsdt": 1.49, "description": "64 Diamantes sin procesar para armaduras y herramientas.", "iconType": "gem", "command": "give {player} diamond 64", "giveCoins": 0, "badge": "Mineral" },
+  { "id": "res_iron_stack", "name": "Pack 64 Lingotes de Hierro", "category": "items", "priceCoins": 800, "priceUsdt": 0.49, "description": "64 Lingotes de Hierro forjado.", "iconType": "box", "command": "give {player} iron_ingot 64", "giveCoins": 0, "badge": "Mineral" },
+  { "id": "res_gold_stack", "name": "Pack 64 Lingotes de Oro", "category": "items", "priceCoins": 1200, "priceUsdt": 0.79, "description": "64 Lingotes de Oro refinado.", "iconType": "gem", "command": "give {player} gold_ingot 64", "giveCoins": 0, "badge": "Mineral" },
+  { "id": "res_emerald_stack", "name": "Pack 64 Esmeraldas", "category": "items", "priceCoins": 2000, "priceUsdt": 1.29, "description": "64 Esmeraldas para comerciar con aldeanos.", "iconType": "gem", "command": "give {player} emerald 64", "giveCoins": 0, "badge": "Trade" },
+  { "id": "res_lapis_stack", "name": "Pack 64 Lapislázuli", "category": "items", "priceCoins": 600, "priceUsdt": 0.39, "description": "64 Lapislázuli para encantamientos.", "iconType": "gem", "command": "give {player} lapis_lazuli 64", "giveCoins": 0, "badge": "Magia" },
+  { "id": "res_redstone_stack", "name": "Pack 64 Polvos de Redstone", "category": "items", "priceCoins": 600, "priceUsdt": 0.39, "description": "64 Polvos de Redstone para mecanismos.", "iconType": "zap", "command": "give {player} redstone 64", "giveCoins": 0, "badge": "Técnico" },
+  { "id": "res_amethyst_stack", "name": "Pack 64 Fragmentos de Amatista", "category": "items", "priceCoins": 1400, "priceUsdt": 0.89, "description": "64 Fragmentos de Amatista de geodas.", "iconType": "gem", "command": "give {player} amethyst_shard 64", "giveCoins": 0, "badge": "Raro" },
+  { "id": "res_coal_stack", "name": "Pack 64 Bloques de Carbón", "category": "items", "priceCoins": 750, "priceUsdt": 0.49, "description": "64 Bloques de Carbón de larga duración en hornos.", "iconType": "box", "command": "give {player} coal_block 64", "giveCoins": 0, "badge": "Energía" },
+  { "id": "res_quartz_stack", "name": "Pack 64 Bloques de Cuarzo", "category": "items", "priceCoins": 1000, "priceUsdt": 0.69, "description": "64 Bloques de Cuarzo del Nether.", "iconType": "box", "command": "give {player} quartz_block 64", "giveCoins": 0, "badge": "Build" },
+
+  // ── MATERIALES NETHER & END ÉPICOS (9 ÍTEMS) ──
+  { "id": "res_netherite_ingot", "name": "Pack 4 Lingotes de Netherite", "category": "items", "priceCoins": 5000, "priceUsdt": 2.99, "description": "4 Lingotes de Netherite puro.", "iconType": "gem", "command": "give {player} netherite_ingot 4", "giveCoins": 0, "badge": "Épico" },
+  { "id": "res_ancient_debris", "name": "Pack 8 Escombros Ancentrales", "category": "items", "priceCoins": 6000, "priceUsdt": 3.49, "description": "8 Escombros Ancentrales extraídos de las profundidades del Nether.", "iconType": "box", "command": "give {player} ancient_debris 8", "giveCoins": 0, "badge": "Raro" },
+  { "id": "res_dragon_egg", "name": "1 Huevo de Dragón del End", "category": "items", "priceCoins": 18000, "priceUsdt": 9.99, "description": "Trofeo supremo y exclusivo del Dragón del End.", "iconType": "star", "command": "give {player} dragon_egg 1", "giveCoins": 0, "badge": "Exclusivo" },
+  { "id": "res_nether_star", "name": "1 Estrella del Nether", "category": "items", "priceCoins": 8000, "priceUsdt": 4.99, "description": "Estrella del Wither para craftear Faros (Beacons).", "iconType": "star", "command": "give {player} nether_star 1", "giveCoins": 0, "badge": "Boss" },
+  { "id": "res_blaze_rod", "name": "Pack 64 Varas de Blaze", "category": "items", "priceCoins": 1800, "priceUsdt": 1.19, "description": "64 Varas de Blaze para pociones y ojos de ender.", "iconType": "zap", "command": "give {player} blaze_rod 64", "giveCoins": 0, "badge": "Nether" },
+  { "id": "res_ender_pearl", "name": "Pack 64 Perlas de Ender", "category": "items", "priceCoins": 1500, "priceUsdt": 0.99, "description": "64 Perlas de Ender para teletransportación rápida.", "iconType": "zap", "command": "give {player} ender_pearl 64", "giveCoins": 0, "badge": "Utilidad" },
+  { "id": "res_ghast_tear", "name": "Pack 32 Lágrimas de Ghast", "category": "items", "priceCoins": 2200, "priceUsdt": 1.49, "description": "32 Lágrimas de Ghast para pociones de regeneración.", "iconType": "star", "command": "give {player} ghast_tear 32", "giveCoins": 0, "badge": "Pociones" },
+  { "id": "res_shulker_shell", "name": "Pack 16 Caparazones de Shulker", "category": "items", "priceCoins": 4000, "priceUsdt": 2.49, "description": "16 Caparazones de Shulker para fabricar 8 cajas de almacenamiento.", "iconType": "box", "command": "give {player} shulker_shell 16", "giveCoins": 0, "badge": "End" },
+  { "id": "res_wither_skull", "name": "Pack 3 Calaveras de Wither", "category": "items", "priceCoins": 6500, "priceUsdt": 3.99, "description": "3 Calaveras de Esqueleto Wither para invocar al Jefe Wither.", "iconType": "shield", "command": "give {player} wither_skeleton_skull 3", "giveCoins": 0, "badge": "Invocación" },
+
+  // ── HERRAMIENTAS Y ARMAMENTO (9 ÍTEMS) ──
+  { "id": "tool_elytra", "name": "Elytra + Irrompibilidad III + Mending", "category": "items", "priceCoins": 7000, "priceUsdt": 3.49, "description": "Alas de Elytra encantadas con Irrompibilidad III y Reparación Mending.", "iconType": "star", "command": "give {player} elytra{Enchantments:[{id:unbreaking,lvl:3},{id:mending,lvl:1}]} 1", "giveCoins": 0, "badge": "Vuelo Top" },
+  { "id": "tool_netherite_pick", "name": "Pico Netherite (Eficiencia V + Fortuna III)", "category": "items", "priceCoins": 5500, "priceUsdt": 2.99, "description": "Pico de Netherite maxeado para minería masiva.", "iconType": "box", "command": "give {player} netherite_pickaxe{Enchantments:[{id:efficiency,lvl:5},{id:fortune,lvl:3},{id:unbreaking,lvl:3}]} 1", "giveCoins": 0, "badge": "Herramienta" },
+  { "id": "tool_netherite_sword", "name": "Espada Netherite (Filo V + Aspecto Ígneo II)", "category": "items", "priceCoins": 5500, "priceUsdt": 2.99, "description": "Espada de Netherite con máximo daño de ataque.", "iconType": "shield", "command": "give {player} netherite_sword{Enchantments:[{id:sharpness,lvl:5},{id:fire_aspect,lvl:2},{id:unbreaking,lvl:3}]} 1", "giveCoins": 0, "badge": "Arma" },
+  { "id": "tool_netherite_axe", "name": "Hacha Netherite (Eficiencia V + Toque de Seda)", "category": "items", "priceCoins": 4500, "priceUsdt": 2.49, "description": "Hacha de Netherite para tala de madera y combate.", "iconType": "box", "command": "give {player} netherite_axe{Enchantments:[{id:efficiency,lvl:5},{id:silk_touch,lvl:1},{id:unbreaking,lvl:3}]} 1", "giveCoins": 0, "badge": "Herramienta" },
+  { "id": "tool_netherite_shovel", "name": "Pala Netherite (Eficiencia V + Irrompibilidad III)", "category": "items", "priceCoins": 3500, "priceUsdt": 1.99, "description": "Pala de Netherite para excavación ultrarrápida.", "iconType": "box", "command": "give {player} netherite_shovel{Enchantments:[{id:efficiency,lvl:5},{id:unbreaking,lvl:3}]} 1", "giveCoins": 0, "badge": "Herramienta" },
+  { "id": "tool_bow_god", "name": "Arco Divino (Poder V + Fuego I + Infinito)", "category": "items", "priceCoins": 4500, "priceUsdt": 2.49, "description": "Arco legendario con flechas de fuego infinitas.", "iconType": "shield", "command": "give {player} bow{Enchantments:[{id:power,lvl:5},{id:flame,lvl:1},{id:infinity,lvl:1}]} 1", "giveCoins": 0, "badge": "Arma Distancia" },
+  { "id": "tool_trident_god", "name": "Tridente con Lealtad III y Canalización", "category": "items", "priceCoins": 6500, "priceUsdt": 3.99, "description": "Tridente de rayo en tormentas que regresa a tu mano.", "iconType": "star", "command": "give {player} trident{Enchantments:[{id:loyalty,lvl:3},{id:channeling,lvl:1}]} 1", "giveCoins": 0, "badge": "Épico" },
+  { "id": "tool_crossbow_god", "name": "Ballesta Carga Rápida III + Multidisparo", "category": "items", "priceCoins": 4000, "priceUsdt": 2.49, "description": "Ballesta de disparo séxtuple veloz.", "iconType": "shield", "command": "give {player} crossbow{Enchantments:[{id:quick_charge,lvl:3},{id:multishot,lvl:1}]} 1", "giveCoins": 0, "badge": "Arma" },
+  { "id": "tool_fishing_rod", "name": "Caña Atraer III + Suerte Marina III", "category": "items", "priceCoins": 2500, "priceUsdt": 1.49, "description": "Caña de pescar suprema para conseguir tesoros.", "iconType": "star", "command": "give {player} fishing_rod{Enchantments:[{id:lure,lvl:3},{id:luck_of_the_sea,lvl:3}]} 1", "giveCoins": 0, "badge": "Pesca" },
+
+  // ── ARMADURAS (6 ÍTEMS) ──
+  { "id": "armor_netherite_helm", "name": "Casco Netherite (Protección IV + Respiración III)", "category": "items", "priceCoins": 4000, "priceUsdt": 2.49, "description": "Casco de Netherite encantado para supervivencia.", "iconType": "shield", "command": "give {player} netherite_helmet{Enchantments:[{id:protection,lvl:4},{id:respiration,lvl:3}]} 1", "giveCoins": 0, "badge": "Armadura" },
+  { "id": "armor_netherite_chest", "name": "Pechera Netherite (Protección IV + Irrompibilidad III)", "category": "items", "priceCoins": 5000, "priceUsdt": 2.99, "description": "Pechera de Netherite blindada contra todo daño.", "iconType": "shield", "command": "give {player} netherite_chestplate{Enchantments:[{id:protection,lvl:4},{id:unbreaking,lvl:3}]} 1", "giveCoins": 0, "badge": "Armadura" },
+  { "id": "armor_netherite_legs", "name": "Grebas Netherite (Protección IV)", "category": "items", "priceCoins": 4000, "priceUsdt": 2.49, "description": "Pantalones de Netherite con máxima protección.", "iconType": "shield", "command": "give {player} netherite_leggings{Enchantments:[{id:protection,lvl:4}]} 1", "giveCoins": 0, "badge": "Armadura" },
+  { "id": "armor_netherite_boots", "name": "Botas Netherite (Protección IV + Caída Pluma IV)", "category": "items", "priceCoins": 4000, "priceUsdt": 2.49, "description": "Botas de Netherite anti-caídas.", "iconType": "shield", "command": "give {player} netherite_boots{Enchantments:[{id:protection,lvl:4},{id:feather_falling,lvl:4}]} 1", "giveCoins": 0, "badge": "Armadura" },
+  { "id": "armor_diamond_chest", "name": "Pechera de Diamante (Protección IV)", "category": "items", "priceCoins": 2500, "priceUsdt": 1.49, "description": "Pechera de Diamante reforzada.", "iconType": "shield", "command": "give {player} diamond_chestplate{Enchantments:[{id:protection,lvl:4}]} 1", "giveCoins": 0, "badge": "Armadura" },
+  { "id": "armor_diamond_boots", "name": "Botas de Diamante (Paso Helado II + Caída Pluma IV)", "category": "items", "priceCoins": 2500, "priceUsdt": 1.49, "description": "Botas de Diamante para congelar agua al caminar.", "iconType": "star", "command": "give {player} diamond_boots{Enchantments:[{id:frost_walker,lvl:2},{id:feather_falling,lvl:4}]} 1", "giveCoins": 0, "badge": "Hielo" },
+
+  // ── POCIONES (6 ÍTEMS) ──
+  { "id": "pot_strength_set", "name": "Pack 5 Pociones de Fuerza II (8:00)", "category": "items", "priceCoins": 1500, "priceUsdt": 0.99, "description": "5 Pociones para aumentar el daño cuerpo a cuerpo.", "iconType": "zap", "command": "give {player} potion{Potion:\"strong_strength\"} 5", "giveCoins": 0, "badge": "Buff" },
+  { "id": "pot_swiftness_set", "name": "Pack 5 Pociones de Velocidad II (8:00)", "category": "items", "priceCoins": 1200, "priceUsdt": 0.79, "description": "5 Pociones de velocidad de movimiento rápida.", "iconType": "zap", "command": "give {player} potion{Potion:\"strong_swiftness\"} 5", "giveCoins": 0, "badge": "Buff" },
+  { "id": "pot_night_vision", "name": "Pack 5 Pociones de Visión Nocturna", "category": "items", "priceCoins": 1000, "priceUsdt": 0.69, "description": "5 Pociones para ver en la oscuridad de cuevas.", "iconType": "zap", "command": "give {player} potion{Potion:\"long_night_vision\"} 5", "giveCoins": 0, "badge": "Buff" },
+  { "id": "pot_regen_set", "name": "Pack 5 Pociones de Regeneración II", "category": "items", "priceCoins": 1500, "priceUsdt": 0.99, "description": "5 Pociones de cura continua en combate.", "iconType": "zap", "command": "give {player} potion{Potion:\"strong_regeneration\"} 5", "giveCoins": 0, "badge": "Buff" },
+  { "id": "pot_slow_falling", "name": "Pack 5 Pociones de Caída Lenta", "category": "items", "priceCoins": 1000, "priceUsdt": 0.69, "description": "5 Pociones para flotar en el End y Nether.", "iconType": "zap", "command": "give {player} potion{Potion:\"long_slow_falling\"} 5", "giveCoins": 0, "badge": "Buff" },
+  { "id": "pot_water_breathing", "name": "Pack 5 Pociones de Apnea / Agua", "category": "items", "priceCoins": 1000, "priceUsdt": 0.69, "description": "5 Pociones para respirar bajo el agua en océanos.", "iconType": "zap", "command": "give {player} potion{Potion:\"long_water_breathing\"} 5", "giveCoins": 0, "badge": "Buff" },
+
+  // ── UTILIDADES Y BLOQUES ESPECIALES (6 ÍTEMS) ──
+  { "id": "util_totem", "name": "1 Totem de la Inmortalidad (Totem of Undying)", "category": "items", "priceCoins": 3000, "priceUsdt": 1.99, "description": "Tótem que te salva de la muerte instantánea en combate o caídas.", "iconType": "star", "command": "give {player} totem_of_undying 1", "giveCoins": 0, "badge": "Salvavidas" },
+  { "id": "util_ender_chest", "name": "1 Cofre de Ender + Pico de Seda", "category": "items", "priceCoins": 1500, "priceUsdt": 0.99, "description": "Cofre de Ender para llevar tu inventario privado a todas partes.", "iconType": "box", "command": "give {player} ender_chest 1", "giveCoins": 0, "badge": "Seguridad" },
+  { "id": "util_beacon", "name": "1 Faro Mágico (Beacon)", "category": "items", "priceCoins": 8000, "priceUsdt": 4.99, "description": "Faro que otorga efectos de regeneración, prisa y fuerza en tu base.", "iconType": "star", "command": "give {player} beacon 1", "giveCoins": 0, "badge": "Base" },
+  { "id": "util_anvil", "name": "1 Yunque de Hierro", "category": "items", "priceCoins": 800, "priceUsdt": 0.49, "description": "Yunque para reparar y combinar libros encantados.", "iconType": "box", "command": "give {player} anvil 1", "giveCoins": 0, "badge": "Utilidad" },
+  { "id": "util_enchant_table", "name": "Mesa Encantamientos + 15 Estanterías", "category": "items", "priceCoins": 2500, "priceUsdt": 1.49, "description": "Set completo para encantar tus ítems al nivel 30.", "iconType": "star", "command": "give {player} enchanting_table 1", "giveCoins": 0, "badge": "Magia" },
+  { "id": "util_shulker_box", "name": "1 Caja de Shulker Morada", "category": "items", "priceCoins": 3000, "priceUsdt": 1.99, "description": "Caja portátil para transportar 27 stacks extra de inventario.", "iconType": "box", "command": "give {player} purple_shulker_box 1", "giveCoins": 0, "badge": "Mochila" }
 ];
 
 function openBulkImportModal() {
