@@ -279,7 +279,7 @@ function openMainMenu(player) {
       const bal = await syncWebBalance(player);
       const form = new ActionFormData();
       form.title("§5✦ ECONOMÍA NODOWA ✦");
-      form.body(`§fHola, §b${player.name}§f!\n\n§7Saldo Web: §e§l${bal.toLocaleString()} Nodocoins\n§7Tienda: §dhttps://${WEB_DOMAIN}`);
+      form.body(`§fHola, §b${player.name}§f!\n\n§7Saldo en Mano (Billetera): §e§l${bal.toLocaleString()} Nodocoins\n§7(Tus ahorros del Banco se guardan en la web)\n\n§7Tienda Web: §dhttps://${WEB_DOMAIN}`);
 
       form.button("§d✦ Tienda Web", "textures/items/emerald");
       form.button("§6✦ Transferir Monedas", "textures/items/gold_ingot");
@@ -311,7 +311,7 @@ function openPayModal(player) {
       const bal = await syncWebBalance(player);
       const form = new ModalFormData();
       form.title("§6✦ TRANSFERIR NODOCOINS ✦");
-      form.textField(`Saldo disponible: ${bal.toLocaleString()} NC\n\nNombre del Jugador:`, "Ej. Steve");
+      form.textField(`Saldo en Mano: ${bal.toLocaleString()} NC\n\nNombre del Jugador:`, "Ej. Steve");
       form.textField("Cantidad a transferir:", "Ej. 500");
 
       form.show(player).then((res) => {
