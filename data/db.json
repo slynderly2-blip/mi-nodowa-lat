@@ -1,0 +1,58 @@
+{
+  "config": {
+    "currencyName": "Nodocoins",
+    "currencySymbol": "NC",
+    "adminPassword": "ortizuwu20",
+    "binance": {
+      "payId": "847291039",
+      "walletAddress": "0x71C...b84F (USDT TRC20 / BEP20)",
+      "qrImage": "/uploads/default_qr.svg",
+      "instruction": "Transfiere el monto exacto vía Binance Pay ID o USDT. Luego sube la captura del comprobante con el TXID."
+    }
+  },
+  "users": {
+    "slynderly": {
+      "username": "slynderly",
+      "displayName": "slynderly",
+      "pin": null,
+      "wallet": 0,
+      "bank": 0,
+      "linked": true,
+      "xuid": null,
+      "createdAt": "2026-09-01T04:21:21.314Z",
+      "lastActive": "2026-09-01T19:00:00.000Z"
+    }
+  },
+  "storeItems": [
+    {
+      "id": "pack_monedas_1k",
+      "name": "Paquete de 1,000 Nodocoins",
+      "category": "coins",
+      "priceCoins": 0,
+      "priceUsdt": 1.0,
+      "giveCoins": 1000,
+      "command": null,
+      "description": "Acredita 1,000 Nodocoins directamente a tu saldo web y de Minecraft.",
+      "iconType": "coins",
+      "badge": "Oferta"
+    },
+    {
+      "id": "rango_vip",
+      "name": "Rango VIP",
+      "category": "ranks",
+      "priceCoins": 5000,
+      "priceUsdt": 4.99,
+      "giveCoins": 0,
+      "command": "tag {player} add vip",
+      "description": "Rango VIP permanente. Incluye prefijo en chat y acceso a beneficios exclusivos.",
+      "iconType": "shield",
+      "badge": "Popular"
+    }
+  ],
+  "p2pMarket": [],
+  "orders": [],
+  "deliveries": [],
+  "transactions": [],
+  "linkTokens": {},
+  "usedTxids": {}
+}
