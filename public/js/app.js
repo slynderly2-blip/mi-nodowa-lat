@@ -38,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadP2pListings();
   loadLeaderboard();
   loadPlayersRegistry();
+  setupEditProfileEvents();
   initWebSocket();
 });
 
@@ -338,14 +339,6 @@ function updateUserWidget() {
   if (!container) return;
 
   if (currentUser) {
-    container.innerHTML = `
-      <div class="user-badge-card" onclick="openConfirmLogoutModal()" title="Cuenta / Cerrar Sesión">
-        <div class="user-avatar">${(currentUser.displayName || currentUser.username).slice(0, 2).toUpperCase()}</div>
-        <div class="user-info-mini">
-          <span class="name">${currentUser.displayName || currentUser.username}</span>
-          <span class="balance">${(currentUser.wallet || 0).toLocaleString()} NC</span>
-        </div>
-      </div>
     `;
   } else {
     container.innerHTML = `
@@ -1022,11 +1015,14 @@ async function loadPlayersRegistry(search = "") {
       }
 
       tbody.innerHTML = data.players.map(p => `
-        <tr>
+        <tr onclick="openUserProfileModal('${p.username}')" style="cursor: pointer;" title="Toca para ver el perfil de ${p.username}">
           <td>
-            <div style="display: flex; align-items: center; gap: 0.6rem;">
-              <div class="user-avatar" style="width: 30px; height: 30px; font-size: 0.8rem;">${p.username.slice(0, 2).toUpperCase()}</div>
-              <strong>${p.username}</strong>
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+              <img src="${p.avatar}" alt="${p.username}" style="width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--purple-300); object-fit: cover; background: var(--purple-50);">
+              <div>
+                <strong>${p.username}</strong>
+                ${p.bio ? `<div class="text-muted" style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">${p.bio}</div>` : ''}
+              </div>
             </div>
           </td>
           <td>
@@ -1112,6 +1108,136 @@ async function loadLeaderboard() {
       if (heroCoins) heroCoins.innerText = `${totalCirculating.toLocaleString()} NC`;
     }
   } catch (e) {}
+}
+
+// ── Perfiles de Jugadores & Edición ────────────────────────────
+let currentProfileTarget = null;
+
+async function openUserProfileModal(username) {
+  try {
+    const res = await fetch(`/api/user/profile/${encodeURIComponent(username)}`);
+    const data = await res.json();
+    if (!data.ok || !data.user) {
+      showToast("No se pudo cargar el perfil del jugador", "error");
+      return;
+    }
+
+    const u = data.user;
+    currentProfileTarget = u;
+
+    document.getElementById("profile-modal-gamertag").innerText = u.username;
+    document.getElementById("profile-modal-avatar").src = u.avatar || `https://mc-heads.net/avatar/${encodeURIComponent(u.username)}/100`;
+    document.getElementById("profile-modal-bio").innerText = u.bio ? `"${u.bio}"` : "Sin biografía escrita.";
+    document.getElementById("profile-modal-linked").innerText = u.linked ? "Vinculado a Minecraft" : "Sin Vincular";
+    document.getElementById("profile-modal-wallet").innerText = `${u.wallet.toLocaleString()} NC`;
+    document.getElementById("profile-modal-bank").innerText = `${u.bank.toLocaleString()} NC`;
+    document.getElementById("profile-modal-total").innerText = `${u.total.toLocaleString()} NC`;
+    document.getElementById("profile-modal-created").innerText = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "--";
+    document.getElementById("profile-modal-last-active").innerText = u.lastActive ? new Date(u.lastActive).toLocaleDateString() : "--";
+
+    const contactContainer = document.getElementById("profile-modal-contact-btns");
+    if (contactContainer) {
+      const cleanWa = u.whatsapp ? u.whatsapp.replace(/[^0-9]/g, '') : null;
+      contactContainer.innerHTML = `
+        ${cleanWa ? `
+          <a href="https://wa.me/${cleanWa}?text=${encodeURIComponent('Hola ' + u.username + ', te vi en la web de Nodowa Network.')}" target="_blank" class="btn-whatsapp" style="flex: 1; justify-content: center;">
+            📱 WhatsApp
+          </a>
+        ` : ''}
+        ${u.discord ? `
+          <button type="button" class="btn-discord" style="flex: 1; justify-content: center;" onclick="copyText('${u.discord}'); showToast('Discord: ${u.discord}', 'info');">
+            🎮 Discord: ${u.discord}
+          </button>
+        ` : ''}
+      `;
+    }
+
+    document.getElementById("modal-user-profile").classList.add("active");
+    renderIcons(document.getElementById("modal-user-profile"));
+  } catch (_) {
+    showToast("Error al cargar perfil", "error");
+  }
+}
+
+function closeProfileModal() {
+  document.getElementById("modal-user-profile").classList.remove("active");
+}
+
+function openTransferFromProfile() {
+  if (!currentProfileTarget) return;
+  closeProfileModal();
+  openTransferWithTarget(currentProfileTarget.username, "");
+}
+
+function openReportFromProfile() {
+  if (!currentProfileTarget) return;
+  closeProfileModal();
+  openReportModal(currentProfileTarget.username);
+}
+
+function openEditProfileModal() {
+  if (!currentUser) return;
+  document.getElementById("edit-profile-avatar-preview").src = currentUser.avatar || `https://mc-heads.net/avatar/${encodeURIComponent(currentUser.username)}/100`;
+  document.getElementById("edit-profile-bio").value = currentUser.bio || "";
+  document.getElementById("edit-profile-whatsapp").value = currentUser.whatsapp || "";
+  document.getElementById("edit-profile-discord").value = currentUser.discord || "";
+  document.getElementById("modal-edit-profile").classList.add("active");
+}
+
+function closeEditProfileModal() {
+  document.getElementById("modal-edit-profile").classList.remove("active");
+}
+
+function setupEditProfileEvents() {
+  document.getElementById("edit-profile-avatar-file")?.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        document.getElementById("edit-profile-avatar-preview").src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  document.getElementById("form-edit-profile")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+
+    const bio = document.getElementById("edit-profile-bio").value.trim();
+    const whatsapp = document.getElementById("edit-profile-whatsapp").value.trim();
+    const discord = document.getElementById("edit-profile-discord").value.trim();
+    const avatarFile = document.getElementById("edit-profile-avatar-file")?.files[0];
+
+    const formData = new FormData();
+    formData.append("username", currentUser.username);
+    formData.append("bio", bio);
+    formData.append("whatsapp", whatsapp);
+    formData.append("discord", discord);
+    if (avatarFile) formData.append("avatar", avatarFile);
+
+    try {
+      const res = await fetch("/api/user/update-profile", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      if (data.ok && data.user) {
+        currentUser.avatar = data.user.avatar;
+        currentUser.bio = data.user.bio;
+        currentUser.whatsapp = data.user.whatsapp;
+        currentUser.discord = data.user.discord;
+        updateUserWidget();
+        showToast("¡Perfil actualizado con éxito!", "success");
+        closeEditProfileModal();
+        if (currentTab === "players") loadPlayersRegistry();
+      } else {
+        showToast(data.error || "No se pudo actualizar el perfil", "error");
+      }
+    } catch (_) {
+      showToast("Error de conexión", "error");
+    }
+  });
 }
 
 // ── Helpers ────────────────────────────────────────────────────

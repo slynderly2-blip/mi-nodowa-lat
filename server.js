@@ -489,6 +489,10 @@ app.get("/api/players/registry", (req, res) => {
     wallet: u.wallet || 0,
     bank: u.bank || 0,
     total: (u.wallet || 0) + (u.bank || 0),
+    avatar: u.avatar || `https://mc-heads.net/avatar/${encodeURIComponent(u.username)}/100`,
+    bio: u.bio || "",
+    whatsapp: u.whatsapp || null,
+    discord: u.discord || null,
     createdAt: u.createdAt,
     lastActive: u.lastActive || u.createdAt
   }));
@@ -499,6 +503,67 @@ app.get("/api/players/registry", (req, res) => {
 
   list.sort((a, b) => new Date(b.lastActive || 0) - new Date(a.lastActive || 0));
   res.json({ ok: true, count: list.length, players: list });
+});
+
+// Obtener Perfil de Jugador
+app.get("/api/user/profile/:username", (req, res) => {
+  const uname = req.params.username.trim().toLowerCase();
+  const u = db.users[uname];
+  if (!u) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+  res.json({
+    ok: true,
+    user: {
+      username: u.displayName || u.username,
+      linked: !!u.linked,
+      wallet: u.wallet || 0,
+      bank: u.bank || 0,
+      total: (u.wallet || 0) + (u.bank || 0),
+      avatar: u.avatar || `https://mc-heads.net/avatar/${encodeURIComponent(u.username)}/100`,
+      bio: u.bio || "",
+      whatsapp: u.whatsapp || null,
+      discord: u.discord || null,
+      createdAt: u.createdAt,
+      lastActive: u.lastActive || u.createdAt
+    }
+  });
+});
+
+// Actualizar Perfil de Jugador (Avatar, Bio, WhatsApp, Discord)
+app.post("/api/user/update-profile", upload.single("avatar"), (req, res) => {
+  const { username, bio, whatsapp, discord } = req.body;
+  if (!username) return res.status(400).json({ ok: false, error: "Username requerido" });
+
+  const u = getOrCreateUser(username);
+
+  if (bio !== undefined) u.bio = bio.trim().slice(0, 150);
+  if (whatsapp !== undefined) u.whatsapp = whatsapp.trim();
+  if (discord !== undefined) u.discord = discord.trim();
+
+  if (req.file) {
+    u.avatar = `/uploads/receipts/${req.file.filename}`;
+  }
+
+  saveDb();
+
+  broadcastWs("PROFILE_UPDATED", {
+    username: u.displayName || u.username,
+    avatar: u.avatar,
+    bio: u.bio
+  });
+
+  res.json({
+    ok: true,
+    user: {
+      username: u.displayName || u.username,
+      wallet: u.wallet,
+      bank: u.bank,
+      avatar: u.avatar || `https://mc-heads.net/avatar/${encodeURIComponent(u.username)}/100`,
+      bio: u.bio || "",
+      whatsapp: u.whatsapp || null,
+      discord: u.discord || null
+    }
+  });
 });
 
 

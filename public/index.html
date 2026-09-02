@@ -12,8 +12,16 @@
   <header class="header">
     <div class="header-inner">
       <a href="/" class="brand">
-        <div class="brand-icon" id="brand-icon-slot"></div>
-        <div>Nodowa <span class="domain">tienda.nodowa.lat</span></div>
+        <div class="brand-icon" id="brand-icon-slot">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <defs><linearGradient id="gem-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#a78bfa"/><stop offset="50%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#10b981"/></linearGradient></defs>
+            <path d="M6 3h12l4 6-10 13L2 9z" stroke="url(#gem-grad)" fill="none"/>
+            <path d="M11 3l1 10" stroke="url(#gem-grad)" opacity="0.5"/>
+            <path d="M2 9h20" stroke="url(#gem-grad)"/>
+            <path d="M6.5 3 12 9.5 17.5 3" stroke="url(#gem-grad)" opacity="0.6"/>
+          </svg>
+        </div>
+        <div>Nodowa <span class="domain">Network</span></div>
       </a>
 
       <!-- Navigation Tabs -->
@@ -615,6 +623,102 @@
       <span>Jugadores</span>
     </button>
   </nav>
+
+  <!-- ── MODAL: VER PERFIL DE JUGADOR ──────────────────────────── -->
+  <div class="modal-backdrop" id="modal-user-profile">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+          <span class="icon-slot text-purple" data-icon="user"></span> Perfil de Jugador
+        </h3>
+        <button class="modal-close" onclick="closeProfileModal()">
+          <span class="icon-slot" data-icon="x"></span>
+        </button>
+      </div>
+
+      <div style="text-align: center; padding: 1rem 0 0.5rem 0;">
+        <img id="profile-modal-avatar" src="" alt="avatar" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--purple-300); object-fit: cover; margin-bottom: 0.75rem; background: var(--purple-50);">
+        <h2 id="profile-modal-gamertag" style="font-size: 1.35rem; margin-bottom: 0.25rem;">--</h2>
+        <p id="profile-modal-bio" class="text-muted" style="font-size: 0.9rem; margin-bottom: 1rem; font-style: italic;">Sin biografía</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.9rem;">
+        <div class="flex-between" style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-subtle);">
+          <span class="text-muted">Estado:</span>
+          <span id="profile-modal-linked" class="badge" style="background: var(--purple-100); color: var(--purple-800);">--</span>
+        </div>
+        <div class="flex-between" style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-subtle);">
+          <span class="text-muted">Saldo en Mano:</span>
+          <strong class="mono text-purple" id="profile-modal-wallet">0 NC</strong>
+        </div>
+        <div class="flex-between" style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-subtle);">
+          <span class="text-muted">Banco:</span>
+          <strong class="mono" id="profile-modal-bank">0 NC</strong>
+        </div>
+        <div class="flex-between" style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-subtle);">
+          <span class="text-muted">Fortuna Total:</span>
+          <strong class="mono text-emerald" id="profile-modal-total">0 NC</strong>
+        </div>
+        <div class="flex-between" style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-subtle);">
+          <span class="text-muted">Registrado Desde:</span>
+          <span class="mono text-muted" id="profile-modal-created">--</span>
+        </div>
+        <div class="flex-between" style="padding: 0.5rem 0;">
+          <span class="text-muted">Última Actividad:</span>
+          <span class="mono text-muted" id="profile-modal-last-active">--</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: 1.25rem;" id="profile-modal-contact-btns">
+        <!-- WhatsApp / Discord dinámico -->
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+        <button class="btn-primary" style="flex: 1;" onclick="openTransferFromProfile()">
+          <span class="icon-slot" data-icon="send"></span> Transferir NC
+        </button>
+        <button class="cat-btn" style="flex: 1; color: var(--accent-rose);" onclick="openReportFromProfile()">
+          <span class="icon-slot" data-icon="shield"></span> Reportar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: EDITAR MI PERFIL ─────────────────────────────────── -->
+  <div class="modal-backdrop" id="modal-edit-profile">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+          <span class="icon-slot text-purple" data-icon="edit"></span> Editar Mi Perfil
+        </h3>
+        <button class="modal-close" onclick="closeEditProfileModal()">
+          <span class="icon-slot" data-icon="x"></span>
+        </button>
+      </div>
+      <form id="form-edit-profile">
+        <div style="text-align: center; margin-bottom: 1.25rem;">
+          <img id="edit-profile-avatar-preview" src="" alt="avatar" style="width: 90px; height: 90px; border-radius: 50%; border: 3px solid var(--purple-300); object-fit: cover; background: var(--purple-50); cursor: pointer;" onclick="document.getElementById('edit-profile-avatar-file').click()">
+          <input type="file" id="edit-profile-avatar-file" accept="image/*" style="display: none;">
+          <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.5rem;">Toca la imagen para cambiar tu avatar</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Biografía / Estado</label>
+          <textarea id="edit-profile-bio" class="form-input" rows="2" placeholder="Cuéntanos algo sobre ti..." maxlength="120"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp (para contacto P2P)</label>
+          <input type="text" id="edit-profile-whatsapp" class="form-input" placeholder="Ej. 59170000000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Discord Tag</label>
+          <input type="text" id="edit-profile-discord" class="form-input" placeholder="Ej. usuario#1234">
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">
+          <span class="icon-slot" data-icon="check"></span> Guardar Cambios
+        </button>
+      </form>
+    </div>
+  </div>
 
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
