@@ -8,7 +8,7 @@ import {
 } from "@minecraft/server";
 
 // ── Configuración ─────────────────────────────────────────────
-const BACKEND_URL = "http://localhost:3334";
+const BACKEND_URL = "https://tienda.nodowa.lat";
 const WEB_DOMAIN = "tienda.nodowa.lat";
 const SCOREBOARD_NAME = "nodocoins";
 
