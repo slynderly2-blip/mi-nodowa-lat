@@ -215,10 +215,16 @@ async function handlePayCommand(sender, targetName, amount) {
     });
 
     if (res && res.ok) {
-      await syncWebBalance(sender);
-      if (targetPlayer) await syncWebBalance(targetPlayer);
+      const newSenderBal = res.senderWallet !== undefined ? Math.floor(res.senderWallet) : Math.max(0, senderBal - numAmount);
+      setScoreboardBalance(sender, newSenderBal);
+
+      if (targetPlayer) {
+        syncWebBalance(targetPlayer);
+      }
 
       sender.sendMessage(`§a✓ Has transferido §e${numAmount.toLocaleString()} Nodocoins §aa §f${res.receipt ? res.receipt.to : targetName}§a.`);
+      sender.sendMessage(`§d[Billetera Web] §fNuevo saldo en mano: §e§l${newSenderBal.toLocaleString()} Nodocoins§r`);
+
       if (targetPlayer) {
         targetPlayer.sendMessage(`§a✓ ¡Recibiste §e${numAmount.toLocaleString()} Nodocoins §ade parte de §f${sender.name}§a!`);
       }
