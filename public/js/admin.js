@@ -522,7 +522,7 @@ async function loadAdminPlayers() {
         </tr>`;
     }).join("");
 
-    renderIcons(tbody);
+    renderAdminIcons(tbody);
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose);">Error de red: ${err.message}</td></tr>`;
   }
@@ -568,7 +568,7 @@ async function loadAdminReports() {
       </tr>
     `).join("");
 
-    renderIcons(tbody);
+    renderAdminIcons(tbody);
   } catch (_) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--accent-rose);">Error cargando reportes.</td></tr>`;
   }
