@@ -24,9 +24,38 @@ for (const dir of [DATA_DIR, UPLOADS_DIR, RECEIPTS_DIR]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-// ── Middlewares ───────────────────────────────────────────────
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ── Middlewares y Seguridad ────────────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
+
+// Throttling y Rate Limiting para evitar ataques de fuerza bruta y spam
+const requestCounts = new Map();
+function rateLimiter(maxRequests = 80, windowMs = 60000) {
+  return (req, res, next) => {
+    const ip = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";
+    const now = Date.now();
+    let record = requestCounts.get(ip);
+    if (!record || now - record.startTime > windowMs) {
+      record = { count: 1, startTime: now };
+    } else {
+      record.count++;
+    }
+    requestCounts.set(ip, record);
+    if (record.count > maxRequests) {
+      return res.status(429).json({ ok: false, error: "Demasiadas peticiones. Por seguridad, espera 1 minuto." });
+    }
+    next();
+  };
+}
+app.use(rateLimiter(100, 60000));
+
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 // ── Multer Storage para Recibos y QR ─────────────────────────
@@ -99,7 +128,7 @@ function getOrCreateUser(username) {
       username: uname,
       displayName: username.trim(),
       pin: null,
-      wallet: 500, // Bono de bienvenida
+      wallet: 0, // Saldo inicial 0
       bank: 0,
       linked: false,
       xuid: null,
@@ -603,6 +632,17 @@ app.post("/api/payments/binance/submit", upload.single("receipt"), (req, res) =>
   const { username, itemId, txid } = req.body;
   if (!username || !itemId || !txid) {
     return res.status(400).json({ ok: false, error: "Faltan campos obligatorios (Usuario, Producto o TXID)" });
+  }
+
+  const cleanTxid = (txid || "").trim();
+  if (cleanTxid.length < 5) {
+    return res.status(400).json({ ok: false, error: "TXID de Binance inválido" });
+  }
+
+  // Protección Anti-Replay: Verificar que el TXID no haya sido enviado anteriormente
+  const existingOrder = db.orders.find(o => (o.txid || "").toLowerCase() === cleanTxid.toLowerCase());
+  if (existingOrder) {
+    return res.status(400).json({ ok: false, error: `Este TXID (${cleanTxid}) ya fue registrado en una orden previa (${existingOrder.status === 'APPROVED' ? 'Aprobada' : 'Pendiente'}).` });
   }
 
   if (!req.file) {
