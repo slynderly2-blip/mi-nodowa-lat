@@ -472,14 +472,37 @@ app.get("/api/auth/check-link-status", (req, res) => {
   const code = req.query.code;
   if (!code) return res.json({ verified: false });
 
-  // Si el código ya no está en linkTokens pero hay una sesión reciente creada para esa cuenta
   const tokenData = db.linkTokens[code];
   if (tokenData) {
     return res.json({ verified: false, expiresAt: tokenData.expiresAt });
   }
 
-  // El código ya no existe en linkTokens (fue consumido y verificado)
   res.json({ verified: true });
+});
+
+// Validar Token de Sesión Persistente (Identifica el dispositivo tras cerrar navegador)
+app.post("/api/auth/validate-session", (req, res) => {
+  const { sessionToken } = req.body;
+  if (!sessionToken || !db.sessions || !db.sessions[sessionToken]) {
+    return res.status(401).json({ ok: false, error: "Sesión no válida o expirada" });
+  }
+
+  const sessionData = db.sessions[sessionToken];
+  
+  // Si la sesión está pendiente de que el jugador ingrese el código en Minecraft
+  if (sessionData.pending) {
+    return res.json({ ok: false, pending: true, username: sessionData.username, message: "Esperando confirmación /link desde Minecraft" });
+  }
+
+  const user = db.users[sessionData.username];
+  if (!user) {
+    return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+  }
+
+  user.lastActive = new Date().toISOString();
+  saveDb();
+
+  res.json({ ok: true, user });
 });
 
 

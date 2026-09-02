@@ -118,6 +118,8 @@ async function validateSavedSession(sessionToken) {
       localStorage.setItem("nodowa_user", JSON.stringify(currentUser));
       updateUserWidget();
       loadUserProfile();
+    } else if (data.pending) {
+      console.log("[Auth] Sesión de dispositivo pendiente de confirmación en Minecraft...");
     } else {
       localStorage.removeItem("nodowa_session_token");
       localStorage.removeItem("nodowa_user");
