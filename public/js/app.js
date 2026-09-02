@@ -57,26 +57,37 @@ function renderIcons(container = document) {
   }
 }
 
-// ── Navegación por Tabs ─────────────────────────────────────────
+// ── Navegación por Tabs (Desktop + Mobile TikTok Bar) ───────────
+function switchTab(targetTab) {
+  // Desactivar todos los tabs (desktop + mobile)
+  document.querySelectorAll(".tab-btn").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".mobile-nav-item").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab-view").forEach(v => v.classList.remove("active"));
+
+  // Activar el tab seleccionado en desktop y mobile
+  document.querySelectorAll(`.tab-btn[data-tab="${targetTab}"]`).forEach(t => t.classList.add("active"));
+  document.querySelectorAll(`.mobile-nav-item[data-tab="${targetTab}"]`).forEach(t => t.classList.add("active"));
+
+  currentTab = targetTab;
+  const targetView = document.getElementById(`view-${targetTab}`);
+  if (targetView) targetView.classList.add("active");
+
+  if (targetTab === "wallet") loadUserProfile();
+  if (targetTab === "players") loadPlayersRegistry();
+  if (targetTab === "deliveries") loadDeliveries();
+  if (targetTab === "leaderboard") loadLeaderboard();
+  if (targetTab === "market") loadP2pListings();
+}
+
 function setupNavTabs() {
-  const tabs = document.querySelectorAll(".tab-btn");
-  tabs.forEach(btn => {
-    btn.addEventListener("click", () => {
-      tabs.forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".tab-view").forEach(v => v.classList.remove("active"));
+  // Desktop tabs
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
+  });
 
-      btn.classList.add("active");
-      const targetTab = btn.getAttribute("data-tab");
-      currentTab = targetTab;
-      const targetView = document.getElementById(`view-${targetTab}`);
-      if (targetView) targetView.classList.add("active");
-
-      if (targetTab === "wallet") loadUserProfile();
-      if (targetTab === "players") loadPlayersRegistry();
-      if (targetTab === "deliveries") loadDeliveries();
-      if (targetTab === "leaderboard") loadLeaderboard();
-      if (targetTab === "market") loadP2pListings();
-    });
+  // Mobile TikTok bottom navbar
+  document.querySelectorAll(".mobile-nav-item").forEach(btn => {
+    btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
   });
 }
 

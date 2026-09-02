@@ -936,8 +936,6 @@ tr:hover td { background: var(--purple-50); }
   to { transform: translateX(0); opacity: 1; }
 }
 
-}
-
 /* ── TikTok Mobile Bottom Navigation Bar (< 768px) ────────────── */
 .mobile-bottom-nav {
   display: none;
