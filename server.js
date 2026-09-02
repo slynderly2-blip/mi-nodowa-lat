@@ -1231,6 +1231,19 @@ app.post("/api/admin/player/adjust-balance", checkAdminAuth, (req, res) => {
   res.json({ ok: true, user });
 });
 
+// Lista de todos los jugadores con sus balances
+app.get("/api/admin/players", checkAdminAuth, (req, res) => {
+  const players = Object.values(db.users).map(u => ({
+    username: u.username,
+    wallet: Math.floor(u.wallet || 0),
+    bank: Math.floor(u.bank || 0),
+    linkedAt: u.linkedAt || null,
+    createdAt: u.createdAt || null
+  })).sort((a, b) => (b.wallet + b.bank) - (a.wallet + a.bank));
+
+  res.json({ ok: true, players });
+});
+
 // Estadísticas del Panel Admin
 app.get("/api/admin/stats", checkAdminAuth, (req, res) => {
   const totalUsers = Object.keys(db.users).length;

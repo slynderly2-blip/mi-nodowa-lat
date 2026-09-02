@@ -277,11 +277,16 @@
             <div class="section-header">
               <div class="section-title">
                 <span class="icon-slot text-cyan" data-icon="user"></span>
-                <h2>Ajuste de Balances de Jugadores</h2>
+                <h2>Balances de Jugadores</h2>
               </div>
+              <button class="cat-btn" onclick="loadAdminPlayers()">
+                <span class="icon-slot" data-icon="refresh"></span> Recargar
+              </button>
             </div>
 
+            <!-- Ajuste rápido de saldo -->
             <div class="table-container" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">⚡ Ajustar saldo manualmente:</p>
               <form id="form-adjust-player-balance" style="display: grid; grid-template-columns: 1fr 120px 140px auto; gap: 1rem; align-items: flex-end;">
                 <div class="form-group" style="margin-bottom: 0;">
                   <label class="form-label">Gamertag del Jugador</label>
@@ -296,14 +301,37 @@
                   </select>
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label">Cantidad</label>
+                  <label class="form-label">Cantidad (NC)</label>
                   <input type="number" id="admin-player-amount" class="form-input" placeholder="Monto..." required>
                 </div>
                 <button type="submit" class="btn-primary" style="height: 42px;">
-                  <span class="icon-slot" data-icon="check"></span> Aplicar Balance
+                  <span class="icon-slot" data-icon="check"></span> Aplicar
                 </button>
               </form>
             </div>
+
+            <!-- Tabla completa de jugadores -->
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Jugador</th>
+                    <th>💰 Billetera (Mano)</th>
+                    <th>🏦 Banco</th>
+                    <th>Total NC</th>
+                    <th>Vinculado</th>
+                    <th>Registro</th>
+                    <th>Acción Rápida</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-players-table-body">
+                  <tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2rem;">Cargando jugadores...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- ── SUBTAB: REPORTES ANTI-ESTAFAS ────────────────────── -->
           <div class="admin-tab-view" id="admin-view-reports">
             <div class="section-header">

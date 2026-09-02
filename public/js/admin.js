@@ -92,6 +92,7 @@ function setupAdminTabs() {
       if (target === "orders") loadAdminOrders();
       if (target === "qr") loadAdminQrConfig();
       if (target === "catalog") loadAdminCatalog();
+      if (target === "players") loadAdminPlayers();
       if (target === "reports") loadAdminReports();
     });
   });
@@ -452,9 +453,10 @@ function setupPlayerBalanceForm() {
       });
       const data = await res.json();
       if (data.ok) {
-        showAdminToast(`¡Saldo de ${username} actualizado a ${data.user.wallet} NC!`, "success");
+        showAdminToast(`¡Saldo de ${username} actualizado a ${data.user.wallet.toLocaleString()} NC!`, "success");
         document.getElementById("admin-player-amount").value = "";
         loadAdminStats();
+        loadAdminPlayers();
       } else {
         showAdminToast(data.error || "No se pudo ajustar saldo", "error");
       }
@@ -462,6 +464,56 @@ function setupPlayerBalanceForm() {
       showAdminToast("Error en la solicitud", "error");
     }
   });
+}
+
+// ── Lista de Todos los Jugadores con Balances ─────────────────
+async function loadAdminPlayers() {
+  const tbody = document.getElementById("admin-players-table-body");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2rem;">Cargando jugadores...</td></tr>`;
+
+  try {
+    const res = await fetch("/api/admin/players", {
+      headers: { "x-admin-token": adminToken }
+    });
+    const data = await res.json();
+
+    if (!data.ok || !data.players || data.players.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2rem;">No hay jugadores registrados aún.</td></tr>`;
+      return;
+    }
+
+    const players = data.players.sort((a, b) => ((b.wallet || 0) + (b.bank || 0)) - ((a.wallet || 0) + (a.bank || 0)));
+
+    tbody.innerHTML = players.map((p, i) => {
+      const total = (p.wallet || 0) + (p.bank || 0);
+      const name = p.username || p.player || "---";
+      const linked = p.linkedAt
+        ? `<span style="color:var(--accent-emerald);font-size:0.8rem;">✓ Vinculado</span>`
+        : `<span style="color:var(--text-muted);font-size:0.8rem;">Sin vincular</span>`;
+      const since = p.createdAt ? new Date(p.createdAt).toLocaleDateString("es-ES") : "---";
+      return `
+        <tr>
+          <td class="mono text-muted">${i + 1}</td>
+          <td><strong class="text-purple">${name}</strong></td>
+          <td class="mono" style="color:var(--accent-amber);">${(p.wallet || 0).toLocaleString()} NC</td>
+          <td class="mono" style="color:var(--accent-cyan);">${(p.bank || 0).toLocaleString()} NC</td>
+          <td class="mono"><strong>${total.toLocaleString()} NC</strong></td>
+          <td>${linked}</td>
+          <td class="text-muted" style="font-size:0.8rem;">${since}</td>
+          <td>
+            <button class="cat-btn" style="font-size:0.75rem;padding:4px 10px;"
+              onclick="document.getElementById('admin-player-name').value='${name}';document.getElementById('admin-player-action').value='set';document.getElementById('admin-player-amount').focus();">
+              ✏ Editar
+            </button>
+          </td>
+        </tr>`;
+    }).join("");
+
+    renderIcons(tbody);
+  } catch (_) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose);">Error cargando jugadores.</td></tr>`;
+  }
 }
 
 // ── Gestión de Reportes Anti-Estafas ───────────────────────────
