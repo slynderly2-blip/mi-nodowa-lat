@@ -201,8 +201,6 @@ function closeReceiptModal() {
 }
 
 async function approveOrder(orderId) {
-  if (!confirm("¿Deseas APROBAR este pago y entregar los ítems/monedas al jugador?")) return;
-
   try {
     const res = await fetch("/api/admin/orders/approve", {
       method: "POST",
@@ -225,10 +223,7 @@ async function approveOrder(orderId) {
   }
 }
 
-async function rejectOrder(orderId) {
-  const reason = prompt("Motivo del rechazo (ej. TXID no encontrado, monto incorrecto):", "Comprobante no válido");
-  if (reason === null) return;
-
+async function rejectOrder(orderId, reason = "Comprobante no válido o TXID no verificado") {
   try {
     const res = await fetch("/api/admin/orders/reject", {
       method: "POST",
@@ -449,8 +444,6 @@ function setupCatalogForm() {
 }
 
 async function deleteCatalogItem(itemId) {
-  if (!confirm("¿Seguro que deseas eliminar este artículo de la tienda?")) return;
-
   try {
     const res = await fetch("/api/admin/store/delete-item", {
       method: "POST",
@@ -462,10 +455,14 @@ async function deleteCatalogItem(itemId) {
     });
     const data = await res.json();
     if (data.ok) {
-      showAdminToast("Artículo eliminado", "info");
+      showAdminToast("Artículo eliminado del catálogo", "info");
       loadAdminCatalog();
+    } else {
+      showAdminToast(data.error || "No se pudo eliminar el artículo", "error");
     }
-  } catch (e) {}
+  } catch (e) {
+    showAdminToast("Error al eliminar artículo", "error");
+  }
 }
 
 // ── Ajuste de Saldo de Jugadores ──────────────────────────────
@@ -637,9 +634,7 @@ async function loadAdminReports() {
 }
 
 async function resolveAdminReport(reportId, status) {
-  const note = prompt("Nota administrativa o resolución:", "Reporte revisado y resuelto por administración");
-  if (note === null) return;
-
+  const note = "Reporte revisado y resuelto por administración";
   try {
     const res = await fetch("/api/admin/reports/resolve", {
       method: "POST",

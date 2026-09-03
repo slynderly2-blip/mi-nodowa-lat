@@ -564,13 +564,59 @@ function renderStoreCards() {
   renderIcons(grid);
 }
 
-// Comprar con Monedas del Juego
-async function buyItemWithCoins(itemId) {
+// ── Modal de Confirmación de Compra para el Comprador ─────────
+let pendingPurchaseItemId = null;
+
+function buyItemWithCoins(itemId) {
   if (!currentUser) {
     showToast("Debes iniciar sesión para comprar", "error");
     openAuthModal();
     return;
   }
+
+  const item = (storeCatalog || []).find(i => i.id === itemId);
+  if (!item) return;
+
+  const currentBal = currentUser.wallet || 0;
+  const cost = item.priceCoins || 0;
+
+  if (currentBal < cost) {
+    showToast(`Saldo insuficiente. Tienes ${currentBal.toLocaleString()} NC y necesitas ${cost.toLocaleString()} NC.`, "error");
+    return;
+  }
+
+  pendingPurchaseItemId = itemId;
+  const modal = document.getElementById("modal-confirm-purchase");
+  if (!modal) {
+    executeConfirmedPurchase(itemId);
+    return;
+  }
+
+  document.getElementById("confirm-purchase-title").innerText = `Comprar ${item.name}`;
+  document.getElementById("confirm-purchase-desc").innerText = item.description || "¿Deseas adquirir este artículo?";
+  document.getElementById("confirm-purchase-price").innerText = `${cost.toLocaleString()} NC`;
+  document.getElementById("confirm-purchase-balance").innerText = `${currentBal.toLocaleString()} NC`;
+  document.getElementById("confirm-purchase-remaining").innerText = `${(currentBal - cost).toLocaleString()} NC`;
+
+  const execBtn = document.getElementById("btn-execute-purchase");
+  if (execBtn) {
+    execBtn.onclick = () => executeConfirmedPurchase(itemId);
+  }
+
+  modal.classList.add("active");
+  renderIcons(modal);
+}
+
+function closeConfirmPurchaseModal() {
+  const modal = document.getElementById("modal-confirm-purchase");
+  if (modal) modal.classList.remove("active");
+  pendingPurchaseItemId = null;
+}
+
+// Ejecutar Compra Confirmada
+async function executeConfirmedPurchase(itemId) {
+  closeConfirmPurchaseModal();
+  if (!currentUser) return;
 
   try {
     const res = await fetch("/api/store/buy-coins", {
@@ -930,7 +976,7 @@ function openTransferWithTarget(targetUser, amount) {
 }
 
 async function deleteP2pListing(listingId) {
-  if (!currentUser || !confirm("¿Estás seguro de eliminar este anuncio del mercado P2P?")) return;
+  if (!currentUser) return;
 
   try {
     const res = await fetch("/api/market/delete", {

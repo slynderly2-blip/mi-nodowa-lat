@@ -751,6 +751,43 @@
     </div>
   </div>
 
+  <!-- ── MODAL: CONFIRMAR COMPRA DE LA TIENDA ────────────────── -->
+  <div class="modal-backdrop" id="modal-confirm-purchase">
+    <div class="modal-card" style="max-width: 440px; text-align: center;">
+      <div class="modal-header" style="justify-content: flex-end; padding-bottom: 0;">
+        <button class="modal-close" onclick="closeConfirmPurchaseModal()">
+          <span class="icon-slot" data-icon="x"></span>
+        </button>
+      </div>
+
+      <div style="font-size: 2.75rem; margin-bottom: 0.5rem;" id="confirm-purchase-icon">🛒</div>
+      <h3 style="font-size: 1.35rem; margin-bottom: 0.35rem;" id="confirm-purchase-title">Confirmar Compra</h3>
+      <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1.25rem;" id="confirm-purchase-desc">¿Estás seguro de que deseas adquirir este artículo?</p>
+
+      <div style="background: var(--purple-50); padding: 1.15rem 1.25rem; border-radius: var(--radius-lg); border: 1.5px solid var(--purple-100); margin-bottom: 1.5rem; text-align: left;">
+        <div class="flex-between" style="margin-bottom: 0.5rem;">
+          <span class="text-muted" style="font-size: 0.9rem;">Precio del artículo:</span>
+          <strong class="text-purple mono" id="confirm-purchase-price" style="font-size: 1.05rem;">0 NC</strong>
+        </div>
+        <div class="flex-between" style="margin-bottom: 0.5rem;">
+          <span class="text-muted" style="font-size: 0.9rem;">Tu saldo en mano:</span>
+          <strong class="text-emerald mono" id="confirm-purchase-balance" style="font-size: 1.05rem;">0 NC</strong>
+        </div>
+        <div class="flex-between" style="border-top: 1.5px dashed var(--purple-200); padding-top: 0.65rem; margin-top: 0.35rem;">
+          <span class="text-muted" style="font-size: 0.9rem; font-weight: 700;">Saldo restante:</span>
+          <strong class="mono" id="confirm-purchase-remaining" style="font-size: 1.05rem; color: var(--text-primary);">0 NC</strong>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem;">
+        <button class="cat-btn" style="flex: 1; justify-content: center;" onclick="closeConfirmPurchaseModal()">Cancelar</button>
+        <button class="btn-primary" id="btn-execute-purchase" style="flex: 1.5; justify-content: center;">
+          <span class="icon-slot" data-icon="check"></span> Confirmar Compra
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
 
