@@ -105,12 +105,13 @@ world.afterEvents.playerSpawn.subscribe((event) => {
       const bal = await syncWebBalance(player);
       player.sendMessage(`§d========================================`);
       player.sendMessage(`§5§l✦ BIENVENIDO A NODOWA NETWORK ✦`);
-      player.sendMessage(`§7Economía & Tienda Web Sincronizadas.`);
-      player.sendMessage(`§fVisita: §dhttps://${WEB_DOMAIN}`);
-      player.sendMessage(`§fSaldo en Mano (Billetera): §e§l${bal.toLocaleString()} Nodocoins`);
-      player.sendMessage(`§fUsa: §e/link <código> §fo §e/saldo §fpara ver tu billetera.`);
+      player.sendMessage(`§fTienda Web & Mercado: §dhttps://${WEB_DOMAIN}`);
+      player.sendMessage(`§6🎁 §e¡Reclama §a§l+500 Nodocoins GRATIS §ede Bienvenida!`);
+      player.sendMessage(`§71. Entra a §dhttps://${WEB_DOMAIN} §7y pon tu nombre.`);
+      player.sendMessage(`§72. Escribe aquí el comando: §e/link <código>`);
+      player.sendMessage(`§fTu Saldo en Mano: §e§l${bal.toLocaleString()} Nodocoins§r`);
       player.sendMessage(`§d========================================`);
-      try { player.playSound("random.levelup", { volume: 0.6, pitch: 1.2 }); } catch (_) {}
+      try { player.playSound("random.levelup", { volume: 0.7, pitch: 1.2 }); } catch (_) {}
 
       // Verificación automática de entregas pendientes en la tienda
       await checkDeliveriesForPlayer(player, false);
@@ -244,8 +245,14 @@ async function handlePayCommand(sender, targetName, amount) {
 async function handleLinkCode(player, code) {
   const cleanCode = String(code || "").replace(/['"]/g, "").trim();
   if (!cleanCode) {
-    player.sendMessage(`§cUso: /link <código de 6 dígitos>`);
-    player.sendMessage(`§7Genera tu código en §dhttps://${WEB_DOMAIN}`);
+    player.sendMessage(`§d========================================`);
+    player.sendMessage(`§5§l✦ CÓMO VINCULAR TU CUENTA ✦`);
+    player.sendMessage(`§f1. Entra desde tu móvil o PC a: §dhttps://${WEB_DOMAIN}`);
+    player.sendMessage(`§f2. Escribe tu Gamertag: §b${player.name}`);
+    player.sendMessage(`§f3. La web te dará un código de 6 dígitos.`);
+    player.sendMessage(`§f4. Escribe en Minecraft: §e/link <código>`);
+    player.sendMessage(`§6🎁 ¡Recibirás §a§l+500 Nodocoins GRATIS §6al instante!`);
+    player.sendMessage(`§d========================================`);
     return;
   }
 
@@ -259,15 +266,21 @@ async function handleLinkCode(player, code) {
     });
 
     if (result && result.ok) {
-      player.sendMessage(`§a✓ ¡Código §e${cleanCode} §averificado exitosamente!`);
-      player.sendMessage(`§a✓ Tu cuenta §b${player.name} §aha sido vinculada en §dhttps://${WEB_DOMAIN}`);
+      player.sendMessage(`§a========================================`);
+      player.sendMessage(`§a§l✓ ¡CUENTA VINCULADA CON ÉXITO!`);
+      player.sendMessage(`§fTu cuenta §b${player.name} §fha sido conectada a §dhttps://${WEB_DOMAIN}`);
+      if (result.bonusAwarded) {
+        player.sendMessage(`§6🎁 ¡Has recibido §e§l+${result.bonusAmount || 500} Nodocoins §6de Bono de Bienvenida!`);
+        player.sendMessage(`§a¡Ya puedes gastarlos en la tienda web o en el mercado!`);
+      }
+      player.sendMessage(`§a========================================`);
       try { player.playSound("random.levelup", { volume: 1.0, pitch: 1.2 }); } catch (_) {}
 
       // Sincronizar saldo inicial
       await syncWebBalance(player);
     } else {
       player.sendMessage(`§c✗ ERROR: ${result?.error || "El código no existe o ha expirado."}`);
-      player.sendMessage(`§7Genera un nuevo código en §dhttps://${WEB_DOMAIN}`);
+      player.sendMessage(`§7Entra a §dhttps://${WEB_DOMAIN} §7para generar uno nuevo.`);
       try { player.playSound("note.bass", { volume: 0.8, pitch: 0.5 }); } catch (_) {}
     }
   } catch (err) {
@@ -425,8 +438,8 @@ if (world.beforeEvents && world.beforeEvents.chatSend) {
             const p = world.getAllPlayers().find(x => x.name === senderName);
             if (!p) return;
             if (cmd === "saldo" || cmd === "bal" || cmd === "money" || cmd === "dinero") showBalance(p);
-            else if (cmd === "menu" || cmd === "eco" || cmd === "tienda") openMainMenu(p);
-            else if (cmd === "link" && parts[1]) handleLinkCode(p, parts[1]);
+            else if (cmd === "menu" || cmd === "eco" || cmd === "tienda" || cmd === "web") openMainMenu(p);
+            else if (cmd === "link") handleLinkCode(p, parts[1] || "");
             else if ((cmd === "pagar" || cmd === "pay") && parts[1] && parts[2]) handlePayCommand(p, parts[1], parseInt(parts[2]));
             else if (cmd === "buzon" || cmd === "reclamar") checkDeliveriesForPlayer(p);
           } catch (_) {}
@@ -435,3 +448,44 @@ if (world.beforeEvents && world.beforeEvents.chatSend) {
     } catch (_) {}
   });
 }
+
+// ── Anuncios Periódicos Automáticos de la Tienda y Bono de Bienvenida (Cada 6 min) ──
+const BROADCAST_MESSAGES = [
+  [
+    `§e========================================`,
+    `§6§l🎁 ¡BONO DE BIENVENIDA DE 500 NODOCOINS!`,
+    `§f1. Entra a §dhttps://${WEB_DOMAIN} §fy escribe tu Gamertag.`,
+    `§f2. Escribe en el chat: §e/link <código>`,
+    `§a¡Gana +500 Nodocoins gratis para comprar en la tienda!`,
+    `§e========================================`
+  ],
+  [
+    `§d========================================`,
+    `§5§l✦ TIENDA & MERCADO P2P NODOWA ✦`,
+    `§7Visita §dhttps://${WEB_DOMAIN} §7para comprar minerales, TNTs y rangos.`,
+    `§7¡O publica tus propios ítems para ganar Nodocoins vendiendo a otros!`,
+    `§d========================================`
+  ],
+  [
+    `§a========================================`,
+    `§2§l✦ BÓVEDA DEL BANCO (+1% INTERÉS DIARIO) ✦`,
+    `§7Guarda tus Nodocoins en el Banco en §dhttps://${WEB_DOMAIN}§7.`,
+    `§f¡Tus ahorros crecen solos con un +1% de interés diario automático!`,
+    `§a========================================`
+  ]
+];
+
+let broadcastIdx = 0;
+system.runInterval(() => {
+  try {
+    const lines = BROADCAST_MESSAGES[broadcastIdx % BROADCAST_MESSAGES.length];
+    broadcastIdx++;
+    for (const p of world.getAllPlayers()) {
+      for (const l of lines) {
+        p.sendMessage(l);
+      }
+      try { p.playSound("random.orb", { volume: 0.4, pitch: 1.2 }); } catch (_) {}
+    }
+  } catch (_) {}
+}, 20 * 60 * 6); // Cada 6 minutos (7200 ticks)
+

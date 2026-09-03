@@ -199,7 +199,11 @@ function handleWsEvent(data) {
       updateUserWidget();
       loadUserProfile();
       closeAuthModal();
-      showToast(`¡Sesión autorizada para ${currentUser.displayName || currentUser.username}!`, "success");
+      if (payload.bonusAwarded) {
+        showToast(`🎉 ¡Bienvenido! Has recibido un regalo de +${payload.bonusAmount || 500} Nodocoins.`, "success");
+      } else {
+        showToast(`¡Sesión autorizada para ${currentUser.displayName || currentUser.username}!`, "success");
+      }
       pendingAuthUsername = null;
     }
   } else if (event === "BALANCE_UPDATE") {

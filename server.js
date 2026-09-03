@@ -489,6 +489,18 @@ app.post("/api/auth/verify-link", (req, res) => {
   user.displayName = player || user.displayName;
   user.lastActive = new Date().toISOString();
 
+  // ── Bono de Bienvenida Automático de 500 Nodocoins por Primera Vinculación ──
+  const WELCOME_BONUS = 500;
+  let bonusAwarded = false;
+  if (!user.linkedAt) {
+    user.linkedAt = new Date().toISOString();
+    if (!user.receivedWelcomeBonus) {
+      user.receivedWelcomeBonus = true;
+      user.wallet = (user.wallet || 0) + WELCOME_BONUS;
+      bonusAwarded = true;
+    }
+  }
+
   // Activar la sesión pre-generada para este dispositivo/navegador
   const sessionToken = tokenData.sessionToken || ("sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10));
   if (!db.sessions) db.sessions = {};
@@ -501,8 +513,15 @@ app.post("/api/auth/verify-link", (req, res) => {
   delete db.linkTokens[code];
   saveDb();
 
-  broadcastWs("USER_LINKED", { username: user.username, user, sessionToken });
-  res.json({ ok: true, message: `Cuenta "${user.displayName}" vinculada exitosamente.`, user, sessionToken });
+  broadcastWs("USER_LINKED", { username: user.username, user, sessionToken, bonusAwarded, bonusAmount: WELCOME_BONUS });
+  res.json({ 
+    ok: true, 
+    message: `Cuenta "${user.displayName}" vinculada exitosamente.` + (bonusAwarded ? ` ¡Has recibido +${WELCOME_BONUS} Nodocoins de bienvenida!` : ""), 
+    user, 
+    sessionToken,
+    bonusAwarded,
+    bonusAmount: WELCOME_BONUS
+  });
 });
 
 // Endpoint de sondeo (polling) para que la Web sepa cuando Minecraft verificó el código
