@@ -15,14 +15,32 @@ const wss = new WebSocketServer({ server });
 
 const PORT = process.env.PORT || 3334;
 
-// ── Rutas de carpetas (Soporta Railway Persistent Volumes) ──────
+// ── Rutas de carpetas (TODO centralizado bajo DATA_DIR para 1 solo volumen persistente en Railway) ──
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const DB_FILE = path.join(DATA_DIR, "db.json");
-const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, "public", "uploads");
+const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const RECEIPTS_DIR = path.join(UPLOADS_DIR, "receipts");
+const TEMPS_DIR = path.join(DATA_DIR, "temps");
 
-for (const dir of [DATA_DIR, UPLOADS_DIR, RECEIPTS_DIR]) {
+for (const dir of [DATA_DIR, UPLOADS_DIR, RECEIPTS_DIR, TEMPS_DIR]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+// Sincronizar/copiar assets base (como default_qr.svg) a DATA_DIR/uploads si aún no existen
+const PUBLIC_UPLOADS_FALLBACK = path.join(__dirname, "public", "uploads");
+if (fs.existsSync(PUBLIC_UPLOADS_FALLBACK)) {
+  try {
+    const files = fs.readdirSync(PUBLIC_UPLOADS_FALLBACK);
+    for (const f of files) {
+      const src = path.join(PUBLIC_UPLOADS_FALLBACK, f);
+      const dest = path.join(UPLOADS_DIR, f);
+      if (fs.statSync(src).isFile() && !fs.existsSync(dest)) {
+        fs.copyFileSync(src, dest);
+      }
+    }
+  } catch (err) {
+    console.warn("[Storage] Aviso al inicializar archivos base:", err.message);
+  }
 }
 
 // ── Middlewares y Seguridad ────────────────────────────────────
@@ -57,9 +75,13 @@ app.use(rateLimiter(100, 60000));
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+
+// Servir uploads prioritariamente desde el volumen persistente (DATA_DIR/uploads)
+app.use("/uploads", express.static(UPLOADS_DIR));
+app.use("/uploads", express.static(PUBLIC_UPLOADS_FALLBACK));
 app.use(express.static(path.join(__dirname, "public")));
 
-// ── Multer Storage para Recibos y QR ─────────────────────────
+// ── Multer Storage para Recibos y QR (100% Persistente en DATA_DIR) ──
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     if (file.fieldname === "qrImage") cb(null, UPLOADS_DIR);
