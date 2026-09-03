@@ -348,14 +348,15 @@ function openPayModal(player) {
 
 // ── Registro de Comandos Nativos (SÍNCRONO) ─────────────────────
 system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
-  const reg = (name, desc, params, fn) => {
+  const reg = (name, desc, mandatory, optional, fn) => {
     try {
       customCommandRegistry.registerCommand({
         name,
         description: desc,
         permissionLevel: CommandPermissionLevel.Any,
         cheatsRequired: false,
-        ...(params ? { mandatoryParameters: params } : {})
+        ...(mandatory && mandatory.length > 0 ? { mandatoryParameters: mandatory } : {}),
+        ...(optional && optional.length > 0 ? { optionalParameters: optional } : {})
       }, fn);
     } catch (e) {
       console.warn("[NodowaEconomy] Skip " + name + ": " + e.message);
@@ -379,16 +380,24 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     return { status: CustomCommandStatus.Success };
   };
 
-  reg("eco:menu", "Abre el menú de economía", null, (o) => {
+  reg("eco:menu", "Abre el menú de economía", null, null, (o) => {
     return runForPlayerName(o, (p) => openMainMenu(p));
   });
 
-  reg("eco:saldo", "Consulta tu saldo de Nodocoins en mano", null, (o) => {
+  reg("eco:tienda", "Abre la información y tienda web", null, null, (o) => {
+    return runForPlayerName(o, (p) => openMainMenu(p));
+  });
+
+  reg("eco:web", "Abre la información y tienda web", null, null, (o) => {
+    return runForPlayerName(o, (p) => openMainMenu(p));
+  });
+
+  reg("eco:saldo", "Consulta tu saldo de Nodocoins en mano", null, null, (o) => {
     return runForPlayerName(o, (p) => showBalance(p));
   });
 
-  reg("eco:link", "Vincula tu cuenta con la web (/link <código>)", [
-    { name: "codigo", type: CustomCommandParamType.Integer }
+  reg("eco:link", "Vincula tu cuenta con la web (/link <código>)", null, [
+    { name: "codigo", type: CustomCommandParamType.String }
   ], (o, codigo) => {
     return runForPlayerName(o, (p) => handleLinkCode(p, codigo));
   });
@@ -396,15 +405,15 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
   reg("eco:pagar", "Transfiere Nodocoins en mano a un jugador (/pagar <jugador> <monto>)", [
     { name: "jugador", type: CustomCommandParamType.String },
     { name: "cantidad", type: CustomCommandParamType.Integer }
-  ], (o, jugador, cantidad) => {
+  ], null, (o, jugador, cantidad) => {
     return runForPlayerName(o, (p) => handlePayCommand(p, jugador, cantidad));
   });
 
-  reg("eco:buzon", "Revisa entregas pendientes de la tienda web", null, (o) => {
+  reg("eco:buzon", "Revisa entregas pendientes de la tienda web", null, null, (o) => {
     return runForPlayerName(o, (p) => checkDeliveriesForPlayer(p));
   });
 
-  console.log("[NodowaEconomy] v3.2.3 — /link acepta código numérico sin comillas.");
+  console.log("[NodowaEconomy] Comandos nativos registrados: /link, /tienda, /web, /saldo, /pagar, /buzon, /menu");
 });
 
 // ── Captura de Chat Nacio/Universal (/pagar, /saldo, /link, !pagar, !saldo, !link) ──
