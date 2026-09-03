@@ -2,6 +2,8 @@
 let currentUser = null;
 let currentTab = "store";
 let currentCategory = "all";
+let storeSearchQuery = "";
+let storeSortOption = "default";
 let storeCatalog = [];
 let storeConfig = null;
 let ws = null;
@@ -102,6 +104,42 @@ function setupCategoryFilters() {
       renderStoreCards();
     });
   });
+
+  // Búsqueda interactiva en vivo
+  const searchInput = document.getElementById("store-search-input");
+  const clearBtn = document.getElementById("store-search-clear");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      storeSearchQuery = (e.target.value || "").trim().toLowerCase();
+      if (clearBtn) clearBtn.style.display = storeSearchQuery ? "inline-flex" : "none";
+      renderStoreCards();
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      clearStoreSearch();
+    });
+  }
+
+  // Ordenación
+  const sortSelect = document.getElementById("store-sort-select");
+  if (sortSelect) {
+    sortSelect.addEventListener("change", (e) => {
+      storeSortOption = e.target.value;
+      renderStoreCards();
+    });
+  }
+}
+
+function clearStoreSearch() {
+  const searchInput = document.getElementById("store-search-input");
+  const clearBtn = document.getElementById("store-search-clear");
+  if (searchInput) searchInput.value = "";
+  storeSearchQuery = "";
+  if (clearBtn) clearBtn.style.display = "none";
+  if (searchInput) searchInput.focus();
+  renderStoreCards();
 }
 
 // ── Validación de Sesión ────────────────────────────────────────
@@ -385,16 +423,105 @@ async function loadStoreItems() {
   }
 }
 
+function itemMatchesCategory(item, cat) {
+  if (!cat || cat === "all") return true;
+  const c = (item.category || "").toLowerCase();
+  const id = (item.id || "").toLowerCase();
+  const name = (item.name || "").toLowerCase();
+
+  if (cat === "coins") {
+    return c === "coins" || c === "monedas" || id.startsWith("coin_") || (item.giveCoins > 0 && item.priceCoins === 0);
+  }
+  if (cat === "food") {
+    return id.startsWith("food_") || /manzana|filete|chuleta|zanahoria|pan|salm[oó]n|pastel|tarta|comida/.test(name);
+  }
+  if (cat === "resources") {
+    return id.startsWith("res_") || /diamante|hierro|oro|esmeralda|lapis|redstone|amatista|carb[oó]n|cuarzo|netherite|debris|mineral/.test(name);
+  }
+  if (cat === "equipment") {
+    return id.startsWith("tool_") || id.startsWith("armor_") || /elytra|pico|espada|hacha|pala|arco|tridente|ballesta|caña|pechera|casco|botas|grebas|armadura/.test(name);
+  }
+  if (cat === "potions") {
+    return id.startsWith("pot_") || /poci[oó]n|fuerza|velocidad|regeneraci[oó]n|visi[oó]n|apnea|ca[ií]da lenta/.test(name);
+  }
+  if (cat === "utilities") {
+    return id.startsWith("util_") || /t[oó]tem|faro|beacon|shulker|cofre|yunque|encantamiento|varas|perlas|l[aá]grimas/.test(name);
+  }
+  if (cat === "ranks") {
+    return c === "rangos" || c === "ranks" || id.startsWith("rank_") || /rango|vip|mvp|elite/.test(name);
+  }
+  if (cat === "keys" || cat === "kits") {
+    return c === "keys" || c === "kits" || id.startsWith("kit_") || id.startsWith("key_") || /kit|llave|cofre m[ií]tico|b[oó]veda real/.test(name);
+  }
+  if (cat === "items") {
+    return c === "items" || (!id.startsWith("coin_") && !id.startsWith("rank_"));
+  }
+  return c === cat;
+}
+
+function itemMatchesSearch(item, query) {
+  if (!query) return true;
+  const terms = query.split(/\s+/).filter(Boolean);
+  const searchableText = `${item.name} ${item.description || ''} ${item.category || ''} ${item.badge || ''} ${item.id || ''}`.toLowerCase();
+  const normalizedText = searchableText.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  return terms.every(term => {
+    const normTerm = term.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return normalizedText.includes(normTerm);
+  });
+}
+
 function renderStoreCards() {
   const grid = document.getElementById("store-items-grid");
-  if (!grid || !storeCatalog || storeCatalog.length === 0) return;
+  const countBadge = document.getElementById("store-results-count");
+  if (!grid) return;
+  if (!storeCatalog || storeCatalog.length === 0) {
+    grid.innerHTML = `<div class="table-container" style="grid-column: 1/-1; padding: 2.5rem; text-align: center; color: var(--text-muted);">Cargando catálogo...</div>`;
+    return;
+  }
 
-  const filtered = currentCategory === "all"
-    ? storeCatalog
-    : storeCatalog.filter(i => i.category === currentCategory);
+  // 1. Filtrar por categoría y búsqueda en vivo
+  let filtered = storeCatalog.filter(item => {
+    return itemMatchesCategory(item, currentCategory) && itemMatchesSearch(item, storeSearchQuery);
+  });
 
+  // 2. Ordenar según selector
+  if (storeSortOption === "coins-asc") {
+    filtered.sort((a, b) => (a.priceCoins > 0 ? a.priceCoins : 9999999) - (b.priceCoins > 0 ? b.priceCoins : 9999999));
+  } else if (storeSortOption === "coins-desc") {
+    filtered.sort((a, b) => (b.priceCoins || 0) - (a.priceCoins || 0));
+  } else if (storeSortOption === "usdt-asc") {
+    filtered.sort((a, b) => (a.priceUsdt > 0 ? a.priceUsdt : 99999) - (b.priceUsdt > 0 ? b.priceUsdt : 99999));
+  } else if (storeSortOption === "usdt-desc") {
+    filtered.sort((a, b) => (b.priceUsdt || 0) - (a.priceUsdt || 0));
+  } else if (storeSortOption === "name-asc") {
+    filtered.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
+  }
+
+  // 3. Actualizar contador
+  if (countBadge) {
+    if (storeSearchQuery || currentCategory !== "all") {
+      countBadge.innerText = `Mostrando ${filtered.length} de ${storeCatalog.length} artículos`;
+    } else {
+      countBadge.innerText = `${storeCatalog.length} artículos disponibles`;
+    }
+  }
+
+  // 4. Si no hay resultados
   if (filtered.length === 0) {
-    grid.innerHTML = `<div class="table-container" style="grid-column: 1/-1; padding: 2.5rem; text-align: center; color: var(--text-muted);">No hay artículos disponibles en esta categoría.</div>`;
+    grid.innerHTML = `
+      <div class="table-container" style="grid-column: 1/-1; padding: 3.5rem 2rem; text-align: center; border-radius: var(--radius-xl);">
+        <div style="font-size: 2.75rem; margin-bottom: 0.75rem;">🔍</div>
+        <h3 style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.35rem;">No se encontraron artículos</h3>
+        <p class="text-muted" style="max-width: 460px; margin: 0 auto 1.5rem auto; font-size: 0.95rem;">
+          No hay productos que coincidan con ${storeSearchQuery ? `la búsqueda "<strong>${storeSearchQuery}</strong>"` : 'esta categoría'}. Prueba buscando con palabras como <em>diamante</em>, <em>comida</em>, <em>pociones</em> o <em>monedas</em>.
+        </p>
+        <button class="btn-primary" onclick="clearStoreSearch()" style="display: inline-flex; margin: 0 auto; align-items: center; gap: 0.5rem;">
+          <span class="icon-slot" data-icon="refresh"></span> Ver Todo el Catálogo
+        </button>
+      </div>
+    `;
+    renderIcons(grid);
     return;
   }
 

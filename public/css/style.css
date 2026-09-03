@@ -409,6 +409,122 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -0.03em; color: var(--tex
   box-shadow: 0 4px 15px var(--accent-purple-glow);
 }
 
+/* ── Store Search Toolbar & Interactive Filters ──────────────── */
+.store-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  margin-bottom: 2rem;
+  background: #ffffff;
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--radius-xl);
+  border: 1.5px solid var(--purple-100);
+  box-shadow: var(--shadow-sm);
+}
+
+.store-search-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.store-search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 280px;
+}
+
+.store-search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--purple-500);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.store-search-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.store-search-input {
+  width: 100%;
+  padding: 0.85rem 2.75rem 0.85rem 3rem;
+  background: var(--purple-50);
+  border: 1.5px solid var(--purple-200);
+  border-radius: var(--radius-full);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.store-search-input:focus {
+  background: #ffffff;
+  border-color: var(--purple-600);
+  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.18);
+}
+
+.store-search-clear {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--purple-200);
+  border: none;
+  color: var(--purple-800);
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 1rem;
+  font-weight: bold;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.store-search-clear:hover {
+  background: var(--accent-rose);
+  color: #ffffff;
+}
+
+.store-sort-select {
+  padding: 0.85rem 1.4rem;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--purple-200);
+  background: var(--purple-50);
+  font-size: 0.925rem;
+  font-weight: 700;
+  color: var(--purple-900);
+  cursor: pointer;
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.store-sort-select:hover,
+.store-sort-select:focus {
+  background: #ffffff;
+  border-color: var(--purple-600);
+}
+
+.store-count-badge {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+  background: var(--bg-surface);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+}
+
 /* ── Store Grid & Cards (Gran Tamaño y Tarjetas Premium) ─────── */
 .store-grid {
   display: grid;

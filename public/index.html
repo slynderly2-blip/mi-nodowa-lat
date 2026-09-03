@@ -87,18 +87,37 @@
         </div>
       </div>
 
-      <div class="section-header">
-        <div class="section-title">
-          <span class="icon-slot" data-icon="tag"></span>
-          <h2>Catálogo de Artículos</h2>
+      <!-- Barra de Búsqueda & Filtros de Tienda -->
+      <div class="store-toolbar">
+        <div class="store-search-row">
+          <div class="store-search-wrapper">
+            <span class="icon-slot store-search-icon" data-icon="search"></span>
+            <input type="text" id="store-search-input" class="store-search-input" placeholder="🔍 Buscar por nombre, diamantes, pociones, comida, netherite, rangos..." autocomplete="off">
+            <button id="store-search-clear" class="store-search-clear" title="Limpiar búsqueda">&times;</button>
+          </div>
+          <select id="store-sort-select" class="store-sort-select" title="Ordenar artículos">
+            <option value="default">⚡ Destacados</option>
+            <option value="coins-asc">🪙 Menor Precio NC</option>
+            <option value="coins-desc">🪙 Mayor Precio NC</option>
+            <option value="usdt-asc">💵 Menor Precio USDT</option>
+            <option value="usdt-desc">💵 Mayor Precio USDT</option>
+            <option value="name-asc">🔤 Nombre (A-Z)</option>
+          </select>
+          <div id="store-results-count" class="store-count-badge">
+            Cargando catálogo...
+          </div>
         </div>
+
         <div class="category-filter">
-          <button class="cat-btn active" data-cat="all">Todos</button>
-          <button class="cat-btn" data-cat="ranks">Rangos</button>
-          <button class="cat-btn" data-cat="coins">Monedas</button>
-          <button class="cat-btn" data-cat="kits">Kits</button>
-          <button class="cat-btn" data-cat="items">Ítems</button>
-          <button class="cat-btn" data-cat="keys">Llaves</button>
+          <button class="cat-btn active" data-cat="all">⭐ Todos</button>
+          <button class="cat-btn" data-cat="coins">🪙 Monedas</button>
+          <button class="cat-btn" data-cat="food">🍖 Comidas</button>
+          <button class="cat-btn" data-cat="resources">💎 Minerales</button>
+          <button class="cat-btn" data-cat="equipment">⚔️ Armas & Armaduras</button>
+          <button class="cat-btn" data-cat="potions">🧪 Pociones</button>
+          <button class="cat-btn" data-cat="utilities">📦 Bloques & Base</button>
+          <button class="cat-btn" data-cat="ranks">👑 Rangos</button>
+          <button class="cat-btn" data-cat="keys">🗝️ Kits & Llaves</button>
         </div>
       </div>
 

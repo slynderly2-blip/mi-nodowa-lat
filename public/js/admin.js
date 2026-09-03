@@ -3,6 +3,7 @@ let adminToken = localStorage.getItem("nodowa_admin_token") || null;
 let currentAdminTab = "orders";
 let cachedOrders = [];
 let cachedCatalog = [];
+let cachedAdminPlayers = [];
 let selectedReceiptOrder = null;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -311,30 +312,63 @@ async function loadAdminCatalog() {
     const res = await fetch("/api/store/items");
     const data = await res.json();
     if (data.ok) {
-      cachedCatalog = data.items;
-      tbody.innerHTML = cachedCatalog.map(item => `
-        <tr>
-          <td><strong>${item.name}</strong></td>
-          <td><span class="status-badge status-pending">${item.category}</span></td>
-          <td class="mono text-gold">${item.priceCoins > 0 ? `${item.priceCoins} NC` : '—'}</td>
-          <td class="mono text-cyan">${item.priceUsdt > 0 ? `$${item.priceUsdt.toFixed(2)} USDT` : '—'}</td>
-          <td class="mono text-muted" style="font-size: 0.775rem;">${item.command || (item.giveCoins ? `+${item.giveCoins} Coins` : '—')}</td>
-          <td>
-            <div style="display: flex; gap: 0.4rem;">
-              <button class="cat-btn" onclick="openEditItemModal('${item.id}')" title="Editar">
-                <span class="icon-slot" data-icon="edit"></span>
-              </button>
-              <button class="cat-btn" style="color: var(--accent-rose);" onclick="deleteCatalogItem('${item.id}')" title="Eliminar">
-                <span class="icon-slot" data-icon="trash"></span>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `).join("");
-
-      renderAdminIcons(tbody);
+      cachedCatalog = data.items || [];
+      const searchVal = (document.getElementById("admin-catalog-search")?.value || "").trim().toLowerCase();
+      renderAdminCatalogRows(searchVal);
     }
   } catch (e) {}
+}
+
+function renderAdminCatalogRows(query = "") {
+  const tbody = document.getElementById("admin-catalog-table");
+  const countSpan = document.getElementById("admin-catalog-count");
+  if (!tbody) return;
+
+  const filtered = !query
+    ? cachedCatalog
+    : cachedCatalog.filter(i => {
+        const text = `${i.name} ${i.category} ${i.id} ${i.command || ''} ${i.description || ''}`.toLowerCase();
+        return text.includes(query.toLowerCase());
+      });
+
+  if (countSpan) {
+    countSpan.innerText = `Mostrando ${filtered.length} de ${cachedCatalog.length} artículos`;
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No se encontraron artículos con "${escapeHtmlAdmin(query)}".</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(item => `
+    <tr>
+      <td><strong>${item.name}</strong></td>
+      <td><span class="status-badge status-pending">${item.category}</span></td>
+      <td class="mono text-gold">${item.priceCoins > 0 ? `${item.priceCoins.toLocaleString()} NC` : '—'}</td>
+      <td class="mono text-cyan">${item.priceUsdt > 0 ? `$${item.priceUsdt.toFixed(2)} USDT` : '—'}</td>
+      <td class="mono text-muted" style="font-size: 0.775rem; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.command || (item.giveCoins ? `+${item.giveCoins.toLocaleString()} Coins` : '—')}</td>
+      <td>
+        <div style="display: flex; gap: 0.4rem;">
+          <button class="cat-btn" onclick="openEditItemModal('${item.id}')" title="Editar">
+            <span class="icon-slot" data-icon="edit"></span>
+          </button>
+          <button class="cat-btn" style="color: var(--accent-rose);" onclick="deleteCatalogItem('${item.id}')" title="Eliminar">
+            <span class="icon-slot" data-icon="trash"></span>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  renderAdminIcons(tbody);
+}
+
+function filterAdminCatalog(query) {
+  renderAdminCatalogRows(query.trim());
+}
+
+function escapeHtmlAdmin(str) {
+  return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function openCreateItemModal() {
@@ -495,37 +529,65 @@ async function loadAdminPlayers() {
       return;
     }
 
-    const players = data.players.sort((a, b) => ((b.wallet || 0) + (b.bank || 0)) - ((a.wallet || 0) + (a.bank || 0)));
-
-    tbody.innerHTML = players.map((p, i) => {
-      const total = (p.wallet || 0) + (p.bank || 0);
-      const name = p.username || p.player || "---";
-      const linked = p.linkedAt
-        ? `<span style="color:var(--accent-emerald);font-size:0.8rem;">✓ Vinculado</span>`
-        : `<span style="color:var(--text-muted);font-size:0.8rem;">Sin vincular</span>`;
-      const since = p.createdAt ? new Date(p.createdAt).toLocaleDateString("es-ES") : "---";
-      return `
-        <tr>
-          <td class="mono text-muted">${i + 1}</td>
-          <td><strong class="text-purple">${name}</strong></td>
-          <td class="mono" style="color:var(--accent-amber);">${(p.wallet || 0).toLocaleString()} NC</td>
-          <td class="mono" style="color:var(--accent-cyan);">${(p.bank || 0).toLocaleString()} NC</td>
-          <td class="mono"><strong>${total.toLocaleString()} NC</strong></td>
-          <td>${linked}</td>
-          <td class="text-muted" style="font-size:0.8rem;">${since}</td>
-          <td>
-            <button class="cat-btn" style="font-size:0.75rem;padding:4px 10px;"
-              onclick="document.getElementById('admin-player-name').value='${name}';document.getElementById('admin-player-action').value='set';document.getElementById('admin-player-amount').focus();">
-              ✏ Editar
-            </button>
-          </td>
-        </tr>`;
-    }).join("");
-
-    renderAdminIcons(tbody);
+    cachedAdminPlayers = data.players.sort((a, b) => ((b.wallet || 0) + (b.bank || 0)) - ((a.wallet || 0) + (a.bank || 0)));
+    const searchVal = (document.getElementById("admin-players-search")?.value || "").trim();
+    renderAdminPlayersRows(searchVal);
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose);">Error de red: ${err.message}</td></tr>`;
   }
+}
+
+function renderAdminPlayersRows(query = "") {
+  const tbody = document.getElementById("admin-players-table-body");
+  const countSpan = document.getElementById("admin-players-count");
+  if (!tbody) return;
+
+  const filtered = !query
+    ? cachedAdminPlayers
+    : cachedAdminPlayers.filter(p => {
+        const name = (p.username || p.player || "").toLowerCase();
+        return name.includes(query.toLowerCase());
+      });
+
+  if (countSpan) {
+    countSpan.innerText = `Mostrando ${filtered.length} de ${cachedAdminPlayers.length} jugadores`;
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2rem;">No se encontraron jugadores que coincidan con "${escapeHtmlAdmin(query)}".</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((p, i) => {
+    const total = (p.wallet || 0) + (p.bank || 0);
+    const name = p.username || p.player || "---";
+    const linked = p.linkedAt
+      ? `<span style="color:var(--accent-emerald);font-size:0.8rem;">✓ Vinculado</span>`
+      : `<span style="color:var(--text-muted);font-size:0.8rem;">Sin vincular</span>`;
+    const since = p.createdAt ? new Date(p.createdAt).toLocaleDateString("es-ES") : "---";
+    return `
+      <tr>
+        <td class="mono text-muted">${i + 1}</td>
+        <td><strong class="text-purple">${name}</strong></td>
+        <td class="mono" style="color:var(--accent-amber);">${(p.wallet || 0).toLocaleString()} NC</td>
+        <td class="mono" style="color:var(--accent-cyan);">${(p.bank || 0).toLocaleString()} NC</td>
+        <td class="mono"><strong>${total.toLocaleString()} NC</strong></td>
+        <td>${linked}</td>
+        <td class="text-muted" style="font-size:0.8rem;">${since}</td>
+        <td>
+          <button class="cat-btn" style="font-size:0.75rem;padding:4px 10px;"
+            onclick="document.getElementById('admin-player-name').value='${name}';document.getElementById('admin-player-action').value='set';document.getElementById('admin-player-amount').focus();">
+            ✏ Editar
+          </button>
+        </td>
+      </tr>`;
+  }).join("");
+
+  renderAdminIcons(tbody);
+}
+
+function filterAdminPlayers(query) {
+  renderAdminPlayersRows(query.trim());
 }
 
 // ── Gestión de Reportes Anti-Estafas ───────────────────────────

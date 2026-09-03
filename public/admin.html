@@ -254,6 +254,14 @@
               </div>
             </div>
 
+            <!-- Buscador de Catálogo en vivo -->
+            <div style="margin-bottom: 1.25rem; display: flex; gap: 1rem; align-items: center;">
+              <div style="position: relative; flex: 1; max-width: 500px;">
+                <input type="text" id="admin-catalog-search" class="form-input" placeholder="🔍 Buscar producto por nombre, ID, categoría o comando..." oninput="filterAdminCatalog(this.value)">
+              </div>
+              <span id="admin-catalog-count" class="mono text-muted" style="font-size: 0.85rem;"></span>
+            </div>
+
             <div class="table-container">
               <table>
                 <thead>
@@ -309,6 +317,14 @@
                   <span class="icon-slot" data-icon="check"></span> Aplicar
                 </button>
               </form>
+            </div>
+
+            <!-- Buscador de Jugadores en vivo -->
+            <div style="margin-bottom: 1.25rem; display: flex; gap: 1rem; align-items: center;">
+              <div style="position: relative; flex: 1; max-width: 450px;">
+                <input type="text" id="admin-players-search" class="form-input" placeholder="🔍 Buscar jugador por nombre o gamertag..." oninput="filterAdminPlayers(this.value)">
+              </div>
+              <span id="admin-players-count" class="mono text-muted" style="font-size: 0.85rem;"></span>
             </div>
 
             <!-- Tabla completa de jugadores -->
