@@ -304,6 +304,7 @@ function openMainMenu(player) {
       form.button("§6✦ Transferir Monedas", "textures/items/gold_ingot");
       form.button("§a✦ Mi Buzón", "textures/items/chest");
       form.button("§9✦ Vincular Web", "textures/items/paper");
+      form.button("§e✦ Pincel de Esferas (WorldEdit)", "textures/items/golden_hoe");
 
       form.show(player).then((res) => {
         if (res.canceled) return;
@@ -315,6 +316,8 @@ function openMainMenu(player) {
           checkDeliveriesForPlayer(player);
         } else if (res.selection === 3) {
           player.sendMessage(`§d[Nodowa Link] §fInicia sesión en la web y escribe §e/link <código>§f.`);
+        } else if (res.selection === 4) {
+          openBrushConfigModal(player);
         }
       }).catch(() => {});
     } catch (_) {
@@ -344,6 +347,208 @@ function openPayModal(player) {
       player.sendMessage(`§cUso: /pagar <jugador> <monto>`);
     }
   }, 2);
+}
+
+// ── Pincel de Esferas y Construcción (WorldEdit Style Brush) ──
+const BRUSH_ITEMS = new Set([
+  "minecraft:golden_hoe",
+  "minecraft:golden_carrot",
+  "minecraft:wooden_axe",
+  "minecraft:stick"
+]);
+
+const playerBrushSettings = new Map();
+
+function getPlayerBrush(playerName) {
+  if (!playerBrushSettings.has(playerName)) {
+    playerBrushSettings.set(playerName, {
+      enabled: true,
+      shape: 0, // 0: Esfera Sólida, 1: Esfera Hueca, 2: Cilindro, 3: Cubo, 4: Borrador
+      radius: 4,
+      blockType: "minecraft:stone"
+    });
+  }
+  return playerBrushSettings.get(playerName);
+}
+
+const COMMON_BLOCKS = [
+  { name: "Piedra (Stone)", id: "minecraft:stone" },
+  { name: "Cristal Transparente", id: "minecraft:glass" },
+  { name: "Hormigón Blanco", id: "minecraft:white_concrete" },
+  { name: "Hormigón Negro", id: "minecraft:black_concrete" },
+  { name: "Ladrillos de Piedra", id: "minecraft:stone_bricks" },
+  { name: "Madera de Roble", id: "minecraft:oak_planks" },
+  { name: "Obsidiana", id: "minecraft:obsidian" },
+  { name: "TNT Dinamita", id: "minecraft:tnt" },
+  { name: "Linterna de Mar (Luz)", id: "minecraft:sea_lantern" },
+  { name: "Cuarzo Liso", id: "minecraft:smooth_quartz" },
+  { name: "Diamante (Bloque)", id: "minecraft:diamond_block" },
+  { name: "Oro (Bloque)", id: "minecraft:gold_block" },
+  { name: "Hierro (Bloque)", id: "minecraft:iron_block" },
+  { name: "Netherite (Bloque)", id: "minecraft:netherite_block" },
+  { name: "Aire (Borrador)", id: "minecraft:air" }
+];
+
+async function openBrushConfigModal(player) {
+  try {
+    const { ModalFormData } = await import("@minecraft/server-ui");
+    const brush = getPlayerBrush(player.name);
+    const form = new ModalFormData();
+    form.title("§5✦ PINCEL DE ESFERAS (WORLDEDIT) ✦");
+
+    form.toggle("Activar Pincel en Mano", brush.enabled !== false);
+    form.dropdown("Forma Geométrica", ["Esfera Sólida 🌕", "Esfera Hueca ⭕", "Cilindro 🏛️", "Cubo / Caja 🧊", "Borrador de Aire 💨"], brush.shape || 0);
+    form.slider("Radio / Tamaño (Bloques)", 1, 12, 1, brush.radius || 4);
+    
+    const blockNames = COMMON_BLOCKS.map(b => b.name);
+    let selectedBlockIdx = COMMON_BLOCKS.findIndex(b => b.id === brush.blockType);
+    if (selectedBlockIdx < 0) selectedBlockIdx = 0;
+    form.dropdown("Material Rápido", blockNames, selectedBlockIdx);
+
+    form.textField("O escribe el ID exacto del bloque (Opcional):", "minecraft:stone", brush.blockType);
+
+    form.show(player).then((res) => {
+      if (res.canceled) return;
+      const [enabled, shape, radius, blockIdx, customBlock] = res.formValues;
+      brush.enabled = enabled;
+      brush.shape = shape;
+      brush.radius = Math.max(1, Math.min(12, Math.floor(radius)));
+
+      const cleanCustom = (customBlock || "").trim().toLowerCase();
+      if (cleanCustom && cleanCustom !== "minecraft:stone" && cleanCustom.length > 2) {
+        brush.blockType = cleanCustom.includes(":") ? cleanCustom : `minecraft:${cleanCustom}`;
+      } else {
+        brush.blockType = COMMON_BLOCKS[blockIdx]?.id || "minecraft:stone";
+      }
+
+      player.sendMessage(`§a========================================`);
+      player.sendMessage(`§5§l✦ PINCEL MÁGICO CONFIGURADO ✦`);
+      player.sendMessage(`§fEstado: ${brush.enabled ? "§a§lACTIVADO" : "§cDESACTIVADO"}`);
+      player.sendMessage(`§fForma: §e${["Esfera Sólida", "Esfera Hueca", "Cilindro", "Cubo", "Borrador"][brush.shape]}`);
+      player.sendMessage(`§fRadio: §e${brush.radius} bloques`);
+      player.sendMessage(`§fMaterial: §b${brush.blockType}`);
+      player.sendMessage(`§7¡Toca cualquier superficie con una Azada Dorada, Zanahoria Dorada o Palo para pintar!`);
+      player.sendMessage(`§a========================================`);
+      try { player.playSound("random.levelup", { volume: 0.8, pitch: 1.3 }); } catch (_) {}
+    }).catch(() => {});
+  } catch (err) {
+    player.sendMessage(`§cError abriendo menú de pincel: ${err.message}`);
+  }
+}
+
+function applyBrushShape(player, centerPos) {
+  const brush = getPlayerBrush(player.name);
+  if (!brush || !brush.enabled) return;
+
+  const dim = player.dimension;
+  const r = brush.radius;
+  const blockType = brush.shape === 4 ? "minecraft:air" : brush.blockType;
+  const cx = Math.floor(centerPos.x);
+  const cy = Math.floor(centerPos.y);
+  const cz = Math.floor(centerPos.z);
+  let placedCount = 0;
+
+  system.run(() => {
+    try {
+      if (brush.shape === 0 || brush.shape === 1 || brush.shape === 4) {
+        // Esfera (Sólida o Hueca)
+        const isHollow = brush.shape === 1;
+        const r2 = r * r;
+        const innerR2 = (r - 1.2) * (r - 1.2);
+
+        for (let dx = -r; dx <= r; dx++) {
+          for (let dy = -r; dy <= r; dy++) {
+            for (let dz = -r; dz <= r; dz++) {
+              const d2 = dx * dx + dy * dy + dz * dz;
+              if (d2 <= r2) {
+                if (!isHollow || d2 >= innerR2) {
+                  const targetY = cy + dy;
+                  if (targetY >= -64 && targetY <= 319) {
+                    const block = dim.getBlock({ x: cx + dx, y: targetY, z: cz + dz });
+                    if (block) {
+                      block.setType(blockType);
+                      placedCount++;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } else if (brush.shape === 2) {
+        // Cilindro
+        const r2 = r * r;
+        const height = Math.min(r * 2, 8);
+        for (let dx = -r; dx <= r; dx++) {
+          for (let dz = -r; dz <= r; dz++) {
+            if (dx * dx + dz * dz <= r2) {
+              for (let dy = 0; dy < height; dy++) {
+                const targetY = cy + dy;
+                if (targetY >= -64 && targetY <= 319) {
+                  const block = dim.getBlock({ x: cx + dx, y: targetY, z: cz + dz });
+                  if (block) {
+                    block.setType(blockType);
+                    placedCount++;
+                  }
+                }
+              }
+            }
+          }
+        }
+      } else if (brush.shape === 3) {
+        // Cubo / Caja
+        for (let dx = -r; dx <= r; dx++) {
+          for (let dy = -r; dy <= r; dy++) {
+            for (let dz = -r; dz <= r; dz++) {
+              const targetY = cy + dy;
+              if (targetY >= -64 && targetY <= 319) {
+                const block = dim.getBlock({ x: cx + dx, y: targetY, z: cz + dz });
+                if (block) {
+                  block.setType(blockType);
+                  placedCount++;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      try { player.playSound("beacon.activate", { volume: 0.4, pitch: 1.5 }); } catch (_) {}
+    } catch (e) {
+      console.warn("[Brush Error]:", e.message);
+    }
+  });
+}
+
+// ── Eventos de Uso del Pincel con Ítems (Azada, Zanahoria Dorada, Palo) ──
+if (world.afterEvents && world.afterEvents.itemUseOn) {
+  world.afterEvents.itemUseOn.subscribe((event) => {
+    try {
+      const { source, itemStack, block } = event;
+      if (!source || !(source instanceof Player)) return;
+      if (!itemStack || !BRUSH_ITEMS.has(itemStack.typeId)) return;
+
+      if (source.isSneaking) {
+        openBrushConfigModal(source);
+      } else {
+        applyBrushShape(source, block.location);
+      }
+    } catch (_) {}
+  });
+}
+
+if (world.afterEvents && world.afterEvents.itemUse) {
+  world.afterEvents.itemUse.subscribe((event) => {
+    try {
+      const { source, itemStack } = event;
+      if (!source || !(source instanceof Player)) return;
+      if (!itemStack || !BRUSH_ITEMS.has(itemStack.typeId)) return;
+
+      if (source.isSneaking) {
+        openBrushConfigModal(source);
+      }
+    } catch (_) {}
+  });
 }
 
 // ── Registro de Comandos Nativos (SÍNCRONO) ─────────────────────
@@ -392,6 +597,14 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     return runForPlayerName(o, (p) => openMainMenu(p));
   });
 
+  reg("eco:esfera", "Abre el menú del Pincel de Esferas (WorldEdit)", null, null, (o) => {
+    return runForPlayerName(o, (p) => openBrushConfigModal(p));
+  });
+
+  reg("eco:brush", "Abre el menú del Pincel de Esferas (WorldEdit)", null, null, (o) => {
+    return runForPlayerName(o, (p) => openBrushConfigModal(p));
+  });
+
   reg("eco:saldo", "Consulta tu saldo de Nodocoins en mano", null, null, (o) => {
     return runForPlayerName(o, (p) => showBalance(p));
   });
@@ -413,14 +626,15 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     return runForPlayerName(o, (p) => checkDeliveriesForPlayer(p));
   });
 
-  console.log("[NodowaEconomy] Comandos nativos registrados: /link, /tienda, /web, /saldo, /pagar, /buzon, /menu");
+  console.log("[NodowaEconomy] Comandos nativos registrados: /link, /tienda, /web, /esfera, /brush, /saldo, /pagar, /buzon, /menu");
 });
 
-// ── Captura de Chat Nacio/Universal (/pagar, /saldo, /link, !pagar, !saldo, !link) ──
+// ── Captura de Chat Universal (!tienda, !link, !esfera, !menu, /tienda, /link) ──
 if (world.beforeEvents && world.beforeEvents.chatSend) {
   const ECONOMY_COMMANDS = new Set([
     "menu", "saldo", "bal", "dinero", "money", "eco",
-    "pagar", "pay", "link", "buzon", "reclamar", "tienda"
+    "pagar", "pay", "link", "buzon", "reclamar", "tienda", "web",
+    "esfera", "brush", "we", "pincel", "esferas"
   ]);
 
   world.beforeEvents.chatSend.subscribe((event) => {
@@ -448,6 +662,7 @@ if (world.beforeEvents && world.beforeEvents.chatSend) {
             if (!p) return;
             if (cmd === "saldo" || cmd === "bal" || cmd === "money" || cmd === "dinero") showBalance(p);
             else if (cmd === "menu" || cmd === "eco" || cmd === "tienda" || cmd === "web") openMainMenu(p);
+            else if (cmd === "esfera" || cmd === "brush" || cmd === "we" || cmd === "pincel" || cmd === "esferas") openBrushConfigModal(p);
             else if (cmd === "link") handleLinkCode(p, parts[1] || "");
             else if ((cmd === "pagar" || cmd === "pay") && parts[1] && parts[2]) handlePayCommand(p, parts[1], parseInt(parts[2]));
             else if (cmd === "buzon" || cmd === "reclamar") checkDeliveriesForPlayer(p);
