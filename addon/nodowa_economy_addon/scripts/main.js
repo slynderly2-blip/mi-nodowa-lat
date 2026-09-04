@@ -585,50 +585,48 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     return { status: CustomCommandStatus.Success };
   };
 
-  const registerAll = (names, desc, mandatory, optional, fn) => {
-    for (const name of names) {
-      reg(name, desc, mandatory, optional, fn);
-    }
-  };
-
-  registerAll(["menu", "eco:menu", "eco"], "Abre el menú de economía y utilidades", null, null, (o) => {
+  reg("eco:menu", "Abre el menú de economía y utilidades", null, null, (o) => {
     return runForPlayerName(o, (p) => openMainMenu(p));
   });
 
-  registerAll(["tienda", "eco:tienda", "shop"], "Abre la información y tienda web", null, null, (o) => {
+  reg("eco:tienda", "Abre la información y tienda web", null, null, (o) => {
     return runForPlayerName(o, (p) => openMainMenu(p));
   });
 
-  registerAll(["web", "eco:web"], "Abre la información y tienda web", null, null, (o) => {
+  reg("eco:web", "Abre la información y tienda web", null, null, (o) => {
     return runForPlayerName(o, (p) => openMainMenu(p));
   });
 
-  registerAll(["esfera", "eco:esfera", "brush", "eco:brush", "we", "pincel"], "Abre el menú del Pincel de Esferas (WorldEdit)", null, null, (o) => {
+  reg("eco:esfera", "Abre el menú del Pincel de Esferas (WorldEdit)", null, null, (o) => {
     return runForPlayerName(o, (p) => openBrushConfigModal(p));
   });
 
-  registerAll(["saldo", "eco:saldo", "bal", "dinero", "money"], "Consulta tu saldo de Nodocoins en mano", null, null, (o) => {
+  reg("eco:brush", "Abre el menú del Pincel de Esferas (WorldEdit)", null, null, (o) => {
+    return runForPlayerName(o, (p) => openBrushConfigModal(p));
+  });
+
+  reg("eco:saldo", "Consulta tu saldo de Nodocoins en mano", null, null, (o) => {
     return runForPlayerName(o, (p) => showBalance(p));
   });
 
-  registerAll(["link", "eco:link"], "Vincula tu cuenta con la web (/link <código>)", null, [
+  reg("eco:link", "Vincula tu cuenta con la web (/link <código>)", null, [
     { name: "codigo", type: CustomCommandParamType.String }
   ], (o, codigo) => {
     return runForPlayerName(o, (p) => handleLinkCode(p, codigo));
   });
 
-  registerAll(["pagar", "eco:pagar", "pay"], "Transfiere Nodocoins en mano a un jugador (/pagar <jugador> <monto>)", [
+  reg("eco:pagar", "Transfiere Nodocoins en mano a un jugador (/pagar <jugador> <monto>)", [
     { name: "jugador", type: CustomCommandParamType.String },
     { name: "cantidad", type: CustomCommandParamType.Integer }
   ], null, (o, jugador, cantidad) => {
     return runForPlayerName(o, (p) => handlePayCommand(p, jugador, cantidad));
   });
 
-  registerAll(["buzon", "eco:buzon", "reclamar"], "Revisa entregas pendientes de la tienda web", null, null, (o) => {
+  reg("eco:buzon", "Revisa entregas pendientes de la tienda web", null, null, (o) => {
     return runForPlayerName(o, (p) => checkDeliveriesForPlayer(p));
   });
 
-  console.log("[NodowaEconomy] Comandos nativos registrados con barra /: /tienda, /link, /esfera, /brush, /saldo, /pagar, /buzon, /menu, /web");
+  console.log("[NodowaEconomy] Comandos nativos registrados: /eco:tienda, /eco:link, /eco:esfera, /eco:brush, /eco:saldo, /eco:pagar, /eco:buzon, /eco:menu");
 });
 
 // ── Captura de Chat Universal (!tienda, !link, !esfera, !menu, /tienda, /link) ──
