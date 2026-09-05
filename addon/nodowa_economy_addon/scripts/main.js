@@ -24,9 +24,11 @@ async function httpGet(url) {
     const req = new net.HttpRequest(url);
     req.method = net.HttpRequestMethod.Get;
     const resp = await net.http.request(req);
-    return JSON.parse(resp.body);
-  } catch (e) {
-    console.warn("[NodowaEconomy] HTTP GET Error:", e.message);
+    if (!resp || !resp.body) return null;
+    const bodyStr = String(resp.body).trim();
+    if (bodyStr.startsWith("<")) return null;
+    return JSON.parse(bodyStr);
+  } catch (_) {
     return null;
   }
 }
@@ -39,9 +41,11 @@ async function httpPost(url, body) {
     req.body = JSON.stringify(body);
     req.headers = [new net.HttpHeader("Content-Type", "application/json")];
     const resp = await net.http.request(req);
-    return JSON.parse(resp.body);
-  } catch (e) {
-    console.warn("[NodowaEconomy] HTTP POST Error:", e.message);
+    if (!resp || !resp.body) return null;
+    const bodyStr = String(resp.body).trim();
+    if (bodyStr.startsWith("<")) return null;
+    return JSON.parse(bodyStr);
+  } catch (_) {
     return null;
   }
 }

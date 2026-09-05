@@ -54,8 +54,17 @@ app.use((req, res, next) => {
 
 // Throttling y Rate Limiting para evitar ataques de fuerza bruta y spam
 const requestCounts = new Map();
-function rateLimiter(maxRequests = 80, windowMs = 60000) {
+function rateLimiter(maxRequests = 120, windowMs = 60000) {
   return (req, res, next) => {
+    // Excluir endpoints del addon de Minecraft para no estrangular al servidor de Bedrock
+    if (
+      req.path.startsWith("/api/addon") ||
+      req.path.startsWith("/api/staff") ||
+      req.path.startsWith("/api/wallet") ||
+      req.path.startsWith("/api/players")
+    ) {
+      return next();
+    }
     const ip = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";
     const now = Date.now();
     let record = requestCounts.get(ip);
@@ -71,7 +80,7 @@ function rateLimiter(maxRequests = 80, windowMs = 60000) {
     next();
   };
 }
-app.use(rateLimiter(100, 60000));
+app.use(rateLimiter(150, 60000));
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
