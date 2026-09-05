@@ -197,22 +197,35 @@ router.post("/sync-stats", (req, res) => {
   if (!player || !stats) return res.status(400).json({ ok: false, error: "Parámetros incompletos" });
 
   const user = getOrCreateUser(player);
+  const activeTitle = stats.activeTitle || user.selectedTitle || user.stats?.activeTitle || "Novato";
+  const tier = stats.tier || user.stats?.tier || "NOVICIO";
+  const equippedRank = stats.equippedRank || tier;
+
+  user.selectedTitle = activeTitle;
+  user.equippedRank = equippedRank;
   user.stats = {
     killsPvp: Number(stats.killsPvp || 0),
     killsTotalMobs: Number(stats.killsTotalMobs || 0),
     minedDiamond: Number(stats.minedDiamond || 0),
     minedDebris: Number(stats.minedDebris || 0),
     minedTotal: Number(stats.minedTotal || 0),
-    activeTitle: stats.activeTitle || user.stats?.activeTitle || "Novato",
+    activeTitle,
+    activeTitleTag: stats.activeTitleTag || `[${activeTitle}]`,
     unlockedCount: Number(stats.unlockedCount || 0),
-    tier: stats.tier || user.stats?.tier || "NOVICIO",
+    tier,
+    equippedRank,
     lastSyncedAt: new Date().toISOString()
   };
   user.updatedAt = new Date().toISOString();
   saveDb();
 
-  broadcastWs("STATS_UPDATED", { username: user.username, stats: user.stats });
-  res.json({ ok: true, stats: user.stats });
+  broadcastWs("STATS_UPDATED", {
+    username: user.username,
+    selectedTitle: user.selectedTitle,
+    equippedRank: user.equippedRank,
+    stats: user.stats
+  });
+  res.json({ ok: true, stats: user.stats, selectedTitle: user.selectedTitle, equippedRank: user.equippedRank });
 });
 
 export default router;

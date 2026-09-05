@@ -142,6 +142,8 @@ router.get("/profile/:username", (req, res) => {
       totalFortune: Math.floor((user.wallet || 0) + (user.bank || 0)),
       linked: !!(user.linked || user.linkedAt),
       avatarUrl,
+      selectedTitle: user.selectedTitle || stats.activeTitle || "Novato",
+      equippedRank: user.equippedRank || stats.equippedRank || stats.tier || "NOVICIO",
       stats
     }
   });

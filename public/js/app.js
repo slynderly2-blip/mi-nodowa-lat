@@ -137,10 +137,11 @@ async function openProfileModal() {
       
       const stats = data.user.stats || {};
       const tierBadge = document.getElementById("profile-tier-badge");
-      if (tierBadge) tierBadge.textContent = stats.tier || "NOVICIO";
+      if (tierBadge) tierBadge.textContent = data.user.equippedRank || stats.equippedRank || stats.tier || "NOVICIO";
       
       const activeTitle = document.getElementById("profile-active-title");
-      if (activeTitle) activeTitle.textContent = `Título: [${stats.activeTitle || "Novato"}]`;
+      const titleName = data.user.selectedTitle || stats.activeTitle || "Novato";
+      if (activeTitle) activeTitle.textContent = `Título: [${titleName}]`;
       
       const titlesCount = document.getElementById("profile-titles-count");
       if (titlesCount) titlesCount.textContent = `${stats.unlockedCount || 0} / 34 Títulos`;
@@ -1398,6 +1399,13 @@ window.viewOtherPlayerProfile = async (targetUsername) => {
       document.getElementById("profile-bank-val").textContent = `${(u.bank || 0).toLocaleString()} NC`;
 
       const stats = u.stats || {};
+      const tierBadge = document.getElementById("profile-tier-badge");
+      if (tierBadge) tierBadge.textContent = u.equippedRank || stats.equippedRank || stats.tier || "NOVICIO";
+      
+      const activeTitle = document.getElementById("profile-active-title");
+      const titleName = u.selectedTitle || stats.activeTitle || "Novato";
+      if (activeTitle) activeTitle.textContent = `Título: [${titleName}]`;
+
       document.getElementById("profile-stat-pvp").textContent = (stats.killsPvp || 0).toLocaleString();
       document.getElementById("profile-stat-mobs").textContent = (stats.killsTotalMobs || 0).toLocaleString();
       document.getElementById("profile-stat-diamond").textContent = (stats.minedDiamond || 0).toLocaleString();
@@ -1542,9 +1550,10 @@ function initWS() {
         const pMin = document.getElementById("profile-stat-mined");
         if (pMin) pMin.textContent = (stats.minedTotal || 0).toLocaleString();
         const pTier = document.getElementById("profile-tier-badge");
-        if (pTier) pTier.textContent = stats.tier || "NOVICIO";
+        if (pTier) pTier.textContent = msg.equippedRank || stats.equippedRank || stats.tier || "NOVICIO";
         const pTitle = document.getElementById("profile-active-title");
-        if (pTitle) pTitle.textContent = `Título: [${stats.activeTitle || "Novato"}]`;
+        const titleName = msg.selectedTitle || stats.activeTitle || "Novato";
+        if (pTitle) pTitle.textContent = `Título: [${titleName}]`;
         const pCount = document.getElementById("profile-titles-count");
         if (pCount) pCount.textContent = `${stats.unlockedCount || 0} / 34 Títulos`;
       }
