@@ -510,7 +510,17 @@ tr:hover td { background: var(--surface-hover); }
 /* ==========================================================================
    PERFIL DE JUGADOR (modal)
    ========================================================================== */
-.profile-modal-box { background: var(--surface); border-radius: var(--radius-lg); width: 100%; max-width: 520px; overflow: hidden; box-shadow: var(--shadow-lg); }
+.profile-modal-box {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+}
 .profile-cover { height: 105px; background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, var(--amber-mid) 100%); position: relative; }
 .profile-close-btn { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.35); color: #fff; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
 .profile-close-btn:hover { background: rgba(0,0,0,0.6); }
@@ -520,7 +530,12 @@ tr:hover td { background: var(--surface-hover); }
 .avatar-edit-badge { position: absolute; bottom: 4px; right: 2px; background: var(--primary); color: #fff; border: 2px solid var(--surface); width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s; }
 .avatar-edit-badge:hover { background: var(--primary-hover); }
 
-.profile-body { padding: 0.65rem 1.4rem 1.6rem; text-align: center; }
+.profile-body {
+  padding: 0.65rem 1.4rem 1.6rem;
+  text-align: center;
+  overflow-y: auto;
+  flex: 1;
+}
 .profile-name { font-size: 1.3rem; font-weight: 800; color: var(--text); margin-bottom: 0.2rem; }
 .profile-badges-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1.1rem; }
 
