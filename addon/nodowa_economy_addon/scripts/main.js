@@ -459,6 +459,17 @@ async function syncStaffWithBackend() {
       if (raw) localAdmins = JSON.parse(raw);
     } catch (_) {}
 
+    // Detectar también cualquier jugador con tag de admin/staff o con permisos de operador
+    try {
+      for (const player of world.getAllPlayers()) {
+        const isOperator = player.isOp || (typeof player.isOp === "function" && player.isOp()) || (player.commandPermissionLevel && player.commandPermissionLevel >= 1);
+        const hasAdminTag = player.hasTag("admin") || player.hasTag("staff") || player.hasTag("limbo_admin") || player.hasTag("op");
+        if ((isOperator || hasAdminTag) && !localAdmins.includes(player.name)) {
+          localAdmins.push(player.name);
+        }
+      }
+    } catch (_) {}
+
     const res = await httpPost(`${BACKEND_URL}/api/addon/staff/sync`, {
       inGameAdmins: Array.isArray(localAdmins) ? localAdmins : []
     });
