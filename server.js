@@ -1848,9 +1848,9 @@ app.post("/api/admin/staff/manage", checkAdminAuth, (req, res) => {
   // Asignar o actualizar rol
   const targetRole = role || "op_rented"; // admin, op_rented, moderator
   const roleLabels = {
-    admin: "👑 Administrador Principal",
-    op_rented: "⚡ OP (Renta)",
-    moderator: "🛡️ Moderador"
+    admin: "[ADMIN] Administrador Principal",
+    op_rented: "[OP] OP Renta",
+    moderator: "[MOD] Moderador"
   };
 
   db.staff[uname] = {
@@ -1894,7 +1894,7 @@ app.post("/api/admin/staff/manage", checkAdminAuth, (req, res) => {
     db.deliveries.push({
       id: "del_" + Date.now() + "_msg",
       targetGamertag: username,
-      command: `tellraw "${username}" {"rawtext":[{"text":"§a[Nodowa] Se te ha asignado Rango OP por ${rentalDays} días. ¡Disfrútalo!"}]}`,
+      command: `tellraw "${username}" {"rawtext":[{"text":"§a[Nodowa] Se te ha asignado Rango OP por ${rentalDays} dias."}]}`,
       status: "PENDING",
       createdAt: new Date().toISOString()
     });
@@ -1907,6 +1907,44 @@ app.post("/api/admin/staff/manage", checkAdminAuth, (req, res) => {
     staff: db.staff[uname],
     expiresAt
   });
+});
+
+// Eliminar Staff por DELETE directo
+app.delete("/api/admin/staff/:username", checkAdminAuth, (req, res) => {
+  const uname = (req.params.username || "").trim().toLowerCase();
+  if (!uname) return res.status(400).json({ ok: false, error: "Gamertag invalido" });
+
+  if (!db.staff) db.staff = {};
+  if (!db.opRentals) db.opRentals = [];
+  if (!db.deliveries) db.deliveries = [];
+
+  const displayName = db.staff[uname] ? db.staff[uname].displayName : req.params.username;
+  delete db.staff[uname];
+
+  db.opRentals.forEach(r => {
+    if ((r.username || "").toLowerCase() === uname) {
+      r.active = false;
+      r.revokedAt = new Date().toISOString();
+    }
+  });
+
+  db.deliveries.push({
+    id: "del_" + Date.now() + "_1",
+    targetGamertag: displayName,
+    command: `deop "${displayName}"`,
+    status: "PENDING",
+    createdAt: new Date().toISOString()
+  });
+  db.deliveries.push({
+    id: "del_" + Date.now() + "_2",
+    targetGamertag: displayName,
+    command: `gamemode s "${displayName}"`,
+    status: "PENDING",
+    createdAt: new Date().toISOString()
+  });
+
+  saveDb();
+  res.json({ ok: true, message: `Rol de staff y permisos revocados de ${displayName}.` });
 });
 
 // Ver Reportes de Jugadores en Admin
