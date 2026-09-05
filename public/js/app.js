@@ -580,10 +580,154 @@ async function loadBalance() {
       const bBal = document.getElementById("bank-balance");
       if (bBal) bBal.textContent = `${userData.bank.toLocaleString()} NC`;
     }
+
+    // Cargar rendimiento de intereses bancarios
+    loadBankInterest();
   } catch (err) {
     console.error("Error cargando saldo:", err);
   }
 }
+
+// 🏦 Sistema de Intereses Bancarios
+async function loadBankInterest() {
+  if (!currentUser) return;
+  try {
+    const res = await fetch(`/api/wallet/interest/${encodeURIComponent(currentUser)}`);
+    const data = await res.json();
+    if (data.ok) {
+      const estDaily = document.getElementById("interest-estimated-daily");
+      if (estDaily) estDaily.textContent = `+${(data.estimatedDaily || 0).toLocaleString()} NC / día`;
+
+      const pendVal = document.getElementById("interest-pending-val");
+      if (pendVal) pendVal.textContent = `+${(data.pendingInterest || 0).toLocaleString()} NC`;
+
+      const totEarned = document.getElementById("interest-total-earned");
+      if (totEarned) totEarned.textContent = `${(data.totalEarned || 0).toLocaleString()} NC`;
+
+      const btnClaim = document.getElementById("btn-claim-interest");
+      if (btnClaim) {
+        if (data.canClaim) {
+          btnClaim.disabled = false;
+          btnClaim.textContent = `🎁 Reclamar +${(data.pendingInterest || 0).toLocaleString()} NC en Intereses`;
+          btnClaim.style.opacity = "1";
+        } else {
+          btnClaim.disabled = true;
+          btnClaim.textContent = (data.pendingInterest > 0)
+            ? `🎁 Generando intereses (+${data.pendingInterest} NC)`
+            : `🎁 Generando intereses (Guarda NC en tu banco)`;
+          btnClaim.style.opacity = "0.65";
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("No se pudo cargar estado de intereses:", e);
+  }
+}
+
+window.claimBankInterest = async () => {
+  if (!currentUser) return openModal("modal-login");
+  const btn = document.getElementById("btn-claim-interest");
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch("/api/wallet/claim-interest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: currentUser })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(data.message || `¡Has reclamado +${data.claimed} NC en intereses!`);
+      loadBalance();
+    } else {
+      showToast(data.error || "No hay intereses suficientes para reclamar");
+    }
+  } catch (e) {
+    showToast("Error de conexión al reclamar intereses");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
+// 🏦 Operaciones Bancarias (Depositar / Retirar)
+window.openBankActionModal = (type) => {
+  if (!currentUser) return openModal("modal-login");
+
+  const modal = document.getElementById("modal-bank-action");
+  if (!modal) return;
+
+  const typeInput = document.getElementById("bank-action-type");
+  const titleEl = document.getElementById("bank-modal-title");
+  const labelEl = document.getElementById("bank-modal-label");
+  const submitBtn = document.getElementById("btn-bank-submit");
+  const walletEl = document.getElementById("bank-modal-wallet");
+  const bankEl = document.getElementById("bank-modal-bank");
+  const amtInput = document.getElementById("bank-action-amount");
+
+  typeInput.value = type;
+
+  if (walletEl) walletEl.textContent = `${(userData.wallet || 0).toLocaleString()} NC`;
+  if (bankEl) bankEl.textContent = `${(userData.bank || 0).toLocaleString()} NC`;
+
+  if (type === "deposit") {
+    titleEl.textContent = "📥 Depositar en Cuenta Bancaria";
+    labelEl.textContent = "Cantidad a Depositar (NC)";
+    submitBtn.textContent = "Confirmar Depósito";
+    submitBtn.style.background = "linear-gradient(135deg, var(--primary) 0%, #6d28d9 100%)";
+  } else {
+    titleEl.textContent = "📤 Retirar a Billetera en Mano";
+    labelEl.textContent = "Cantidad a Retirar (NC)";
+    submitBtn.textContent = "Confirmar Retiro";
+    submitBtn.style.background = "linear-gradient(135deg, #10b981 0%, #059669 100%)";
+  }
+
+  amtInput.value = "";
+  openModal("modal-bank-action");
+  setTimeout(() => amtInput.focus(), 150);
+};
+
+window.setBankPercentage = (pct) => {
+  const type = document.getElementById("bank-action-type")?.value || "deposit";
+  const max = type === "deposit" ? (userData.wallet || 0) : (userData.bank || 0);
+  const amt = Math.floor(max * (pct / 100));
+  const input = document.getElementById("bank-action-amount");
+  if (input) {
+    input.value = amt;
+    input.focus();
+  }
+};
+
+document.getElementById("bank-action-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!currentUser) return openModal("modal-login");
+
+  const type = document.getElementById("bank-action-type").value;
+  const amount = parseInt(document.getElementById("bank-action-amount").value);
+
+  if (isNaN(amount) || amount <= 0) {
+    return showToast("Ingresa un monto válido");
+  }
+
+  const endpoint = type === "deposit" ? "/api/wallet/deposit-bank" : "/api/wallet/withdraw-bank";
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: currentUser, amount })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      closeModal("modal-bank-action");
+      showToast(data.message || "Operación realizada con éxito");
+      loadBalance();
+    } else {
+      showToast(data.error || "Error al procesar operación");
+    }
+  } catch (err) {
+    showToast("Error de conexión");
+  }
+});
 
 document.getElementById("transfer-form").addEventListener("submit", async (e) => {
   e.preventDefault();
