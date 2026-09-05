@@ -143,26 +143,39 @@ function loadDb() {
     if (!db.opRentals) db.opRentals = [];
     if (!db.ratings) db.ratings = [];
 
-    // Pre-cargar administradores principales del servidor si el registro de staff esta vacio
-    if (Object.keys(db.staff).length === 0) {
-      db.staff["slynderly"] = {
-        displayName: "slynderly",
-        role: "admin",
-        label: "[ADMIN] Administrador Principal",
-        assignedAt: new Date().toISOString()
-      };
-      db.staff["tw3sempai"] = {
-        displayName: "Tw3sempai",
-        role: "admin",
-        label: "[ADMIN] Administrador Principal",
-        assignedAt: new Date().toISOString()
-      };
-      db.staff["abuelong"] = {
-        displayName: "AbueloNG",
-        role: "admin",
-        label: "[ADMIN] Administrador Principal",
-        assignedAt: new Date().toISOString()
-      };
+    // Administradores reales oficiales del servidor Minecraft (/admins)
+    const REAL_SERVER_ADMINS = [
+      "MiKacrispi",
+      "limon agrio 886",
+      "Nx axit",
+      "Sotoox911",
+      "sule5440",
+      "Cadencristal"
+    ];
+
+    // Limpiar nombres de prueba/mock anteriores
+    delete db.staff["tw3sempai"];
+    delete db.staff["abuelong"];
+    delete db.staff["slynderly"];
+    if (db.opRentals) {
+      db.opRentals = db.opRentals.filter(r => (r.username || "").toLowerCase() !== "slynderly");
+    }
+
+    let staffChanged = false;
+    for (const adminName of REAL_SERVER_ADMINS) {
+      const ukey = adminName.toLowerCase();
+      if (!db.staff[ukey]) {
+        db.staff[ukey] = {
+          displayName: adminName,
+          role: "admin",
+          label: "[ADMIN] Administrador Principal",
+          assignedAt: new Date().toISOString()
+        };
+        staffChanged = true;
+      }
+    }
+
+    if (staffChanged) {
       saveDb();
     }
   } catch (err) {
