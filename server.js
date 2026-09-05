@@ -405,9 +405,13 @@ app.post("/api/addon/sync-players", (req, res) => {
 // Obtener entregas pendientes para un jugador o globales
 app.get("/api/addon/pending-deliveries", (req, res) => {
   const player = (req.query.player || "").trim().toLowerCase();
-  const pendings = player
+  let pendings = player
     ? (db.deliveries || []).filter(d => ((d.username || d.targetGamertag || "").toLowerCase() === player) && d.status === "PENDING")
     : (db.deliveries || []).filter(d => d.status === "PENDING");
+  pendings = pendings.filter(d => {
+    const cmd = (d.command || "").toLowerCase();
+    return !cmd.startsWith("deop ") && !cmd.startsWith("op ") && !cmd.includes("rango op") && !cmd.includes("renta op") && !cmd.startsWith("gamemode s");
+  });
   res.json({ ok: true, deliveries: pendings });
 });
 
@@ -1130,9 +1134,13 @@ app.get("/api/deliveries", (req, res) => {
   try {
     if (!Array.isArray(db.deliveries)) db.deliveries = [];
     const uname = (req.query.username || "").trim().toLowerCase();
-    const list = uname
+    let list = uname
       ? db.deliveries.filter(d => (d.username || d.targetGamertag || "").toLowerCase() === uname)
       : db.deliveries;
+    list = list.filter(d => {
+      const cmd = (d.command || "").toLowerCase();
+      return !cmd.startsWith("deop ") && !cmd.startsWith("op ") && !cmd.includes("rango op") && !cmd.includes("renta op") && !cmd.startsWith("gamemode s");
+    });
     res.json({ ok: true, deliveries: list.slice(0, 50) });
   } catch (err) {
     console.error("Error al obtener entregas:", err);
