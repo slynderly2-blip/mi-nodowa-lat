@@ -143,40 +143,12 @@ function loadDb() {
     if (!db.opRentals) db.opRentals = [];
     if (!db.ratings) db.ratings = [];
 
-    // Administradores reales oficiales del servidor Minecraft (/admins)
-    const REAL_SERVER_ADMINS = [
-      "MiKacrispi",
-      "limon agrio 886",
-      "Nx axit",
-      "Sotoox911",
-      "sule5440",
-      "Cadencristal"
-    ];
-
-    // Limpiar nombres de prueba/mock anteriores
+    // Limpiar nombres de prueba/mock anteriores si existieran
     delete db.staff["tw3sempai"];
     delete db.staff["abuelong"];
     delete db.staff["slynderly"];
     if (db.opRentals) {
       db.opRentals = db.opRentals.filter(r => (r.username || "").toLowerCase() !== "slynderly");
-    }
-
-    let staffChanged = false;
-    for (const adminName of REAL_SERVER_ADMINS) {
-      const ukey = adminName.toLowerCase();
-      if (!db.staff[ukey]) {
-        db.staff[ukey] = {
-          displayName: adminName,
-          role: "admin",
-          label: "[ADMIN] Administrador Principal",
-          assignedAt: new Date().toISOString()
-        };
-        staffChanged = true;
-      }
-    }
-
-    if (staffChanged) {
-      saveDb();
     }
   } catch (err) {
     console.error("Error al cargar db.json:", err);
@@ -1585,17 +1557,39 @@ app.post("/api/addon/staff/sync", (req, res) => {
 
   let changed = false;
   if (Array.isArray(inGameAdmins)) {
+    const inGameLowerSet = new Set(
+      inGameAdmins
+        .filter(n => typeof n === "string" && n.trim())
+        .map(n => n.trim().toLowerCase())
+    );
+
+    // 1. Borrar de db.staff cualquier admin que ya NO esté en Minecraft (/a:admindel)
+    for (const ukey of Object.keys(db.staff)) {
+      if (db.staff[ukey].role === "admin") {
+        if (!inGameLowerSet.has(ukey)) {
+          console.log(`[Staff Sync] Admin eliminado en Minecraft detectado y removido de la web: ${db.staff[ukey].displayName || ukey}`);
+          delete db.staff[ukey];
+          changed = true;
+        }
+      }
+    }
+
+    // 2. Agregar a db.staff cualquier admin nuevo agregado en Minecraft (/a:adminadd)
     for (const name of inGameAdmins) {
       if (typeof name === "string" && name.trim()) {
         const cleanName = name.trim();
-        const uname = cleanName.toLowerCase();
-        if (!db.staff[uname]) {
-          db.staff[uname] = {
+        const ukey = cleanName.toLowerCase();
+        if (!db.staff[ukey]) {
+          console.log(`[Staff Sync] Nuevo admin en Minecraft detectado y agregado a la web: ${cleanName}`);
+          db.staff[ukey] = {
             displayName: cleanName,
             role: "admin",
             label: "[ADMIN] Administrador Principal",
             assignedAt: new Date().toISOString()
           };
+          changed = true;
+        } else if (db.staff[ukey].role === "admin" && db.staff[ukey].displayName !== cleanName) {
+          db.staff[ukey].displayName = cleanName;
           changed = true;
         }
       }
@@ -1604,6 +1598,7 @@ app.post("/api/addon/staff/sync", (req, res) => {
 
   if (changed) {
     saveDb();
+    broadcastWs("STAFF_UPDATED", { count: Object.keys(db.staff).length });
   }
 
   const list = Object.keys(db.staff).map(uname => {
@@ -1611,6 +1606,7 @@ app.post("/api/addon/staff/sync", (req, res) => {
     const rental = db.opRentals.find(r => r.active && (r.username || "").toLowerCase() === uname);
     return {
       username: s.displayName || uname,
+      displayName: s.displayName || uname,
       role: s.role,
       label: s.label || s.role.toUpperCase(),
       daysLeft: rental ? Math.max(0, Math.ceil((rental.expiresAt - Date.now()) / (1000 * 60 * 60 * 24))) : null
@@ -1870,18 +1866,23 @@ app.get("/api/admin/staff", checkAdminAuth, (req, res) => {
   if (!db.staff) db.staff = {};
   if (!db.opRentals) db.opRentals = [];
 
+  const now = Date.now();
   const staffList = Object.keys(db.staff).map(uname => {
     const s = db.staff[uname];
     const rental = db.opRentals.find(r => r.active && (r.username || "").toLowerCase() === uname);
+    const expiresAt = rental ? rental.expiresAt : (s.expiresAt ? new Date(s.expiresAt).getTime() : null);
+    const daysLeft = expiresAt ? Math.max(0, Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24))) : null;
     return {
       username: s.displayName || uname,
+      displayName: s.displayName || uname,
       role: s.role,
-      label: s.label,
-      assignedAt: s.assignedAt,
-      rental: rental ? {
-        id: rental.id,
-        expiresAt: rental.expiresAt,
-        daysLeft: Math.max(0, Math.ceil((rental.expiresAt - Date.now()) / (1000 * 60 * 60 * 24)))
+      label: s.label || (s.role === "admin" ? "[ADMIN] Administrador Principal" : s.role === "op_rented" ? "[OP] OP Renta" : "[MOD] Moderador"),
+      assignedAt: s.assignedAt || null,
+      rental: expiresAt ? {
+        id: rental ? rental.id : "rent_" + uname,
+        expiresAt: new Date(expiresAt).toISOString(),
+        daysLeft,
+        expired: daysLeft === 0
       } : null
     };
   });
@@ -2076,117 +2077,7 @@ app.get("/api/admin/stats", checkAdminAuth, (req, res) => {
   });
 });
 
-// ── STAFF & OP RENTALS ────────────────────────────────────────
 
-// GET /api/admin/staff — lista todo el staff + rentals activos
-app.get("/api/admin/staff", checkAdminAuth, (req, res) => {
-  try {
-    const now = Date.now();
-
-    // Calcular días restantes para op_rented y marcar como expirado si corresponde
-    let changed = false;
-    for (const uname in db.staff) {
-      const s = db.staff[uname];
-      if (s.role === "op_rented" && s.expiresAt) {
-        const msLeft = new Date(s.expiresAt).getTime() - now;
-        s.daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
-        if (msLeft <= 0) {
-          s.expired = true;
-        }
-        changed = true;
-      }
-    }
-    if (changed) saveDb();
-
-    const staffList = Object.entries(db.staff).map(([uname, s]) => ({
-      username: uname,
-      displayName: s.displayName || uname,
-      role: s.role,
-      label: s.label || "",
-      assignedAt: s.assignedAt || null,
-      rental: (s.role === "op_rented" && s.expiresAt) ? {
-        expiresAt: s.expiresAt,
-        daysLeft: s.daysLeft || 0,
-        expired: s.expired || false
-      } : null
-    }));
-
-    res.json({ ok: true, staff: staffList });
-  } catch (err) {
-    console.error("[Staff] Error al listar staff:", err);
-    res.status(500).json({ ok: false, error: "Error interno al cargar staff" });
-  }
-});
-
-// POST /api/admin/staff/manage — crear o editar un miembro de staff
-app.post("/api/admin/staff/manage", checkAdminAuth, (req, res) => {
-  try {
-    const { username, role, days, label } = req.body;
-    if (!username || !username.trim()) return res.status(400).json({ ok: false, error: "Gamertag requerido" });
-    if (!["admin", "op_rented", "moderator"].includes(role)) return res.status(400).json({ ok: false, error: "Rol inválido" });
-
-    const uname = username.trim().toLowerCase();
-    const displayName = username.trim();
-    const now = new Date();
-
-    const entry = {
-      displayName,
-      role,
-      label: label ? label.trim() : (role === "admin" ? "[ADMIN]" : role === "op_rented" ? "[OP RENTA]" : "[MOD]"),
-      assignedAt: db.staff[uname]?.assignedAt || now.toISOString()
-    };
-
-    if (role === "op_rented") {
-      const numDays = Math.max(1, parseInt(days) || 30);
-      const expiresAt = new Date(now.getTime() + numDays * 24 * 60 * 60 * 1000);
-      entry.expiresAt = expiresAt.toISOString();
-      entry.daysLeft = numDays;
-      entry.expired = false;
-    } else {
-      delete entry.expiresAt;
-      delete entry.daysLeft;
-      delete entry.expired;
-    }
-
-    db.staff[uname] = entry;
-    saveDb();
-
-    broadcastToAll({ type: "STAFF_UPDATE", username: uname, role, label: entry.label });
-    res.json({ ok: true, message: `Staff actualizado: ${displayName} como ${role}` });
-  } catch (err) {
-    console.error("[Staff] Error al gestionar staff:", err);
-    res.status(500).json({ ok: false, error: "Error interno" });
-  }
-});
-
-// DELETE /api/admin/staff/:username — revocar a un miembro de staff
-app.delete("/api/admin/staff/:username", checkAdminAuth, (req, res) => {
-  try {
-    const uname = req.params.username.toLowerCase();
-    if (!db.staff[uname]) return res.status(404).json({ ok: false, error: "Miembro de staff no encontrado" });
-    const name = db.staff[uname].displayName || uname;
-    delete db.staff[uname];
-    saveDb();
-    res.json({ ok: true, message: `${name} eliminado del staff` });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: "Error interno" });
-  }
-});
-
-// GET /api/addon/staff/list — para el addon de Minecraft (sin auth admin, usa ADDON_TOKEN)
-app.get("/api/addon/staff/list", (req, res) => {
-  try {
-    const admins = Object.entries(db.staff)
-      .filter(([, s]) => s.role === "admin")
-      .map(([uname, s]) => s.displayName || uname);
-    const ops = Object.entries(db.staff)
-      .filter(([, s]) => s.role === "op_rented" && !s.expired)
-      .map(([uname, s]) => ({ name: s.displayName || uname, daysLeft: s.daysLeft || 0 }));
-    res.json({ ok: true, admins, ops });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: "Error interno" });
-  }
-});
 
 // ── Rutas HTML ────────────────────────────────────────────────
 app.get("/admin", (req, res) => {

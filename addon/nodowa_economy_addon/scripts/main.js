@@ -456,44 +456,37 @@ async function syncStaffWithBackend() {
     let localAdmins = [];
     try {
       const raw = world.getDynamicProperty("admin:list");
-      if (raw) localAdmins = JSON.parse(raw);
-    } catch (_) {}
-
-    // Detectar también cualquier jugador con tag de admin/staff o con permisos de operador
-    try {
-      for (const player of world.getAllPlayers()) {
-        const isOperator = player.isOp || (typeof player.isOp === "function" && player.isOp()) || (player.commandPermissionLevel && player.commandPermissionLevel >= 1);
-        const hasAdminTag = player.hasTag("admin") || player.hasTag("staff") || player.hasTag("limbo_admin") || player.hasTag("op");
-        if ((isOperator || hasAdminTag) && !localAdmins.includes(player.name)) {
-          localAdmins.push(player.name);
-        }
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) localAdmins = parsed;
       }
     } catch (_) {}
 
     const res = await httpPost(`${BACKEND_URL}/api/addon/staff/sync`, {
-      inGameAdmins: Array.isArray(localAdmins) ? localAdmins : []
+      inGameAdmins: localAdmins
     });
 
     if (res && res.ok && Array.isArray(res.staff)) {
-      const webAdminNames = res.staff.map(s => s.username);
-      const merged = Array.from(new Set([...localAdmins, ...webAdminNames]));
+      const webAdmins = res.staff.filter(s => s.role === "admin").map(s => s.username);
       try {
-        world.setDynamicProperty("admin:list", JSON.stringify(merged));
+        world.setDynamicProperty("admin:list", JSON.stringify(webAdmins));
       } catch (_) {}
       return res.staff;
     }
-  } catch (_) {}
+  } catch (err) {
+    console.warn("[NodowaEconomy] Error al sincronizar staff:", err);
+  }
   return null;
 }
 
-// Sincronizar staff al inicio y periódicamente cada 20 segundos
+// Sincronizar staff al inicio y periódicamente cada 4 segundos (80 ticks)
 system.runTimeout(() => {
   syncStaffWithBackend();
-}, 60);
+}, 40);
 
 system.runInterval(() => {
   syncStaffWithBackend();
-}, 400);
+}, 80);
 
 // ── Comandos In-Game de Staff/Admins (/admins, /adminadd, /admindel) ──
 async function handleAdminsListCommand(player) {

@@ -980,6 +980,16 @@ async function loadAdminStaff() {
   }
 }
 
+// Auto-refrescar dinámicamente la pestaña de Staff cada 4 segundos
+setInterval(() => {
+  const staffView = document.getElementById("admin-view-staff");
+  const modal = document.getElementById("modal-manage-staff");
+  const isModalOpen = modal && (modal.classList.contains("active") || modal.style.display === "flex");
+  if (currentAdminTab === "staff" && staffView && staffView.style.display !== "none" && !isModalOpen && adminToken) {
+    loadAdminStaff();
+  }
+}, 4000);
+
 function openAddStaffModal(e) {
   if (e && typeof e.preventDefault === "function") {
     e.preventDefault();
