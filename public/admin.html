@@ -60,10 +60,12 @@
     </div>
 
     <!-- Admin Navigation Tabs -->
-    <div class="nav-tabs" style="margin-bottom:1.25rem;">
+    <div class="nav-tabs" style="margin-bottom:1.25rem; flex-wrap:wrap; gap:0.5rem;">
       <button class="tab-btn active" data-atab="orders">📋 Órdenes Binance</button>
       <button class="tab-btn" data-atab="issues">⚠️ Reclamos de Entrega</button>
       <button class="tab-btn" data-atab="catalog">🛍️ Catálogo Tienda</button>
+      <button class="tab-btn" data-atab="code-catalog">💻 Editor Catálogo en Código (JSON)</button>
+      <button class="tab-btn" data-atab="players">👥 Gestión de Jugadores</button>
       <button class="tab-btn" data-atab="config">⚙️ Configuración Binance</button>
     </div>
 
@@ -110,11 +112,17 @@
       </div>
     </section>
 
-    <!-- TAB 3: Catálogo Tienda -->
+    <!-- TAB 3: Catálogo Tienda Visual -->
     <section class="admin-tab" id="atab-catalog" style="display:none;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-        <h2 style="font-size:1.2rem; font-weight:700;">🛍️ Artículos de la Tienda</h2>
-        <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-item')">+ Nuevo Artículo</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+          <h2 style="font-size:1.2rem; font-weight:700;">🛍️ Artículos de la Tienda</h2>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Gestiona productos visualmente o edítalos en directo.</p>
+        </div>
+        <div style="display:flex; gap:0.5rem;">
+          <button class="btn btn-secondary btn-sm" onclick="switchAdminSubTab('code-catalog')">💻 Abrir en Código JSON</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-item')">+ Nuevo Artículo</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -125,7 +133,7 @@
               <th>Precio NC</th>
               <th>Precio USDT</th>
               <th>Comando Minecraft</th>
-              <th>Acción</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="admin-catalog-tbody"></tbody>
@@ -133,7 +141,62 @@
       </div>
     </section>
 
-    <!-- TAB 4: Configuración -->
+    <!-- TAB 4: Editor de Catálogo Directamente en Código JSON -->
+    <section class="admin-tab" id="atab-code-catalog" style="display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+          <h2 style="font-size:1.2rem; font-weight:700;">💻 Editor de Catálogo en Código (JSON)</h2>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">
+            Edita los artículos, nombres, categorías, precios y comandos directamente en código JSON.
+          </p>
+        </div>
+        <div style="display:flex; gap:0.5rem;">
+          <button class="btn btn-secondary btn-sm" id="btn-format-catalog-json" title="Formatear e Indentar">✨ Formatear</button>
+          <button class="btn btn-secondary btn-sm" id="btn-reload-catalog-json" title="Recargar desde servidor">🔄 Recargar</button>
+          <button class="btn btn-primary btn-sm" id="btn-save-catalog-json">💾 Guardar Catálogo en Código</button>
+        </div>
+      </div>
+
+      <div style="background:#0d1117; border:1px solid #30363d; border-radius:var(--radius-md); padding:1rem; position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; color:#8b949e; font-size:0.78rem;">
+          <span>catalog.json (Formato Arreglo)</span>
+          <span id="catalog-json-status" style="font-weight:700; color:#58a6ff;">Listo para editar</span>
+        </div>
+        <textarea id="raw-catalog-editor" spellcheck="false" style="width:100%; height:450px; background:#161b22; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; font-family:'Consolas', 'Courier New', monospace; font-size:0.9rem; padding:1rem; line-height:1.5; resize:vertical; outline:none; box-sizing:border-box;"></textarea>
+      </div>
+    </section>
+
+    <!-- TAB 5: Gestión de Jugadores -->
+    <section class="admin-tab" id="atab-players" style="display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+          <h2 style="font-size:1.2rem; font-weight:700;">👥 Gestión de Jugadores</h2>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Administra cuentas, visualiza vinculaciones y ajusta saldos.</p>
+        </div>
+        <div style="width:280px;">
+          <input type="text" id="admin-players-search" class="input" placeholder="Buscar jugador por Gamertag...">
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Jugador</th>
+              <th>Vinculación</th>
+              <th>Rango / Título</th>
+              <th>Billetera</th>
+              <th>Banco</th>
+              <th>Acciones Saldo</th>
+            </tr>
+          </thead>
+          <tbody id="admin-players-tbody">
+            <tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">Cargando jugadores...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 6: Configuración -->
     <section class="admin-tab" id="atab-config" style="display:none;">
       <div class="card" style="max-width:550px;">
         <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:1rem;">⚙️ Parámetros de Binance Pay</h2>
@@ -175,6 +238,27 @@
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
           <div class="form-group">
+            <label class="form-label">Categoría</label>
+            <select id="item-category" class="input">
+              <option value="items">Objetos / Items</option>
+              <option value="coins">Monedas / Packs</option>
+              <option value="ranks">Rangos VIP / Membresías</option>
+              <option value="keys">Llaves / Crates</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Icono</label>
+            <select id="item-icon" class="input">
+              <option value="box">Cofre / Caja</option>
+              <option value="coins">Monedas</option>
+              <option value="crown">Corona / Rango</option>
+              <option value="sword">Espada / PvP</option>
+              <option value="key">Llave</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <div class="form-group">
             <label class="form-label">Precio en NC (Monedas)</label>
             <input type="number" id="item-price-coins" class="input" value="0">
           </div>
@@ -187,15 +271,117 @@
           <label class="form-label">Comando Minecraft ({player} = Gamertag)</label>
           <input type="text" id="item-command" class="input" placeholder="Ej: tag {player} add vip">
         </div>
-        <div class="form-group">
-          <label class="form-label">Monedas que otorga (Opcional)</label>
-          <input type="number" id="item-give-coins" class="input" value="0">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <div class="form-group">
+            <label class="form-label">Monedas que otorga (Opcional)</label>
+            <input type="number" id="item-give-coins" class="input" value="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Badge Destacado (Opcional)</label>
+            <input type="text" id="item-badge" class="input" placeholder="Ej: Popular, Nuevo">
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Descripción</label>
           <textarea id="item-desc" class="input" rows="2" placeholder="Beneficios del producto..."></textarea>
         </div>
         <button type="submit" class="btn btn-primary btn-block">Guardar en Catálogo</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Editar Artículo Existente -->
+  <div class="modal-backdrop" id="modal-edit-item">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">✏️ Editar Artículo de Tienda</h3>
+        <button class="btn-close" onclick="closeModal('modal-edit-item')">&times;</button>
+      </div>
+      <form id="edit-item-form">
+        <input type="hidden" id="edit-item-id">
+        <div class="form-group">
+          <label class="form-label">Nombre del Producto</label>
+          <input type="text" id="edit-item-name" class="input" required>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <div class="form-group">
+            <label class="form-label">Categoría</label>
+            <select id="edit-item-category" class="input">
+              <option value="items">Objetos / Items</option>
+              <option value="coins">Monedas / Packs</option>
+              <option value="ranks">Rangos VIP / Membresías</option>
+              <option value="keys">Llaves / Crates</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Icono</label>
+            <select id="edit-item-icon" class="input">
+              <option value="box">Cofre / Caja</option>
+              <option value="coins">Monedas</option>
+              <option value="crown">Corona / Rango</option>
+              <option value="sword">Espada / PvP</option>
+              <option value="key">Llave</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <div class="form-group">
+            <label class="form-label">Precio en NC (Monedas)</label>
+            <input type="number" id="edit-item-price-coins" class="input" value="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Precio en USDT (Dólares)</label>
+            <input type="number" step="0.01" id="edit-item-price-usdt" class="input" value="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Comando Minecraft ({player} = Gamertag)</label>
+          <input type="text" id="edit-item-command" class="input">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <div class="form-group">
+            <label class="form-label">Monedas que otorga (Opcional)</label>
+            <input type="number" id="edit-item-give-coins" class="input" value="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Badge Destacado (Opcional)</label>
+            <input type="text" id="edit-item-badge" class="input">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción</label>
+          <textarea id="edit-item-desc" class="input" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Actualizar Artículo</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Ajustar Saldo de Jugador -->
+  <div class="modal-backdrop" id="modal-adjust-balance">
+    <div class="modal-box" style="max-width:420px;">
+      <div class="modal-header">
+        <h3 class="modal-title">💰 Ajustar Saldo</h3>
+        <button class="btn-close" onclick="closeModal('modal-adjust-balance')">&times;</button>
+      </div>
+      <form id="adjust-balance-form">
+        <input type="hidden" id="adjust-user-target">
+        <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1rem;">
+          Ajustando saldo de: <strong id="adjust-user-display" style="color:var(--primary);">Steve</strong>
+        </p>
+        <div class="form-group">
+          <label class="form-label">Operación</label>
+          <select id="adjust-action" class="input">
+            <option value="add">Sumar Monedas (+)</option>
+            <option value="sub">Restar Monedas (-)</option>
+            <option value="set">Fijar Saldo Exacto (=)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cantidad de Nodocoins (NC)</label>
+          <input type="number" id="adjust-amount" class="input" min="0" required autofocus>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Aplicar Ajuste</button>
       </form>
     </div>
   </div>

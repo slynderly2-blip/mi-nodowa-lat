@@ -51,7 +51,7 @@ router.post("/buy", (req, res) => {
   broadcastWs("BALANCE_UPDATE", { username: user.username, wallet: user.wallet });
   res.json({
     ok: true,
-    message: `¡Compraste ${item.name}! Revisa tu buzón o ingresa al juego.`,
+    message: `¡Compraste ${item.name}! Entra a Nodowa en Minecraft para recibirlo automáticamente, o usa el comando /buzon en el chat del juego.`,
     user,
     delivery
   });

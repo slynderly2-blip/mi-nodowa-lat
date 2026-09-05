@@ -188,10 +188,25 @@
           <button id="players-clear-btn" class="search-clear-btn" onclick="clearPlayersSearch()" title="Limpiar">&times;</button>
         </div>
 
+        <!-- Banner Explicativo de Amistades & Red Social -->
+        <div class="community-info-banner" style="background:linear-gradient(135deg, rgba(124,58,237,0.08), rgba(254,44,85,0.08)); border:1px solid rgba(124,58,237,0.2); border-radius:var(--radius-md); padding:0.9rem 1.15rem; margin-bottom:1.25rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:0.75rem;">
+            <div style="width:36px; height:36px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+              <div style="font-weight:800; font-size:0.9rem; color:var(--text);">¿Para qué sirven las solicitudes de amistad?</div>
+              <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">Al ser amigos pueden enviarse mensajes directos en Messenger con 1 clic, ver sus perfiles completos y saber si están en el servidor de Nodowa.</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="setPlayersFilter('friends')" style="font-size:0.78rem;">Ver Mis Amigos</button>
+        </div>
+
         <div class="search-tags" style="margin-bottom: 1.5rem;">
           <button class="search-tag-pill active" id="filter-players-all" onclick="setPlayersFilter('all')">Todos los Jugadores</button>
-          <button class="search-tag-pill" id="filter-players-linked" onclick="setPlayersFilter('linked')">Vinculados</button>
-          <button class="search-tag-pill" id="filter-players-friends" onclick="setPlayersFilter('friends')">Mis Amigos</button>
+          <button class="search-tag-pill" id="filter-players-linked" onclick="setPlayersFilter('linked')">✓ Vinculados Bedrock</button>
+          <button class="search-tag-pill" id="filter-players-unlinked" onclick="setPlayersFilter('unlinked')">⚠️ No Vinculados</button>
+          <button class="search-tag-pill" id="filter-players-friends" onclick="setPlayersFilter('friends')">⭐ Mis Amigos</button>
         </div>
 
         <!-- Solicitudes Recibidas (se muestra si hay) -->
@@ -460,12 +475,28 @@
       <div class="profile-body">
         <h2 class="profile-name" id="profile-gamertag">Steve</h2>
         <div class="profile-badges-row">
-          <span class="chip chip-linked">
+          <span class="chip chip-linked" id="profile-chip-linked">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Vinculado</span>
+            <span id="profile-linked-text">Vinculado</span>
           </span>
           <span class="chip chip-tier" id="profile-tier-badge">NOVICIO</span>
           <span class="chip chip-title" id="profile-active-title">Título: [Novato]</span>
+        </div>
+
+        <!-- Biografía del Jugador -->
+        <div class="profile-bio-box" id="profile-bio-box" style="margin-bottom:1.15rem; background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 1rem; text-align:left;">
+          <div style="font-size:0.72rem; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:0.35rem; display:flex; justify-content:space-between; align-items:center;">
+            <span>Biografía</span>
+            <button class="btn btn-secondary btn-sm" id="btn-edit-bio-shortcut" style="padding:1px 8px; font-size:0.7rem; display:none;">Editar</button>
+          </div>
+          <p id="profile-bio-text" style="font-size:0.88rem; color:var(--text); line-height:1.4; margin:0; word-break:break-word;">
+            <em>Sin biografía todavía.</em>
+          </p>
+        </div>
+
+        <!-- Redes Sociales del Jugador -->
+        <div class="profile-socials-row" id="profile-socials-row" style="display:flex; justify-content:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+          <!-- Enlaces dinámicos a Discord, YouTube, TikTok, etc. -->
         </div>
 
         <!-- Balances Financieros -->
@@ -528,7 +559,12 @@
           </div>
         </div>
 
-        <div class="profile-actions-list">
+        <!-- Botones para mi propio perfil -->
+        <div class="profile-actions-list" id="profile-own-actions">
+          <button type="button" class="btn btn-secondary btn-block" id="btn-open-edit-profile">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span>Editar Biografía y Redes Sociales</span>
+          </button>
           <button type="button" class="btn btn-secondary btn-block" id="btn-profile-wallet">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
             <span>Ir a Billetera & Transferencias</span>
@@ -538,6 +574,102 @@
             <span>Cerrar Sesión</span>
           </button>
         </div>
+
+        <!-- Botones si estoy viendo el perfil de OTRO jugador -->
+        <div class="profile-actions-list" id="profile-other-actions" style="display:none;">
+          <button type="button" class="btn btn-tiktok btn-block" id="btn-other-profile-chat">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>Enviar Mensaje en Messenger</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-block" id="btn-other-profile-friend">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            <span id="btn-other-friend-label">Añadir a Amigos</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Editar Biografía y Redes Sociales -->
+  <div class="modal-backdrop" id="modal-edit-profile">
+    <div class="modal-box" style="max-width:480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <span>Editar Mi Perfil & Redes</span>
+        </h3>
+        <button class="btn-close" onclick="closeModal('modal-edit-profile')">&times;</button>
+      </div>
+      <form id="edit-profile-form">
+        <div class="form-group">
+          <label class="form-label">Biografía / Acerca de ti</label>
+          <textarea id="edit-profile-bio" class="input" rows="3" maxlength="300" placeholder="Escribe algo sobre ti, tu facción o tu estilo en Nodowa..."></textarea>
+          <small style="color:var(--text-subtle); font-size:0.75rem;">Máximo 300 caracteres.</small>
+        </div>
+
+        <div style="font-size:0.82rem; font-weight:800; color:var(--text); margin:1rem 0 0.5rem;">Tus Redes Sociales (Opcional)</div>
+        
+        <div class="form-group">
+          <label class="form-label">Discord (Usuario o enlace)</label>
+          <input type="text" id="edit-social-discord" class="input" placeholder="ej: Steve#1234 o enlace">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Canal de YouTube</label>
+          <input type="text" id="edit-social-youtube" class="input" placeholder="https://youtube.com/@tu_canal">
+        </div>
+        <div class="form-group">
+          <label class="form-label">TikTok</label>
+          <input type="text" id="edit-social-tiktok" class="input" placeholder="https://tiktok.com/@tu_usuario">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Twitch</label>
+          <input type="text" id="edit-social-twitch" class="input" placeholder="https://twitch.tv/tu_canal">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Instagram</label>
+          <input type="text" id="edit-social-instagram" class="input" placeholder="https://instagram.com/tu_usuario">
+        </div>
+        <div class="form-group">
+          <label class="form-label">X / Twitter</label>
+          <input type="text" id="edit-social-twitter" class="input" placeholder="https://x.com/tu_usuario">
+        </div>
+
+        <button type="submit" class="btn btn-tiktok btn-block" style="margin-top:1rem;">Guardar Cambios</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Aviso Especial de Compra Exitosa y Buzón Minecraft -->
+  <div class="modal-backdrop" id="modal-purchase-success">
+    <div class="modal-box" style="max-width:460px; text-align:center;">
+      <div style="width:58px; height:58px; border-radius:50%; background:var(--emerald-light); color:var(--emerald); display:flex; align-items:center; justify-content:center; margin:0.5rem auto 1rem;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h3 style="font-size:1.35rem; font-weight:800; color:var(--text); margin-bottom:0.4rem;">¡Compra Completada!</h3>
+      <p id="purchase-success-item-name" style="font-weight:700; color:var(--primary); font-size:1.05rem; margin-bottom:1rem;"></p>
+      
+      <div style="background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-md); padding:1rem; text-align:left; margin-bottom:1.25rem;">
+        <div style="font-weight:800; font-size:0.88rem; color:var(--text); display:flex; align-items:center; gap:0.45rem; margin-bottom:0.4rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg>
+          <span>¿Cómo recibo mi producto?</span>
+        </div>
+        <ul style="margin:0; padding-left:1.25rem; font-size:0.84rem; color:var(--text-muted); line-height:1.5;">
+          <li><strong>Entrega automática:</strong> Entra al servidor <strong>Nodowa</strong> en Minecraft Bedrock y el sistema te lo otorgará al conectarte.</li>
+          <li><strong>Si ya estás dentro:</strong> Abre el chat de Minecraft y escribe el comando:</li>
+        </ul>
+        <div style="margin-top:0.75rem; background:#111; color:#10b981; font-family:monospace; padding:0.6rem 0.85rem; border-radius:var(--radius-sm); font-size:1rem; display:flex; justify-content:space-between; align-items:center;">
+          <span>/buzon</span>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('/buzon'); showToast('Comando /buzon copiado');" style="padding:2px 8px; font-size:0.75rem;">Copiar</button>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:0.5rem;">
+        <button type="button" class="btn btn-secondary btn-block" onclick="closeModal('modal-purchase-success'); const bTab=document.querySelector(`.tab-btn[data-tab='deliveries']`); if(bTab) bTab.click();">Ver Mi Buzón Web</button>
+        <button type="button" class="btn btn-tiktok btn-block" onclick="closeModal('modal-purchase-success')">¡Entendido!</button>
+      </div>
+    </div>
+  </div>
 
       </div>
     </div>

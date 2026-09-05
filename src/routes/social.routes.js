@@ -33,7 +33,7 @@ router.get("/players", (req, res) => {
       .map(r => r.target.toLowerCase())
   );
 
-  const allUsers = Object.values(db.users || {});
+  const allUsers = Object.values(db.users || {}).filter(u => u && u.username && u.username !== "null");
 
   const list = allUsers
     .filter(u => {
@@ -48,6 +48,7 @@ router.get("/players", (req, res) => {
 
       // Filtros de categoría
       if (filter === "linked" && !u.linked) return false;
+      if (filter === "unlinked" && u.linked) return false;
       if (filter === "friends" && !friendSet.has(uName)) return false;
 
       return true;
@@ -65,6 +66,9 @@ router.get("/players", (req, res) => {
         avatarUrl: u.avatarUrl || `https://mc-heads.net/avatar/${u.displayName || u.username}/64`,
         linked: !!u.linked,
         wallet: u.wallet || 0,
+        bank: u.bank || 0,
+        bio: u.bio || "",
+        socialLinks: u.socialLinks || {},
         stats: u.stats || {},
         selectedTitle: u.selectedTitle || null,
         friendship

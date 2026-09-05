@@ -1180,12 +1180,51 @@ tr:hover td { background: var(--surface-hover); }
   justify-content: space-between;
   gap: 1rem;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+  position: relative;
 }
 
 .player-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   border-color: var(--border-hover);
+}
+
+/* Tarjeta para jugador NO VINCULADO: aviso visual con fondo y borde distintivo */
+.player-card.unlinked {
+  background: linear-gradient(180deg, #fff5f5 0%, #ffffff 100%);
+  border: 1.5px solid rgba(239, 68, 68, 0.4);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.06);
+}
+.player-card.unlinked:hover {
+  border-color: var(--red);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.15);
+}
+
+/* Tarjeta para jugador VINCULADO */
+.player-card.linked {
+  border-left: 3px solid var(--emerald);
+}
+
+.player-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  margin-top: 3px;
+}
+.player-status-badge.unlinked {
+  background: var(--red-light);
+  color: var(--red);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+.player-status-badge.linked {
+  background: var(--emerald-light);
+  color: var(--emerald);
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .player-card-header {
@@ -1195,13 +1234,17 @@ tr:hover td { background: var(--surface-hover); }
 }
 
 .player-card-avatar {
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   border-radius: var(--radius-full);
   background: var(--surface-hover);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   object-fit: cover;
   flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+.player-card:hover .player-card-avatar {
+  transform: scale(1.05);
 }
 
 .player-card-info {
@@ -1210,7 +1253,7 @@ tr:hover td { background: var(--surface-hover); }
 }
 
 .player-card-name {
-  font-size: 1rem;
+  font-size: 1.02rem;
   font-weight: 800;
   color: var(--tiktok-black);
   overflow: hidden;
@@ -1219,7 +1262,7 @@ tr:hover td { background: var(--surface-hover); }
 }
 
 .player-card-title {
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: var(--primary);
   margin-top: 1px;
@@ -1251,6 +1294,27 @@ tr:hover td { background: var(--surface-hover); }
 
 .player-card-actions .btn {
   flex: 1;
+}
+
+.social-pill-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  background: var(--tiktok-gray);
+  color: var(--tiktok-black);
+  border: 1px solid var(--border);
+  transition: all 0.15s ease;
+}
+.social-pill-link:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+  transform: translateY(-1px);
 }
 
 .btn-danger-soft {

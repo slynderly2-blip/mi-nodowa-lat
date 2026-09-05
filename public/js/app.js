@@ -112,46 +112,145 @@ function updateAuthUI() {
 async function openProfileModal() {
   if (!currentUser) return;
   
-  const avatar = currentUserAvatar || `https://mc-heads.net/avatar/${encodeURIComponent(currentUser)}/100`;
+window.openProfile = async (targetUser) => {
+  const userToLoad = targetUser || currentUser;
+  if (!userToLoad) return openModal("modal-login");
+
+  const isSelf = currentUser && userToLoad.toLowerCase() === currentUser.toLowerCase();
+
   const avatarImg = document.getElementById("profile-avatar-img");
-  if (avatarImg) avatarImg.src = avatar;
-  
-  document.getElementById("profile-gamertag").textContent = currentUser;
-  document.getElementById("profile-wallet-val").textContent = `${userData.wallet.toLocaleString()} NC`;
-  document.getElementById("profile-bank-val").textContent = `${userData.bank.toLocaleString()} NC`;
+  const avatarEditBtn = document.getElementById("btn-open-avatar-modal");
+  const ownActions = document.getElementById("profile-own-actions");
+  const otherActions = document.getElementById("profile-other-actions");
+  const editBioShortcut = document.getElementById("btn-edit-bio-shortcut");
+
+  if (avatarEditBtn) avatarEditBtn.style.display = isSelf ? "flex" : "none";
+  if (ownActions) ownActions.style.display = isSelf ? "flex" : "none";
+  if (otherActions) otherActions.style.display = isSelf ? "none" : "flex";
+  if (editBioShortcut) editBioShortcut.style.display = isSelf ? "inline-block" : "none";
+
+  document.getElementById("profile-gamertag").textContent = userToLoad;
+  if (avatarImg) avatarImg.src = `https://mc-heads.net/avatar/${encodeURIComponent(userToLoad)}/100`;
+
+  // Configurar botones de acción si es otro jugador
+  if (!isSelf) {
+    const btnChat = document.getElementById("btn-other-profile-chat");
+    if (btnChat) {
+      btnChat.onclick = () => {
+        closeModal("modal-profile");
+        openChatWith(userToLoad);
+      };
+    }
+    const btnFriend = document.getElementById("btn-other-profile-friend");
+    if (btnFriend) {
+      btnFriend.onclick = () => {
+        sendFriendRequest(userToLoad);
+      };
+    }
+  }
 
   openModal("modal-profile");
 
   try {
-    const res = await fetch(`/api/players/profile/${encodeURIComponent(currentUser)}`);
+    const res = await fetch(`/api/players/profile/${encodeURIComponent(userToLoad)}`);
     const data = await res.json();
     if (data.ok && data.user) {
-      userProfileData = data.user;
-      if (data.user.avatarUrl) {
-        currentUserAvatar = data.user.avatarUrl;
-        localStorage.setItem("nodowa_avatar", currentUserAvatar);
-        if (avatarImg) avatarImg.src = currentUserAvatar;
-        const hImg = document.getElementById("header-avatar-img");
-        if (hImg) hImg.src = currentUserAvatar;
+      const u = data.user;
+      if (isSelf) {
+        userProfileData = u;
+        if (u.avatarUrl) {
+          currentUserAvatar = u.avatarUrl;
+          localStorage.setItem("nodowa_avatar", currentUserAvatar);
+          const hImg = document.getElementById("header-avatar-img");
+          if (hImg) hImg.src = currentUserAvatar;
+        }
       }
-      
-      const stats = data.user.stats || {};
+
+      if (avatarImg && u.avatarUrl) avatarImg.src = u.avatarUrl;
+
+      // Estado vinculado
+      const chipLinked = document.getElementById("profile-chip-linked");
+      const textLinked = document.getElementById("profile-linked-text");
+      if (chipLinked && textLinked) {
+        if (u.linked) {
+          chipLinked.className = "chip chip-linked";
+          textLinked.textContent = "Vinculado Bedrock";
+        } else {
+          chipLinked.className = "chip chip-tier";
+          chipLinked.style.background = "var(--red-light)";
+          chipLinked.style.color = "var(--red)";
+          textLinked.textContent = "No Vinculado";
+        }
+      }
+
+      // Rangos y Títulos
+      const stats = u.stats || {};
       const tierBadge = document.getElementById("profile-tier-badge");
-      if (tierBadge) tierBadge.textContent = data.user.equippedRank || stats.equippedRank || stats.tier || "NOVICIO";
-      
+      if (tierBadge) tierBadge.textContent = u.equippedRank || stats.equippedRank || stats.tier || "NOVICIO";
+
       const activeTitle = document.getElementById("profile-active-title");
-      const titleName = data.user.selectedTitle || stats.activeTitle || "Novato";
+      const titleName = u.selectedTitle || stats.activeTitle || "Novato";
       if (activeTitle) activeTitle.textContent = `Título: [${titleName}]`;
-      
+
+      // Biografía
+      const bioText = document.getElementById("profile-bio-text");
+      if (bioText) {
+        if (u.bio && u.bio.trim()) {
+          bioText.textContent = u.bio;
+        } else {
+          bioText.innerHTML = isSelf 
+            ? `<em>Aún no has añadido una biografía. ¡Haz clic en "Editar" para presentarte ante la comunidad!</em>`
+            : `<em>Este jugador aún no ha escrito su biografía.</em>`;
+        }
+      }
+
+      // Redes Sociales
+      renderProfileSocials(u.socialLinks || {});
+
+      // Balances
+      document.getElementById("profile-wallet-val").textContent = `${(u.wallet || 0).toLocaleString()} NC`;
+      document.getElementById("profile-bank-val").textContent = `${(u.bank || 0).toLocaleString()} NC`;
+
+      // Estadísticas
       const titlesCount = document.getElementById("profile-titles-count");
       if (titlesCount) titlesCount.textContent = `${stats.unlockedCount || 0} / 34 Títulos`;
-      
+
       document.getElementById("profile-stat-pvp").textContent = (stats.killsPvp || 0).toLocaleString();
       document.getElementById("profile-stat-mobs").textContent = (stats.killsTotalMobs || 0).toLocaleString();
       document.getElementById("profile-stat-diamond").textContent = (stats.minedDiamond || 0).toLocaleString();
       document.getElementById("profile-stat-mined").textContent = (stats.minedTotal || 0).toLocaleString();
     }
-  } catch (err) {}
+  } catch (err) {
+    console.error("Error al cargar perfil:", err);
+  }
+};
+
+function renderProfileSocials(socials) {
+  const container = document.getElementById("profile-socials-row");
+  if (!container) return;
+
+  const valid = [];
+  if (socials.discord) {
+    const isUrl = socials.discord.startsWith("http");
+    valid.push(`<span class="social-pill-link" ${isUrl ? `onclick="window.open('${socials.discord}', '_blank')"` : `onclick="navigator.clipboard.writeText('${socials.discord}'); showToast('Discord copiado: ${socials.discord}');"`} style="cursor:pointer;" title="Discord">💬 Discord: ${escapeHtml(socials.discord.replace(/^https?:\/\//, ''))}</span>`);
+  }
+  if (socials.youtube) {
+    valid.push(`<a href="${socials.youtube}" target="_blank" rel="noopener" class="social-pill-link" style="color:#ef4444;">📺 YouTube</a>`);
+  }
+  if (socials.tiktok) {
+    valid.push(`<a href="${socials.tiktok}" target="_blank" rel="noopener" class="social-pill-link">🎵 TikTok</a>`);
+  }
+  if (socials.twitch) {
+    valid.push(`<a href="${socials.twitch}" target="_blank" rel="noopener" class="social-pill-link" style="color:#9333ea;">🎮 Twitch</a>`);
+  }
+  if (socials.instagram) {
+    valid.push(`<a href="${socials.instagram}" target="_blank" rel="noopener" class="social-pill-link" style="color:#ec4899;">📸 Instagram</a>`);
+  }
+  if (socials.twitter) {
+    valid.push(`<a href="${socials.twitter}" target="_blank" rel="noopener" class="social-pill-link">✖️ X / Twitter</a>`);
+  }
+
+  container.innerHTML = valid.length > 0 ? valid.join("") : `<small style="color:var(--text-subtle); font-size:0.75rem;">Sin redes sociales vinculadas</small>`;
 }
 
 async function logoutUser() {
@@ -183,6 +282,69 @@ document.getElementById("btn-profile-wallet")?.addEventListener("click", () => {
   closeModal("modal-profile");
   const walletTab = document.querySelector(`.tab-btn[data-tab="wallet"]`);
   if (walletTab) walletTab.click();
+});
+
+// Apertura y guardado de Modal Editar Perfil (Biografía y Redes)
+function openEditProfileModal() {
+  if (!currentUser) return openModal("modal-login");
+  const bioInput = document.getElementById("edit-profile-bio");
+  const discordInput = document.getElementById("edit-social-discord");
+  const ytInput = document.getElementById("edit-social-youtube");
+  const ttInput = document.getElementById("edit-social-tiktok");
+  const twitchInput = document.getElementById("edit-social-twitch");
+  const igInput = document.getElementById("edit-social-instagram");
+  const twInput = document.getElementById("edit-social-twitter");
+
+  const socials = (userProfileData && userProfileData.socialLinks) || {};
+  if (bioInput) bioInput.value = (userProfileData && userProfileData.bio) || "";
+  if (discordInput) discordInput.value = socials.discord || "";
+  if (ytInput) ytInput.value = socials.youtube || "";
+  if (ttInput) ttInput.value = socials.tiktok || "";
+  if (twitchInput) twitchInput.value = socials.twitch || "";
+  if (igInput) igInput.value = socials.instagram || "";
+  if (twInput) twInput.value = socials.twitter || "";
+
+  openModal("modal-edit-profile");
+}
+
+document.getElementById("btn-open-edit-profile")?.addEventListener("click", openEditProfileModal);
+document.getElementById("btn-edit-bio-shortcut")?.addEventListener("click", openEditProfileModal);
+
+document.getElementById("edit-profile-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!currentUser) return;
+
+  const bio = document.getElementById("edit-profile-bio").value.trim();
+  const socialLinks = {
+    discord: document.getElementById("edit-social-discord").value.trim(),
+    youtube: document.getElementById("edit-social-youtube").value.trim(),
+    tiktok: document.getElementById("edit-social-tiktok").value.trim(),
+    twitch: document.getElementById("edit-social-twitch").value.trim(),
+    instagram: document.getElementById("edit-social-instagram").value.trim(),
+    twitter: document.getElementById("edit-social-twitter").value.trim()
+  };
+
+  try {
+    const res = await fetch("/api/players/profile/edit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: currentUser, bio, socialLinks })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      if (userProfileData) {
+        userProfileData.bio = data.bio;
+        userProfileData.socialLinks = data.socialLinks;
+      }
+      closeModal("modal-edit-profile");
+      showToast("Perfil actualizado correctamente");
+      openProfile(currentUser);
+    } else {
+      showToast(data.error || "No se pudo actualizar el perfil");
+    }
+  } catch (err) {
+    showToast("Error de conexión al guardar");
+  }
 });
 
 document.getElementById("btn-open-avatar-modal")?.addEventListener("click", () => {
@@ -589,8 +751,14 @@ async function buyWithCoins(itemId) {
     const data = await res.json();
     if (data.ok) {
       closeModal("modal-checkout");
-      showToast(data.message || "¡Compra exitosa! Revisa tu buzón.");
       loadBalance();
+
+      // Desplegar modal explicativo con el comando /buzon
+      const successTitle = document.getElementById("purchase-success-item-name");
+      if (successTitle && selectedItem) {
+        successTitle.textContent = selectedItem.name;
+      }
+      openModal("modal-purchase-success");
     } else {
       showToast(data.error || "No se pudo completar la compra");
     }
@@ -875,9 +1043,11 @@ window.setPlayersFilter = (filter) => {
   currentPlayersFilter = filter;
   const btnAll = document.getElementById("filter-players-all");
   const btnLinked = document.getElementById("filter-players-linked");
+  const btnUnlinked = document.getElementById("filter-players-unlinked");
   const btnFriends = document.getElementById("filter-players-friends");
   if (btnAll) btnAll.classList.toggle("active", filter === "all");
   if (btnLinked) btnLinked.classList.toggle("active", filter === "linked");
+  if (btnUnlinked) btnUnlinked.classList.toggle("active", filter === "unlinked");
   if (btnFriends) btnFriends.classList.toggle("active", filter === "friends");
   loadPlayers();
 };
@@ -979,16 +1149,23 @@ function renderPlayers(players) {
       `;
     }
 
+    const isLinked = !!p.linked;
+    const cardClass = isLinked ? "player-card linked" : "player-card unlinked";
+    const statusBadgeHtml = isLinked
+      ? `<span class="player-status-badge linked">✓ Vinculado Bedrock</span>`
+      : `<span class="player-status-badge unlinked" title="Este jugador aún no ejecuta /link en el servidor">⚠️ No Vinculado</span>`;
+
     return `
-      <div class="player-card">
-        <div class="player-card-header">
+      <div class="${cardClass}">
+        <div class="player-card-header" onclick="openProfile('${p.username}')" style="cursor:pointer;" title="Toca para ver el perfil completo de ${p.displayName}">
           <img src="${p.avatarUrl}" alt="${p.displayName}" class="player-card-avatar">
           <div class="player-card-info">
             <div class="player-card-name">${p.displayName}</div>
-            <div class="player-card-title">${p.selectedTitle ? `[${p.selectedTitle}]` : (p.linked ? 'Jugador Bedrock' : 'No Vinculado')}</div>
+            <div class="player-card-title">${p.selectedTitle ? `[${p.selectedTitle}]` : (isLinked ? 'Jugador Bedrock' : 'No Vinculado')}</div>
+            <div>${statusBadgeHtml}</div>
           </div>
         </div>
-        <div class="player-card-stats">
+        <div class="player-card-stats" onclick="openProfile('${p.username}')" style="cursor:pointer;" title="Toca para ver estadísticas detalladas">
           <div class="player-card-stat-item">PvP Kills: <strong>${kills}</strong></div>
           <div class="player-card-stat-item">Bloques: <strong>${blocks}</strong></div>
         </div>
@@ -1304,8 +1481,14 @@ if (chatForm) {
 }
 
 function appendChatMessage(message) {
+  if (!message || !message.id) return;
   const body = document.getElementById("chat-messages-container");
   if (!body) return;
+
+  // Evitar mensajes duplicados si ya existen en el DOM
+  if (document.getElementById(`msg-${message.id}`)) {
+    return;
+  }
 
   const isMine = message.sender.toLowerCase() === currentUser.toLowerCase();
   const time = formatChatTime(message.timestamp);

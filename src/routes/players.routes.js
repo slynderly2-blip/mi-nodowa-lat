@@ -142,10 +142,46 @@ router.get("/profile/:username", (req, res) => {
       totalFortune: Math.floor((user.wallet || 0) + (user.bank || 0)),
       linked: !!(user.linked || user.linkedAt),
       avatarUrl,
+      bio: user.bio || "",
+      socialLinks: user.socialLinks || { discord: "", youtube: "", tiktok: "", twitch: "", instagram: "", twitter: "" },
       selectedTitle: user.selectedTitle || stats.activeTitle || "Novato",
       equippedRank: user.equippedRank || stats.equippedRank || stats.tier || "NOVICIO",
       stats
     }
+  });
+});
+
+// Actualizar información del perfil (Biografía y Redes Sociales)
+router.post("/profile/edit", (req, res) => {
+  const { username, bio, socialLinks } = req.body;
+  if (!username) return res.status(400).json({ ok: false, error: "Usuario requerido" });
+
+  const uname = username.trim().toLowerCase();
+  const user = db.users[uname];
+  if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+  if (typeof bio === "string") {
+    user.bio = bio.trim().slice(0, 300); // Límite de 300 caracteres
+  }
+
+  if (socialLinks && typeof socialLinks === "object") {
+    if (!user.socialLinks) user.socialLinks = {};
+    const allowed = ["discord", "youtube", "tiktok", "twitch", "instagram", "twitter"];
+    for (const key of allowed) {
+      if (typeof socialLinks[key] === "string") {
+        user.socialLinks[key] = socialLinks[key].trim().slice(0, 100);
+      }
+    }
+  }
+
+  user.updatedAt = new Date().toISOString();
+  saveDb();
+
+  res.json({
+    ok: true,
+    message: "Perfil actualizado con éxito.",
+    bio: user.bio,
+    socialLinks: user.socialLinks
   });
 });
 

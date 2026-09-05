@@ -182,6 +182,63 @@ router.post("/store/delete-item", (req, res) => {
   res.json({ ok: true, message: "Artículo eliminado" });
 });
 
+// Guardar Catálogo Completo directamente en Formato Código JSON
+router.post("/store/raw-json", (req, res) => {
+  const { jsonContent } = req.body;
+  if (!jsonContent) return res.status(400).json({ ok: false, error: "Contenido JSON requerido" });
+
+  let parsed;
+  try {
+    parsed = typeof jsonContent === "string" ? JSON.parse(jsonContent) : jsonContent;
+  } catch (err) {
+    return res.status(400).json({ ok: false, error: "Sintaxis JSON inválida: " + err.message });
+  }
+
+  if (!Array.isArray(parsed)) {
+    return res.status(400).json({ ok: false, error: "El catálogo debe ser un arreglo [ ... ] de productos." });
+  }
+
+  // Validar y sanear cada producto
+  const cleanItems = parsed.map((item, idx) => ({
+    id: item.id || `item_${Date.now()}_${idx}`,
+    name: (item.name || "Producto").trim(),
+    category: item.category || "items",
+    priceCoins: Math.floor(Number(item.priceCoins || 0)),
+    priceUsdt: Number(item.priceUsdt || 0),
+    description: (item.description || "").trim(),
+    iconType: item.iconType || "box",
+    command: item.command ? item.command.trim() : null,
+    giveCoins: Math.floor(Number(item.giveCoins || 0)),
+    badge: item.badge ? item.badge.trim() : null
+  }));
+
+  db.storeItems = cleanItems;
+  saveDb();
+  broadcastWs("STORE_UPDATED", db.storeItems);
+
+  res.json({ ok: true, message: `Catálogo actualizado con éxito (${cleanItems.length} artículos).`, items: cleanItems });
+});
+
+// Listar todos los jugadores para el panel admin
+router.get("/players", (req, res) => {
+  const list = Object.values(db.users || {})
+    .filter(u => u && u.username && u.username !== "null")
+    .map(u => ({
+      username: u.username,
+      displayName: u.displayName || u.username,
+      avatarUrl: u.avatarUrl || `https://mc-heads.net/avatar/${u.displayName || u.username}/64`,
+      wallet: Math.floor(u.wallet || 0),
+      bank: Math.floor(u.bank || 0),
+      linked: !!(u.linked || u.linkedAt),
+      bio: u.bio || "",
+      selectedTitle: u.selectedTitle || (u.stats && u.stats.activeTitle) || "Novato",
+      equippedRank: u.equippedRank || (u.stats && (u.stats.equippedRank || u.stats.tier)) || "NOVICIO",
+      lastActive: u.lastActive || u.createdAt || null
+    }));
+
+  res.json({ ok: true, players: list });
+});
+
 // Ajuste administrativo de saldo
 router.post("/player/adjust-balance", (req, res) => {
   const { username, amount, action } = req.body; // "add" | "sub" | "set"
