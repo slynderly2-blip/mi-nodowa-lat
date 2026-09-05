@@ -399,6 +399,12 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     return runForPlayerName(o, (p) => showBalance(p));
   });
 
+  reg("eco:link", "Vincula tu cuenta con la web (/link <código>)", null, [
+    { name: "codigo", type: CustomCommandParamType.Integer }
+  ], (o, codigo) => {
+    return runForPlayerName(o, (p) => handleLinkCode(p, codigo !== undefined ? String(codigo) : ""));
+  });
+
   reg("eco:pagar", "Transfiere Nodocoins en mano a un jugador (/pagar <jugador> <monto>)", [
     { name: "jugador", type: CustomCommandParamType.String },
     { name: "cantidad", type: CustomCommandParamType.Integer }
@@ -410,7 +416,7 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
     return runForPlayerName(o, (p) => checkDeliveriesForPlayer(p));
   });
 
-  console.log("[NodowaEconomy] Comandos nativos registrados: /eco:tienda, /eco:saldo, /eco:pagar, /eco:buzon, /eco:menu");
+  console.log("[NodowaEconomy] Comandos nativos registrados: /eco:tienda, /eco:link, /eco:saldo, /eco:pagar, /eco:buzon, /eco:menu");
 });
 
 // ── Captura de Chat Universal (!tienda, !link, !esfera, !menu, /tienda, /link) ──
