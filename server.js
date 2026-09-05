@@ -1655,14 +1655,71 @@ app.get("/api/staff/my-status/:username", (req, res) => {
   });
 });
 
-// Enviar Reseña o Reporte a Jugador/OP
+// ── Limpieza y Sanitización de Reseñas Duplicadas / Auto-reseñas ──
+function sanitizeRatings() {
+  if (!db.ratings) db.ratings = [];
+  const seen = new Set();
+  const clean = [];
+
+  // Recorrer de más reciente a más antiguo
+  const sorted = [...db.ratings].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+  for (const r of sorted) {
+    if (!r.targetUser || !r.author) continue;
+    const tUname = r.targetUser.trim().toLowerCase();
+    const aUname = r.author.trim().toLowerCase();
+
+    // Bloquear auto-reseñas
+    if (tUname === aUname) continue;
+
+    if (r.type === "REVIEW") {
+      const key = `${aUname}->${tUname}`;
+      if (seen.has(key)) continue; // Eliminar duplicados, mantener solo la más reciente
+      seen.add(key);
+    }
+    clean.push(r);
+  }
+
+  db.ratings = clean.reverse();
+}
+
+// Enviar o Editar Reseña / Reporte a Jugador
 app.post("/api/ratings/submit", (req, res) => {
   const { targetUser, author, stars, comment, type } = req.body;
   if (!targetUser || !author || !comment) {
     return res.status(400).json({ ok: false, error: "Datos requeridos faltantes." });
   }
 
+  const tUname = targetUser.trim().toLowerCase();
+  const aUname = author.trim().toLowerCase();
+
+  // 1. Bloquear auto-reseñas
+  if (tUname === aUname) {
+    return res.status(400).json({ ok: false, error: "No puedes escribirte una reseña o reporte a ti mismo." });
+  }
+
   if (!db.ratings) db.ratings = [];
+  sanitizeRatings();
+
+  // 2. Si es REVIEW, verificar si el autor ya había calificado al jugador
+  if (type !== "REPORT") {
+    const existingIndex = db.ratings.findIndex(r => r.type === "REVIEW" && r.targetUser.trim().toLowerCase() === tUname && r.author.trim().toLowerCase() === aUname);
+    if (existingIndex !== -1) {
+      // Actualizar reseña existente
+      db.ratings[existingIndex].stars = Math.min(5, Math.max(1, Number(stars) || 5));
+      db.ratings[existingIndex].comment = comment.trim();
+      db.ratings[existingIndex].updatedAt = new Date().toISOString();
+      saveDb();
+
+      return res.json({
+        ok: true,
+        message: "Tu reseña existente ha sido actualizada con éxito.",
+        rating: db.ratings[existingIndex]
+      });
+    }
+  }
+
+  // 3. Crear nueva entrada
   const ratingEntry = {
     id: "rat_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
     targetUser: targetUser.trim(),
@@ -1670,20 +1727,48 @@ app.post("/api/ratings/submit", (req, res) => {
     stars: Math.min(5, Math.max(1, Number(stars) || 5)),
     comment: comment.trim(),
     type: type === "REPORT" ? "REPORT" : "REVIEW",
-    status: "PENDING", // PENDING, RESOLVED, DISMISSED
+    status: "PENDING",
     createdAt: new Date().toISOString()
   };
 
   db.ratings.push(ratingEntry);
   saveDb();
 
-  res.json({ ok: true, message: type === "REPORT" ? "Reporte enviado a los admins." : "Reseña registrada con éxito.", rating: ratingEntry });
+  res.json({
+    ok: true,
+    message: type === "REPORT" ? "Reporte enviado a los administradores." : "Reseña publicada con éxito.",
+    rating: ratingEntry
+  });
+});
+
+// Eliminar mi propia Reseña
+app.post("/api/ratings/delete", (req, res) => {
+  const { ratingId, author } = req.body;
+  if (!ratingId || !author) return res.status(400).json({ ok: false, error: "Datos faltantes." });
+
+  if (!db.ratings) db.ratings = [];
+  const index = db.ratings.findIndex(r => r.id === ratingId);
+  if (index === -1) return res.status(404).json({ ok: false, error: "Reseña no encontrada." });
+
+  const rating = db.ratings[index];
+  const aUname = author.trim().toLowerCase();
+  const ratingAuthor = (rating.author || "").trim().toLowerCase();
+
+  if (ratingAuthor !== aUname) {
+    return res.status(403).json({ ok: false, error: "No tienes permiso para borrar esta reseña." });
+  }
+
+  db.ratings.splice(index, 1);
+  saveDb();
+
+  res.json({ ok: true, message: "Reseña eliminada correctamente." });
 });
 
 // Obtener Reseñas de un Jugador
 app.get("/api/ratings/user/:username", (req, res) => {
   const uname = (req.params.username || "").trim().toLowerCase();
   if (!db.ratings) db.ratings = [];
+  sanitizeRatings();
 
   const userRatings = db.ratings.filter(r => (r.targetUser || "").toLowerCase() === uname);
   const reviews = userRatings.filter(r => r.type === "REVIEW");

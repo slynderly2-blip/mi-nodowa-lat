@@ -1305,7 +1305,10 @@ async function openPlayerReviewsModal(username) {
     const data = await res.json();
 
     const reviews = data.reviews || [];
-    const avgStars = data.avgStars ? `⭐ ${data.avgStars} / 5` : 'Sin calificaciones aún';
+    const avgStars = data.avgStars ? `★ ${data.avgStars} / 5` : 'Sin calificaciones aun';
+
+    const myName = currentUser ? (currentUser.displayName || currentUser.username) : '';
+    const myExistingReview = reviews.find(r => myName && r.author && r.author.trim().toLowerCase() === myName.trim().toLowerCase());
 
     body.innerHTML = `
       <div style="text-align: center; margin-bottom: 1.5rem; background: var(--bg-surface); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
@@ -1313,62 +1316,76 @@ async function openPlayerReviewsModal(username) {
         <div class="text-muted" style="font-size: 0.8rem;">Basado en ${data.totalReviews || 0} reseñas de la comunidad</div>
       </div>
 
-      <!-- Formulario para agregar Reseña o Reporte -->
+      <!-- Formulario para agregar o editar Reseña -->
       <div style="background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
-        <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem;">Dejar Reseña o Reporte a ${escapeHtml(username)}</h4>
+        <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem;">${myExistingReview ? `Editar tu Reseña para ${escapeHtml(username)}` : `Dejar Reseña o Reporte a ${escapeHtml(username)}`}</h4>
         <form id="form-player-rating">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label" style="font-size: 0.75rem;">Tipo de Entrada</label>
               <select id="rating-type" class="form-input" style="font-size: 0.85rem;" onchange="toggleRatingStars(this.value)">
-                <option value="REVIEW">⭐ Reseña Pública</option>
-                <option value="REPORT">🚨 Reportar a la Admin</option>
+                <option value="REVIEW">Reseña Publica</option>
+                <option value="REPORT">Reportar a la Admin</option>
               </select>
             </div>
             <div class="form-group" id="group-rating-stars" style="margin-bottom: 0;">
-              <label class="form-label" style="font-size: 0.75rem;">Calificación (Estrellas)</label>
+              <label class="form-label" style="font-size: 0.75rem;">Calificacion (Estrellas)</label>
               <select id="rating-stars" class="form-input" style="font-size: 0.85rem;">
-                <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
-                <option value="4">⭐⭐⭐⭐ (4/5)</option>
-                <option value="3">⭐⭐⭐ (3/5)</option>
-                <option value="2">⭐⭐ (2/5)</option>
-                <option value="1">⭐ (1/5)</option>
+                <option value="5" ${myExistingReview && myExistingReview.stars == 5 ? 'selected' : ''}>5 Estrellas (5/5)</option>
+                <option value="4" ${myExistingReview && myExistingReview.stars == 4 ? 'selected' : ''}>4 Estrellas (4/5)</option>
+                <option value="3" ${myExistingReview && myExistingReview.stars == 3 ? 'selected' : ''}>3 Estrellas (3/5)</option>
+                <option value="2" ${myExistingReview && myExistingReview.stars == 2 ? 'selected' : ''}>2 Estrellas (2/5)</option>
+                <option value="1" ${myExistingReview && myExistingReview.stars == 1 ? 'selected' : ''}>1 Estrella (1/5)</option>
               </select>
             </div>
           </div>
           <div class="form-group" style="margin-bottom: 0.75rem;">
-            <label class="form-label" style="font-size: 0.75rem;">Tu Gamertag (Firma)</label>
-            <input type="text" id="rating-author" class="form-input" style="font-size: 0.85rem;" placeholder="Tu Gamertag de Minecraft" value="${currentUser ? escapeHtml(currentUser.displayName || currentUser.username) : ''}" required>
+            <label class="form-label" style="font-size: 0.75rem;">Tu Gamertag (Firma de Autor)</label>
+            <input type="text" id="rating-author" class="form-input" style="font-size: 0.85rem;" placeholder="Tu Gamertag de Minecraft" value="${escapeHtml(myName)}" required>
           </div>
           <div class="form-group" style="margin-bottom: 0.75rem;">
             <label class="form-label" style="font-size: 0.75rem;">Comentario / Motivo del Reporte</label>
-            <textarea id="rating-comment" class="form-input" rows="2" style="font-size: 0.85rem;" placeholder="Escribe tu opinión sobre este jugador u OP..." required></textarea>
+            <textarea id="rating-comment" class="form-input" rows="2" style="font-size: 0.85rem;" placeholder="Escribe tu opinion sobre este jugador u OP..." required>${myExistingReview ? escapeHtml(myExistingReview.comment) : ''}</textarea>
           </div>
           <button type="submit" class="btn-primary" style="width: 100%; font-size: 0.85rem; padding: 0.5rem;">
-            Publicar Reseña / Enviar
+            ${myExistingReview ? "Actualizar mi Reseña" : "Publicar Reseña / Enviar"}
           </button>
         </form>
       </div>
 
       <!-- Lista de Reseñas -->
       <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem;">Reseñas de Jugadores:</h4>
-      ${reviews.length === 0 ? `<p class="text-muted" style="font-size: 0.85rem;">No hay reseñas publicadas aún.</p>` : `
+      ${reviews.length === 0 ? `<p class="text-muted" style="font-size: 0.85rem;">No hay reseñas publicadas aun.</p>` : `
         <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto;">
-          ${reviews.map(r => `
-            <div style="background: var(--bg-surface); padding: 0.75rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                <strong style="color: #fff; font-size: 0.85rem;">${escapeHtml(r.author)}</strong>
-                <span style="color: var(--accent-gold); font-size: 0.8rem;">⭐ ${r.stars}/5</span>
+          ${reviews.map(r => {
+            const isMine = myName && r.author && r.author.trim().toLowerCase() === myName.trim().toLowerCase();
+            return `
+              <div style="background: var(--bg-surface); padding: 0.75rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                  <div>
+                    <span class="text-muted" style="font-size: 0.75rem;">Por:</span>
+                    <strong style="color: var(--text-primary); font-size: 0.85rem; margin-left: 0.25rem;">${escapeHtml(r.author)}</strong>
+                    ${isMine ? `<span class="badge" style="font-size: 0.65rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; margin-left: 0.35rem;">[TÚ]</span>` : ''}
+                  </div>
+                  <span style="color: var(--accent-gold); font-size: 0.8rem; font-weight: 700;">★ ${r.stars}/5</span>
+                </div>
+                <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0.25rem 0;">${escapeHtml(r.comment)}</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.35rem;">
+                  <span class="text-muted mono" style="font-size: 0.7rem;">${new Date(r.createdAt).toLocaleDateString()}</span>
+                  ${isMine ? `
+                    <button class="cat-btn" style="padding: 0.15rem 0.45rem; font-size: 0.7rem; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);" onclick="deleteMyRating('${r.id}', '${escapeHtml(r.author)}', '${escapeHtml(username)}')">
+                      Borrar
+                    </button>
+                  ` : ''}
+                </div>
               </div>
-              <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0;">${escapeHtml(r.comment)}</p>
-              <div class="text-muted mono" style="font-size: 0.7rem; margin-top: 0.25rem;">${new Date(r.createdAt).toLocaleDateString()}</div>
-            </div>
-          `).join("")}
+            `;
+          }).join("")}
         </div>
       `}
     `;
 
-    // Event handler para guardar reseña
+    // Event handler para guardar/editar reseña
     document.getElementById("form-player-rating")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const type = document.getElementById("rating-type").value;
@@ -1377,6 +1394,11 @@ async function openPlayerReviewsModal(username) {
       const comment = document.getElementById("rating-comment").value.trim();
 
       if (!author || !comment) return showToast("Por favor completa todos los campos.", "error");
+
+      // Bloqueo frontend anti auto-reseña
+      if (author.toLowerCase() === username.toLowerCase()) {
+        return showToast("No puedes escribirte una reseña o reporte a ti mismo.", "error");
+      }
 
       try {
         const postRes = await fetch("/api/ratings/submit", {
@@ -1387,8 +1409,8 @@ async function openPlayerReviewsModal(username) {
         const postData = await postRes.json();
         if (postData.ok) {
           showToast(postData.message || "Publicado correctamente.", "success");
-          openPlayerReviewsModal(username); // Recargar modal
-          loadPlayersRegistry(); // Recargar tabla
+          openPlayerReviewsModal(username);
+          loadPlayersRegistry();
         } else {
           showToast(postData.error || "No se pudo enviar.", "error");
         }
@@ -1399,6 +1421,28 @@ async function openPlayerReviewsModal(username) {
 
   } catch (err) {
     body.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--accent-rose);">Error al obtener datos.</div>`;
+  }
+}
+
+async function deleteMyRating(ratingId, author, targetUser) {
+  if (!confirm("¿Estás seguro de que deseas borrar tu reseña?")) return;
+
+  try {
+    const res = await fetch("/api/ratings/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ratingId, author })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast("Reseña eliminada correctamente.", "success");
+      openPlayerReviewsModal(targetUser);
+      loadPlayersRegistry();
+    } else {
+      showToast(data.error || "No se pudo borrar la reseña.", "error");
+    }
+  } catch (err) {
+    showToast("Error de conexión.", "error");
   }
 }
 
