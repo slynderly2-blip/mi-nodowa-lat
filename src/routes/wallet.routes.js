@@ -173,3 +173,17 @@ router.post("/claim-interest", (req, res) => {
 });
 
 export default router;
+
+// Historial de transacciones del usuario
+router.get("/transactions/:username", (req, res) => {
+  const uname = (req.params.username || "").trim().toLowerCase();
+  if (!uname) return res.status(400).json({ ok: false, error: "Usuario requerido." });
+
+  const all = Array.isArray(db.transactions) ? db.transactions : [];
+  const userTx = all.filter(tx =>
+    (tx.from || "").toLowerCase() === uname ||
+    (tx.to   || "").toLowerCase() === uname
+  ).slice(0, 100); // máximo 100 entradas
+
+  res.json({ ok: true, transactions: userTx });
+});

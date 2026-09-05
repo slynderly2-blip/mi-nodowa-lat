@@ -69,7 +69,7 @@ document.querySelectorAll(".nav-tab-btn, .mobile-tab-btn, .tab-btn").forEach(btn
     if (tabName === "store") loadStore();
     else if (tabName === "market") loadMarket();
     else if (tabName === "social") loadSocial();
-    else if (tabName === "wallet") loadBalance();
+    else if (tabName === "wallet") { loadBalance(); loadTransactions(); }
     else if (tabName === "deliveries") loadDeliveries();
     else if (tabName === "leaderboard") loadLeaderboard();
 
@@ -592,6 +592,63 @@ async function loadBalance() {
     console.error("Error cargando saldo:", err);
   }
 }
+
+// Historial de transacciones
+async function loadTransactions() {
+  if (!currentUser) return;
+  const tbody = document.getElementById("transactions-tbody");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:1.5rem;">Cargando...</td></tr>`;
+
+  try {
+    const res = await fetch(`/api/wallet/transactions/${encodeURIComponent(currentUser)}`);
+    const data = await res.json();
+    const txs = data.transactions || [];
+
+    if (txs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:2rem;">No hay transacciones registradas aún.</td></tr>`;
+      return;
+    }
+
+    const typeLabel = {
+      TRANSFER:       { label: "Transferencia", color: "var(--primary)" },
+      STORE_PURCHASE: { label: "Compra Tienda",  color: "var(--red)" },
+      P2P_PURCHASE:   { label: "Compra P2P",     color: "var(--red)" },
+      BANK_DEPOSIT:   { label: "Depósito Banco", color: "var(--emerald)" },
+      BANK_WITHDRAW:  { label: "Retiro Banco",   color: "var(--amber-mid)" },
+      INTEREST:       { label: "Interés Banco",  color: "var(--emerald)" },
+      BINANCE_CREDIT: { label: "Recarga Binance",color: "var(--emerald)" },
+      ADMIN_ADJUST:   { label: "Ajuste Admin",   color: "var(--text-muted)" },
+      ADDON_REWARD:   { label: "Recompensa",     color: "var(--emerald)" },
+      ADDON_CHARGE:   { label: "Cobro Addon",    color: "var(--red)" },
+    };
+
+    const uname = currentUser.toLowerCase();
+
+    tbody.innerHTML = txs.map(tx => {
+      const isIncoming = (tx.to || "").toLowerCase() === uname;
+      const sign = isIncoming ? "+" : "-";
+      const amountColor = isIncoming ? "var(--emerald)" : "var(--red)";
+      const info = typeLabel[tx.type] || { label: tx.type, color: "var(--text-muted)" };
+      const date = new Date(tx.createdAt).toLocaleString("es", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+
+      // Quién es la contraparte
+      const counterpart = isIncoming
+        ? (tx.from === "SYSTEM" || tx.from === "BANK" || tx.from === "BANK_INTEREST" || tx.from === "BINANCE" || tx.from === "ADMIN" ? "" : `de ${tx.from}`)
+        : (tx.to   === "SYSTEM" || tx.to   === "BANK" || tx.to   === "STORE" ? "" : `a ${tx.to}`);
+
+      return `<tr>
+        <td><span style="font-size:0.75rem; font-weight:700; color:${info.color}; background:${info.color}18; padding:2px 8px; border-radius:999px;">${info.label}</span></td>
+        <td style="font-size:0.85rem; color:var(--text-muted);">${tx.note || "—"}${counterpart ? `<br><span style="font-size:0.75rem;">${counterpart}</span>` : ""}</td>
+        <td style="font-weight:800; color:${amountColor}; white-space:nowrap;">${sign}${tx.amount.toLocaleString()} NC</td>
+        <td style="font-size:0.78rem; color:var(--text-subtle); white-space:nowrap;">${date}</td>
+      </tr>`;
+    }).join("");
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--red); padding:1.5rem;">Error al cargar historial.</td></tr>`;
+  }
+}
+window.loadTransactions = loadTransactions;
 
 // 🏦 Sistema de Intereses Bancarios
 async function loadBankInterest() {
