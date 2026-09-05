@@ -1219,32 +1219,18 @@ async function loadPlayersRegistry() {
 
   const search = document.getElementById("input-search-players")?.value.trim() || "";
   const status = document.getElementById("filter-status-players")?.value || "all";
-  const role = document.getElementById("filter-role-players")?.value || "all";
 
   try {
-    const res = await fetch(`/api/players/public?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&role=${encodeURIComponent(role)}`);
+    const res = await fetch(`/api/players/public?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`);
     const data = await res.json();
 
     if (data.ok) {
       if (!data.players || data.players.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-muted" style="text-align: center; padding: 2.5rem;">No se encontraron jugadores que coincidan con la búsqueda.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-muted" style="text-align: center; padding: 2.5rem;">No se encontraron jugadores que coincidan con la búsqueda.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = data.players.map(p => {
-        // Badge de Rol
-        let roleBadge = `<span class="badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-muted); font-size: 0.75rem;">[JUGADOR]</span>`;
-        if (p.staff) {
-          if (p.staff.role === "admin") {
-            roleBadge = `<span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); font-size: 0.75rem;">[ADMIN]</span>`;
-          } else if (p.staff.role === "op_rented" || p.staff.role === "op") {
-            const daysText = p.activeRental ? ` (${p.activeRental.daysLeft}d)` : '';
-            roleBadge = `<span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-size: 0.75rem;">[OP RENTA${daysText}]</span>`;
-          } else {
-            roleBadge = `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); font-size: 0.75rem;">[STAFF]</span>`;
-          }
-        }
-
         // Reputación
         const starsText = p.rating && p.rating.avgStars 
           ? `<span style="color: #facc15; font-weight: 700;">${p.rating.avgStars}</span> <span class="text-muted" style="font-size: 0.75rem;">(${p.rating.totalReviews})</span>` 
@@ -1262,7 +1248,6 @@ async function loadPlayersRegistry() {
                 </div>
               </div>
             </td>
-            <td>${roleBadge}</td>
             <td>
               <span class="status-badge ${p.linked ? 'status-approved' : 'status-pending'}" style="font-size: 0.75rem;">
                 ${p.linked ? 'Vinculado' : 'Sin Vincular'}

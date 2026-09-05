@@ -135,23 +135,7 @@ system.runInterval(async () => {
   }
 }, 600);
 
-// ── Contador Discreto de Renta OP en la Actionbar ─────────────
-system.runInterval(async () => {
-  try {
-    for (const player of world.getAllPlayers()) {
-      if (player.isOp || player.isOp?.()) {
-        const res = await httpGet(`${BACKEND_URL}/api/staff/my-status/${encodeURIComponent(player.name)}`);
-        if (res && res.ok && res.activeRental) {
-          const { daysLeft, hoursLeft } = res.activeRental;
-          const timeStr = daysLeft > 0 ? `${daysLeft}d ${hoursLeft}h` : `${hoursLeft}h`;
-          try {
-            player.onScreenDisplay.setActionBar(`§e[OP] Quedan: §f${timeStr} §7| Nodowa`);
-          } catch (_) {}
-        }
-      }
-    }
-  } catch (_) {}
-}, 200); // Cada 10 segundos
+
 
 async function showBalance(player) {
   const bal = await syncWebBalance(player);
@@ -450,130 +434,11 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
   console.log("[NodowaEconomy] Comandos nativos registrados: /eco:tienda, /eco:link, /eco:saldo, /eco:pagar, /eco:buzon, /eco:menu");
 });
 
-// ── Sincronización Automática de Admins / Staff con Web (admin:list) ──
-const BANNED_TEST_NAMES = ["tw3sempai", "abuelong", "slynderly"];
-
-async function syncStaffWithBackend() {
-  try {
-    let localAdmins = [];
-    try {
-      const raw = world.getDynamicProperty("admin:list");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          localAdmins = parsed.filter(n => !BANNED_TEST_NAMES.includes(String(n).trim().toLowerCase()));
-        }
-      }
-    } catch (_) {}
-
-    const res = await httpPost(`${BACKEND_URL}/api/addon/staff/sync`, {
-      inGameAdmins: localAdmins
-    });
-
-    if (res && res.ok && Array.isArray(res.staff)) {
-      const webAdmins = res.staff
-        .filter(s => s.role === "admin")
-        .map(s => s.username)
-        .filter(n => !BANNED_TEST_NAMES.includes(String(n).trim().toLowerCase()));
-      try {
-        world.setDynamicProperty("admin:list", JSON.stringify(webAdmins));
-      } catch (_) {}
-      return res.staff;
-    }
-  } catch (err) {
-    console.warn("[NodowaEconomy] Error al sincronizar staff:", err);
-  }
-  return null;
-}
-
-// Sincronizar staff al inicio y periódicamente cada 4 segundos (80 ticks)
-system.runTimeout(() => {
-  syncStaffWithBackend();
-}, 40);
-
-system.runInterval(() => {
-  syncStaffWithBackend();
-}, 80);
-
-// ── Comandos In-Game de Staff/Admins (/admins, /adminadd, /admindel) ──
-async function handleAdminsListCommand(player) {
-  try {
-    const staffList = (await syncStaffWithBackend()) || (await httpGet(`${BACKEND_URL}/api/addon/staff/list`))?.staff;
-    if (staffList && Array.isArray(staffList)) {
-      if (staffList.length === 0) {
-        player.sendMessage(`§7[ADMINS] No hay miembros de staff o admins registrados.`);
-        return;
-      }
-      player.sendMessage(`§d========================================`);
-      player.sendMessage(`§5[STAFF] LISTA DE ADMINISTRADORES Y OPS`);
-      for (const s of staffList) {
-        const timeStr = s.daysLeft !== null ? `(${s.daysLeft} dias restantes)` : `(Permanente)`;
-        player.sendMessage(`§e- §f${s.username} §7- §b${s.label || s.role} §7${timeStr}`);
-      }
-      player.sendMessage(`§d========================================`);
-    } else {
-      player.sendMessage(`§cError al obtener lista de admins.`);
-    }
-  } catch (_) {
-    player.sendMessage(`§cError de conexion con la web.`);
-  }
-}
-
-async function handleAdminAddCommand(player, targetName, daysStr) {
-  if (!targetName) {
-    player.sendMessage(`§cUso: /adminadd <jugador> [dias]`);
-    return;
-  }
-  const days = parseInt(daysStr) || 30;
-
-  try {
-    const res = await httpPost(`${BACKEND_URL}/api/addon/staff/manage`, {
-      action: "assign",
-      username: targetName,
-      days,
-      role: "op_rented"
-    });
-    if (res && res.ok) {
-      player.sendMessage(`§a[ADMIN] ${res.message || `OP/Admin ${targetName} registrado.`}`);
-      await syncStaffWithBackend();
-      await checkDeliveriesForPlayer(player, false);
-    } else {
-      player.sendMessage(`§cError: ${res?.error || "No se pudo registrar admin"}`);
-    }
-  } catch (_) {
-    player.sendMessage(`§cError de conexion con la web.`);
-  }
-}
-
-async function handleAdminDelCommand(player, targetName) {
-  if (!targetName) {
-    player.sendMessage(`§cUso: /admindel <jugador>`);
-    return;
-  }
-
-  try {
-    const res = await httpPost(`${BACKEND_URL}/api/addon/staff/manage`, {
-      action: "revoke",
-      username: targetName
-    });
-    if (res && res.ok) {
-      player.sendMessage(`§a[ADMIN] Permisos revocados de ${targetName}.`);
-      await syncStaffWithBackend();
-      await checkDeliveriesForPlayer(player, false);
-    } else {
-      player.sendMessage(`§cError: ${res?.error || "No se pudo revocar admin"}`);
-    }
-  } catch (_) {
-    player.sendMessage(`§cError de conexion con la web.`);
-  }
-}
-
-// ── Captura de Chat Universal (!tienda, !link, !admins, /admins) ──
+// ── Captura de Chat Universal (!tienda, !link, !saldo, !pagar, !buzon) ──
 if (world.beforeEvents && world.beforeEvents.chatSend) {
   const ECONOMY_COMMANDS = new Set([
     "menu", "saldo", "bal", "dinero", "money", "eco",
-    "pagar", "pay", "link", "buzon", "reclamar", "tienda", "web",
-    "admins", "adminlist", "adminadd", "admindel"
+    "pagar", "pay", "link", "buzon", "reclamar", "tienda", "web"
   ]);
 
   world.beforeEvents.chatSend.subscribe((event) => {
@@ -604,9 +469,6 @@ if (world.beforeEvents && world.beforeEvents.chatSend) {
             else if (cmd === "link") handleLinkCode(p, parts[1] || "");
             else if ((cmd === "pagar" || cmd === "pay") && parts[1] && parts[2]) handlePayCommand(p, parts[1], parseInt(parts[2]));
             else if (cmd === "buzon" || cmd === "reclamar") checkDeliveriesForPlayer(p);
-            else if (cmd === "admins" || cmd === "adminlist") handleAdminsListCommand(p);
-            else if (cmd === "adminadd") handleAdminAddCommand(p, parts[1], parts[2]);
-            else if (cmd === "admindel") handleAdminDelCommand(p, parts[1]);
           } catch (_) {}
         });
       }

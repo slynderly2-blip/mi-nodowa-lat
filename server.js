@@ -59,7 +59,6 @@ function rateLimiter(maxRequests = 120, windowMs = 60000) {
     // Excluir endpoints del addon de Minecraft para no estrangular al servidor de Bedrock
     if (
       req.path.startsWith("/api/addon") ||
-      req.path.startsWith("/api/staff") ||
       req.path.startsWith("/api/wallet") ||
       req.path.startsWith("/api/players")
     ) {
@@ -127,8 +126,6 @@ let db = {
   deliveries: [],
   transactions: [],
   linkTokens: {},
-  staff: {},       // { "username": { role: "admin"|"op_rented"|"moderator", label: "...", assignedAt: "" } }
-  opRentals: [],   // [ { id, username, startsAt, expiresAt, active, revokedAt } ]
   ratings: []      // [ { id, targetUser, author, stars, comment, type: "RECOMMEND"|"REPORT", createdAt } ]
 };
 
@@ -139,17 +136,10 @@ function loadDb() {
       db = JSON.parse(data);
     }
     if (db.config) db.config.adminPassword = process.env.ADMIN_PASSWORD || "ortizuwu20";
-    if (!db.staff) db.staff = {};
-    if (!db.opRentals) db.opRentals = [];
     if (!db.ratings) db.ratings = [];
-
-    // Limpiar nombres de prueba/mock anteriores si existieran
-    delete db.staff["tw3sempai"];
-    delete db.staff["abuelong"];
-    delete db.staff["slynderly"];
-    if (db.opRentals) {
-      db.opRentals = db.opRentals.filter(r => (r.username || "").toLowerCase() !== "slynderly");
-    }
+    // Purgar cualquier dato residual de staff y opRentals
+    delete db.staff;
+    delete db.opRentals;
   } catch (err) {
     console.error("Error al cargar db.json:", err);
   }
@@ -237,59 +227,7 @@ function processBankInterest() {
 // Revisa intereses bancarios cada hora
 setInterval(processBankInterest, 60 * 60 * 1000);
 
-// ── Auto-Expiración de Alquileres OP ──────────────────────────
-function checkOpRentalsExpiration() {
-  if (!db.opRentals || db.opRentals.length === 0) return;
-  const now = Date.now();
-  let changed = false;
 
-  for (const rental of db.opRentals) {
-    if (!rental.active) continue;
-    if (now < new Date(rental.expiresAt).getTime()) continue;
-
-    // Expirado: marcar como inactivo
-    rental.active = false;
-    rental.revokedAt = new Date().toISOString();
-    rental.revokeReason = "expired";
-    changed = true;
-
-    // Quitar del staff si aún tiene rol op_rented
-    const ukey = rental.username.toLowerCase();
-    if (db.staff[ukey] && db.staff[ukey].role === "op_rented") {
-      delete db.staff[ukey];
-    }
-
-    // Encolar comandos de revocación para que el addon los ejecute
-    const displayName = (db.users[ukey] && db.users[ukey].displayName) || rental.username;
-    const cmdBase = [
-      `deop "${displayName}"`,
-      `gamemode s "${displayName}"`,
-      `tellraw "${displayName}" {"rawtext":[{"text":"§c[Nodowa] §fTu alquiler de OP de 1 mes ha vencido. Se restablecio el modo supervivencia."}]}`
-    ];
-
-    for (const cmd of cmdBase) {
-      db.deliveries.unshift({
-        id: "op_exp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
-        username: rental.username,
-        itemTitle: "OP Expirado - Revocación automática",
-        command: cmd,
-        giveCoins: 0,
-        status: "PENDING",
-        createdAt: new Date().toISOString(),
-        isOpRevoke: true
-      });
-    }
-
-    broadcastWs("OP_RENTAL_EXPIRED", { username: rental.username, rentalId: rental.id });
-    console.log(`[OP Rental] Alquiler expirado y revocado para: ${rental.username}`);
-  }
-
-  if (changed) saveDb();
-}
-
-// Verificar expiración de OP cada 60 segundos
-setInterval(checkOpRentalsExpiration, 60 * 1000);
-checkOpRentalsExpiration(); // Verificar al arrancar el servidor
 
 function logTransaction(from, to, amount, type, description) {
   const tx = {
@@ -681,21 +619,16 @@ app.get("/api/user/profile", (req, res) => {
 app.get("/api/players/registry", (req, res) => {
   const search       = (req.query.search       || "").trim().toLowerCase();
   const sortBy       = req.query.sortBy        || "date_desc"; // rich_desc | rich_asc | date_desc | date_asc | name_asc | name_desc
-  const staffFilter  = req.query.staffFilter   || "all";       // all | only_staff | hide_staff
   const linkedFilter = req.query.linkedFilter  || "all";       // all | linked | unlinked
 
   let list = Object.values(db.users).map(u => {
     const ukey = u.username.toLowerCase();
-    const staffInfo = db.staff ? db.staff[ukey] : null;
     const reviews = (db.ratings || []).filter(r => r.targetUser.toLowerCase() === ukey);
     const recommendations = reviews.filter(r => r.type === "RECOMMEND").length;
     const reports         = reviews.filter(r => r.type === "REPORT").length;
     const avgStars = reviews.length > 0
       ? (reviews.reduce((s, r) => s + (r.stars || 0), 0) / reviews.length).toFixed(1)
       : null;
-
-    // Alquiler OP activo
-    const activeRental = (db.opRentals || []).find(r => r.username.toLowerCase() === ukey && r.active);
 
     return {
       username:        u.displayName || u.username,
@@ -710,13 +643,9 @@ app.get("/api/players/registry", (req, res) => {
       discord:         u.discord  || null,
       createdAt:       u.createdAt,
       lastActive:      u.lastActive || u.createdAt,
-      isStaff:         !!staffInfo,
-      staffRole:       staffInfo ? staffInfo.role : null,
-      staffLabel:      staffInfo ? staffInfo.label : null,
       recommendations,
       reports,
-      avgStars,
-      activeRental:    activeRental ? { expiresAt: activeRental.expiresAt, startsAt: activeRental.startsAt } : null
+      avgStars
     };
   });
 
@@ -727,9 +656,7 @@ app.get("/api/players/registry", (req, res) => {
   if (linkedFilter === "linked")   list = list.filter(p => p.linked);
   if (linkedFilter === "unlinked") list = list.filter(p => !p.linked);
 
-  // Filtro de staff
-  if (staffFilter === "only_staff") list = list.filter(p => p.isStaff);
-  if (staffFilter === "hide_staff") list = list.filter(p => !p.isStaff);
+
 
   // Ordenamiento
   const sorts = {
@@ -1410,77 +1337,22 @@ app.get("/api/admin/players", checkAdminAuth, (req, res) => {
   }
 });
 
-// ── Sistema de Expiración Automática de Rentas OP ─────────────
-function checkOpRentalsExpiry() {
-  const now = Date.now();
-  let updated = false;
 
-  if (!db.opRentals) db.opRentals = [];
-  if (!db.staff) db.staff = {};
-
-  for (const rental of db.opRentals) {
-    if (rental.active && rental.expiresAt && rental.expiresAt < now) {
-      rental.active = false;
-      rental.expiredAt = new Date().toISOString();
-      updated = true;
-
-      const uname = (rental.username || "").toLowerCase();
-      if (db.staff[uname] && db.staff[uname].role === "op_rented") {
-        delete db.staff[uname];
-      }
-
-      if (!db.deliveries) db.deliveries = [];
-      db.deliveries.push({
-        id: "del_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
-        targetGamertag: rental.username,
-        command: `deop "${rental.username}"`,
-        status: "PENDING",
-        createdAt: new Date().toISOString()
-      });
-      db.deliveries.push({
-        id: "del_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
-        targetGamertag: rental.username,
-        command: `gamemode s "${rental.username}"`,
-        status: "PENDING",
-        createdAt: new Date().toISOString()
-      });
-      db.deliveries.push({
-        id: "del_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
-        targetGamertag: rental.username,
-        command: `tellraw "${rental.username}" {"rawtext":[{"text":"§c[Nodowa] Tu tiempo de Renta OP ha finalizado. Rango removido."}]}`,
-        status: "PENDING",
-        createdAt: new Date().toISOString()
-      });
-
-      console.log(`[OP Rental Expiry] Expiró renta OP de ${rental.username}. Comandos deop/gamemode s encolados.`);
-    }
-  }
-
-  if (updated) saveDb();
-}
-setInterval(checkOpRentalsExpiry, 60000);
 
 // ── API Jugadores Registro Público y Compatibilidad con Filtros ───
 const getPublicPlayersHandler = (req, res) => {
   try {
     const search = (req.query.search || "").trim().toLowerCase();
     const status = req.query.status || "all";
-    const role = req.query.role || "all";
     const sortBy = req.query.sortBy || "fortune";
 
-    if (!db.staff) db.staff = {};
-    if (!db.opRentals) db.opRentals = [];
     if (!db.ratings) db.ratings = [];
 
     let users = Object.values(db.users || {}).map(u => {
       const uname = (u.username || u.displayName || "").toLowerCase();
-      const staffInfo = db.staff[uname] || null;
-
       const userRatings = db.ratings.filter(r => (r.targetUser || "").toLowerCase() === uname);
       const reviews = userRatings.filter(r => r.type === "REVIEW");
       const avgStars = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + Number(r.stars), 0) / reviews.length).toFixed(1) : null;
-      const activeRental = db.opRentals.find(r => r.active && (r.username || "").toLowerCase() === uname);
-
       const totalVal = Math.floor((u.wallet || 0) + (u.bank || 0));
 
       return {
@@ -1495,11 +1367,6 @@ const getPublicPlayersHandler = (req, res) => {
         avatar: `https://mc-heads.net/avatar/${encodeURIComponent(u.displayName || u.username)}/32`,
         lastActive: u.updatedAt || u.linkedAt || u.createdAt || null,
         lastSeen: u.updatedAt || u.linkedAt || u.createdAt || null,
-        staff: staffInfo,
-        activeRental: activeRental ? {
-          expiresAt: activeRental.expiresAt,
-          daysLeft: Math.max(0, Math.ceil((activeRental.expiresAt - Date.now()) / (1000 * 60 * 60 * 24)))
-        } : null,
         rating: {
           avgStars: avgStars ? Number(avgStars) : null,
           totalReviews: reviews.length,
@@ -1511,10 +1378,6 @@ const getPublicPlayersHandler = (req, res) => {
     if (search) users = users.filter(u => u.username.toLowerCase().includes(search));
     if (status === "linked") users = users.filter(u => u.linked);
     else if (status === "unlinked") users = users.filter(u => !u.linked);
-
-    if (role === "staff") users = users.filter(u => u.staff);
-    else if (role === "admin") users = users.filter(u => u.staff && u.staff.role === "admin");
-    else if (role === "op") users = users.filter(u => u.staff && (u.staff.role === "op_rented" || u.staff.role === "op"));
 
     if (sortBy === "wallet") users.sort((a, b) => b.wallet - a.wallet);
     else if (sortBy === "bank") users.sort((a, b) => b.bank - a.bank);
@@ -1531,212 +1394,7 @@ const getPublicPlayersHandler = (req, res) => {
 app.get("/api/players/public", getPublicPlayersHandler);
 app.get("/api/players/registry", getPublicPlayersHandler);
 
-// ── Endpoints Especiales para el Addon In-Game (/admins, /adminadd, /admindel) ──
-app.get("/api/addon/staff/list", (req, res) => {
-  if (!db.staff) db.staff = {};
-  if (!db.opRentals) db.opRentals = [];
 
-  const list = Object.keys(db.staff).map(uname => {
-    const s = db.staff[uname];
-    const rental = db.opRentals.find(r => r.active && (r.username || "").toLowerCase() === uname);
-    return {
-      username: s.displayName || uname,
-      role: s.role,
-      label: s.label || s.role.toUpperCase(),
-      daysLeft: rental ? Math.max(0, Math.ceil((rental.expiresAt - Date.now()) / (1000 * 60 * 60 * 24))) : null
-    };
-  });
-
-  res.json({ ok: true, staff: list });
-});
-
-const BANNED_TEST_NAMES = new Set(["tw3sempai", "abuelong", "slynderly"]);
-
-app.post("/api/addon/staff/sync", (req, res) => {
-  const { inGameAdmins } = req.body;
-  if (!db.staff) db.staff = {};
-  if (!db.opRentals) db.opRentals = [];
-
-  let changed = false;
-  if (Array.isArray(inGameAdmins)) {
-    const inGameLowerSet = new Set(
-      inGameAdmins
-        .filter(n => typeof n === "string" && n.trim())
-        .map(n => n.trim().toLowerCase())
-        .filter(n => !BANNED_TEST_NAMES.has(n))
-    );
-
-    // 1. Borrar de db.staff cualquier admin que ya NO esté en Minecraft (/a:admindel) o sea nombre de prueba viejo
-    for (const ukey of Object.keys(db.staff)) {
-      if (BANNED_TEST_NAMES.has(ukey)) {
-        delete db.staff[ukey];
-        changed = true;
-      } else if (db.staff[ukey].role === "admin") {
-        if (!inGameLowerSet.has(ukey)) {
-          console.log(`[Staff Sync] Admin eliminado en Minecraft detectado y removido de la web: ${db.staff[ukey].displayName || ukey}`);
-          delete db.staff[ukey];
-          changed = true;
-        }
-      }
-    }
-
-    // 2. Agregar a db.staff cualquier admin nuevo agregado en Minecraft (/a:adminadd)
-    for (const name of inGameAdmins) {
-      if (typeof name === "string" && name.trim()) {
-        const cleanName = name.trim();
-        const ukey = cleanName.toLowerCase();
-        if (BANNED_TEST_NAMES.has(ukey)) continue;
-        if (!db.staff[ukey]) {
-          console.log(`[Staff Sync] Nuevo admin en Minecraft detectado y agregado a la web: ${cleanName}`);
-          db.staff[ukey] = {
-            displayName: cleanName,
-            role: "admin",
-            label: "[ADMIN] Administrador Principal",
-            assignedAt: new Date().toISOString()
-          };
-          changed = true;
-        } else if (db.staff[ukey].role === "admin" && db.staff[ukey].displayName !== cleanName) {
-          db.staff[ukey].displayName = cleanName;
-          changed = true;
-        }
-      }
-    }
-  }
-
-  if (changed) {
-    saveDb();
-    broadcastWs("STAFF_UPDATED", { count: Object.keys(db.staff).length });
-  }
-
-  const list = Object.keys(db.staff).map(uname => {
-    const s = db.staff[uname];
-    const rental = db.opRentals.find(r => r.active && (r.username || "").toLowerCase() === uname);
-    return {
-      username: s.displayName || uname,
-      displayName: s.displayName || uname,
-      role: s.role,
-      label: s.label || s.role.toUpperCase(),
-      daysLeft: rental ? Math.max(0, Math.ceil((rental.expiresAt - Date.now()) / (1000 * 60 * 60 * 24))) : null
-    };
-  });
-
-  res.json({ ok: true, staff: list });
-});
-
-app.post("/api/addon/staff/manage", (req, res) => {
-  const { action, username, days, role } = req.body;
-  const uname = (username || "").trim().toLowerCase();
-  if (!uname) return res.status(400).json({ ok: false, error: "Gamertag invalido" });
-
-  if (!db.staff) db.staff = {};
-  if (!db.opRentals) db.opRentals = [];
-  if (!db.deliveries) db.deliveries = [];
-
-  if (action === "revoke" || action === "del") {
-    delete db.staff[uname];
-    db.opRentals.forEach(r => {
-      if ((r.username || "").toLowerCase() === uname) r.active = false;
-    });
-
-    db.deliveries.push({
-      id: "del_" + Date.now() + "_1",
-      targetGamertag: username,
-      command: `deop "${username}"`,
-      status: "PENDING",
-      createdAt: new Date().toISOString()
-    });
-    db.deliveries.push({
-      id: "del_" + Date.now() + "_2",
-      targetGamertag: username,
-      command: `gamemode s "${username}"`,
-      status: "PENDING",
-      createdAt: new Date().toISOString()
-    });
-
-    saveDb();
-    return res.json({ ok: true, message: `Permisos de OP/Admin revocados de ${username}` });
-  }
-
-  // Add or update staff
-  const targetRole = role || (days ? "op_rented" : "admin");
-  const roleLabels = {
-    admin: "[ADMIN]",
-    op_rented: "[OP RENTA]",
-    moderator: "[MODERADOR]"
-  };
-
-  db.staff[uname] = {
-    displayName: username.trim(),
-    role: targetRole,
-    label: roleLabels[targetRole] || "[STAFF]",
-    assignedAt: new Date().toISOString()
-  };
-
-  const rentalDays = Number(days) || 30;
-  const expiresMs = Date.now() + (rentalDays * 24 * 60 * 60 * 1000);
-
-  db.opRentals.forEach(r => {
-    if ((r.username || "").toLowerCase() === uname) r.active = false;
-  });
-
-  db.opRentals.push({
-    id: "op_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
-    username: username.trim(),
-    startsAt: Date.now(),
-    expiresAt: expiresMs,
-    days: rentalDays,
-    active: true,
-    createdAt: new Date().toISOString()
-  });
-
-  db.deliveries.push({
-    id: "del_" + Date.now() + "_op",
-    targetGamertag: username,
-    command: `op "${username}"`,
-    status: "PENDING",
-    createdAt: new Date().toISOString()
-  });
-
-  saveDb();
-  res.json({ ok: true, message: `Staff/OP ${username} registrado por ${rentalDays} dias.` });
-});
-
-// Consulta de estado de Renta OP (Para Addon o UI)
-app.get("/api/staff/my-status/:username", (req, res) => {
-  const uname = (req.params.username || "").trim().toLowerCase();
-  if (!db.staff) db.staff = {};
-  if (!db.opRentals) db.opRentals = [];
-
-  const staff = db.staff[uname] || null;
-  const activeRental = db.opRentals.find(r => r.active && (r.username || "").toLowerCase() === uname);
-
-  if (!staff && !activeRental) {
-    return res.json({ ok: true, isOp: false, isStaff: false });
-  }
-
-  let daysLeft = 0;
-  let hoursLeft = 0;
-  if (activeRental && activeRental.expiresAt) {
-    const diff = activeRental.expiresAt - Date.now();
-    if (diff > 0) {
-      daysLeft = Math.floor(diff / (1000 * 60 * 60 * 24));
-      hoursLeft = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    }
-  }
-
-  res.json({
-    ok: true,
-    isStaff: true,
-    role: staff ? staff.role : "op_rented",
-    roleLabel: staff ? staff.label : "OP Alquilado",
-    activeRental: activeRental ? {
-      expiresAt: activeRental.expiresAt,
-      daysLeft,
-      hoursLeft,
-      expiresDateStr: new Date(activeRental.expiresAt).toLocaleDateString("es-ES")
-    } : null
-  });
-});
 
 // ── Limpieza y Sanitización de Reseñas Duplicadas / Auto-reseñas ──
 function sanitizeRatings() {
@@ -1868,179 +1526,7 @@ app.get("/api/ratings/user/:username", (req, res) => {
   });
 });
 
-// ── Rutas de Administración de Staff y Rentas OP ────────────────
-app.get("/api/admin/staff", checkAdminAuth, (req, res) => {
-  if (!db.staff) db.staff = {};
-  if (!db.opRentals) db.opRentals = [];
 
-  const now = Date.now();
-  const staffList = Object.keys(db.staff).map(uname => {
-    const s = db.staff[uname];
-    const rental = db.opRentals.find(r => r.active && (r.username || "").toLowerCase() === uname);
-    const expiresAt = rental ? rental.expiresAt : (s.expiresAt ? new Date(s.expiresAt).getTime() : null);
-    const daysLeft = expiresAt ? Math.max(0, Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24))) : null;
-    return {
-      username: s.displayName || uname,
-      displayName: s.displayName || uname,
-      role: s.role,
-      label: s.label || (s.role === "admin" ? "[ADMIN] Administrador Principal" : s.role === "op_rented" ? "[OP] OP Renta" : "[MOD] Moderador"),
-      assignedAt: s.assignedAt || null,
-      rental: expiresAt ? {
-        id: rental ? rental.id : "rent_" + uname,
-        expiresAt: new Date(expiresAt).toISOString(),
-        daysLeft,
-        expired: daysLeft === 0
-      } : null
-    };
-  });
-
-  const activeRentals = db.opRentals.filter(r => r.active);
-
-  res.json({ ok: true, staff: staffList, rentals: activeRentals });
-});
-
-// Asignar o Editar Rol de Staff / Renta OP por el Admin
-app.post("/api/admin/staff/manage", checkAdminAuth, (req, res) => {
-  const { username, role, days, label, action } = req.body; // action: "assign" | "revoke"
-  const uname = (username || "").trim().toLowerCase();
-
-  if (!uname) return res.status(400).json({ ok: false, error: "Gamertag requerido." });
-
-  if (!db.staff) db.staff = {};
-  if (!db.opRentals) db.opRentals = [];
-  if (!db.deliveries) db.deliveries = [];
-
-  if (action === "revoke") {
-    delete db.staff[uname];
-    // Desactivar rentas activas
-    db.opRentals.forEach(r => {
-      if ((r.username || "").toLowerCase() === uname) {
-        r.active = false;
-        r.revokedAt = new Date().toISOString();
-      }
-    });
-
-    // Encolar comandos de deop y gamemode s
-    db.deliveries.push({
-      id: "del_" + Date.now() + "_1",
-      targetGamertag: username,
-      command: `deop "${username}"`,
-      status: "PENDING",
-      createdAt: new Date().toISOString()
-    });
-    db.deliveries.push({
-      id: "del_" + Date.now() + "_2",
-      targetGamertag: username,
-      command: `gamemode s "${username}"`,
-      status: "PENDING",
-      createdAt: new Date().toISOString()
-    });
-
-    saveDb();
-    return res.json({ ok: true, message: `Rol y permisos revocado de ${username}.` });
-  }
-
-  // Asignar o actualizar rol
-  const targetRole = role || "op_rented"; // admin, op_rented, moderator
-  const roleLabels = {
-    admin: "[ADMIN] Administrador Principal",
-    op_rented: "[OP] OP Renta",
-    moderator: "[MOD] Moderador"
-  };
-
-  db.staff[uname] = {
-    displayName: username.trim(),
-    role: targetRole,
-    label: label || roleLabels[targetRole] || "Staff",
-    assignedAt: new Date().toISOString()
-  };
-
-  // Manejar tiempo de OP si aplica
-  let expiresAt = null;
-  const rentalDays = Number(days);
-  if (rentalDays && rentalDays > 0) {
-    const expiresMs = Date.now() + (rentalDays * 24 * 60 * 60 * 1000);
-    expiresAt = expiresMs;
-
-    // Desactivar rentas previas
-    db.opRentals.forEach(r => {
-      if ((r.username || "").toLowerCase() === uname) r.active = false;
-    });
-
-    const rentalRecord = {
-      id: "op_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
-      username: username.trim(),
-      startsAt: Date.now(),
-      expiresAt: expiresMs,
-      days: rentalDays,
-      active: true,
-      createdAt: new Date().toISOString()
-    };
-    db.opRentals.push(rentalRecord);
-
-    // Encolar comando OP en Minecraft
-    db.deliveries.push({
-      id: "del_" + Date.now() + "_op",
-      targetGamertag: username,
-      command: `op "${username}"`,
-      status: "PENDING",
-      createdAt: new Date().toISOString()
-    });
-    db.deliveries.push({
-      id: "del_" + Date.now() + "_msg",
-      targetGamertag: username,
-      command: `tellraw "${username}" {"rawtext":[{"text":"§a[Nodowa] Se te ha asignado Rango OP por ${rentalDays} dias."}]}`,
-      status: "PENDING",
-      createdAt: new Date().toISOString()
-    });
-  }
-
-  saveDb();
-  res.json({
-    ok: true,
-    message: `Staff ${username} actualizado como ${roleLabels[targetRole]}.`,
-    staff: db.staff[uname],
-    expiresAt
-  });
-});
-
-// Eliminar Staff por DELETE directo
-app.delete("/api/admin/staff/:username", checkAdminAuth, (req, res) => {
-  const uname = (req.params.username || "").trim().toLowerCase();
-  if (!uname) return res.status(400).json({ ok: false, error: "Gamertag invalido" });
-
-  if (!db.staff) db.staff = {};
-  if (!db.opRentals) db.opRentals = [];
-  if (!db.deliveries) db.deliveries = [];
-
-  const displayName = db.staff[uname] ? db.staff[uname].displayName : req.params.username;
-  delete db.staff[uname];
-
-  db.opRentals.forEach(r => {
-    if ((r.username || "").toLowerCase() === uname) {
-      r.active = false;
-      r.revokedAt = new Date().toISOString();
-    }
-  });
-
-  db.deliveries.push({
-    id: "del_" + Date.now() + "_1",
-    targetGamertag: displayName,
-    command: `deop "${displayName}"`,
-    status: "PENDING",
-    createdAt: new Date().toISOString()
-  });
-  db.deliveries.push({
-    id: "del_" + Date.now() + "_2",
-    targetGamertag: displayName,
-    command: `gamemode s "${displayName}"`,
-    status: "PENDING",
-    createdAt: new Date().toISOString()
-  });
-
-  saveDb();
-  res.json({ ok: true, message: `Rol de staff y permisos revocados de ${displayName}.` });
-});
 
 // Ver Reportes de Jugadores en Admin
 app.get("/api/admin/reports", checkAdminAuth, (req, res) => {
