@@ -995,7 +995,7 @@ async function loadAdminStaff() {
       return `
         <tr>
           <td>
-            <div style="font-weight: 600; color: #fff;">${escapeHtml(s.username)}</div>
+            <div style="font-weight: 600; color: var(--text-primary, #0f172a);">${escapeHtml(s.username)}</div>
             <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(s.label || "")}</div>
           </td>
           <td>${roleBadge}</td>

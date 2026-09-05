@@ -1247,7 +1247,7 @@ async function loadPlayersRegistry() {
 
         // Reputación
         const starsText = p.rating && p.rating.avgStars 
-          ? `<span style="color: #facc15; font-weight: 700;">⭐ ${p.rating.avgStars}</span> <span class="text-muted" style="font-size: 0.75rem;">(${p.rating.totalReviews})</span>` 
+          ? `<span style="color: #facc15; font-weight: 700;">${p.rating.avgStars}</span> <span class="text-muted" style="font-size: 0.75rem;">(${p.rating.totalReviews})</span>` 
           : `<span class="text-muted" style="font-size: 0.75rem;">Sin reseñas</span>`;
 
         const headAvatar = `https://mc-heads.net/avatar/${encodeURIComponent(p.username)}/32`;
@@ -1258,7 +1258,7 @@ async function loadPlayersRegistry() {
               <div style="display: flex; align-items: center; gap: 0.65rem;">
                 <img src="${headAvatar}" onError="this.src='/uploads/default_qr.svg'" alt="${escapeHtml(p.username)}" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border-color); background: #000; object-fit: contain;">
                 <div>
-                  <strong style="color: #fff; font-size: 0.95rem;">${escapeHtml(p.username)}</strong>
+                  <strong style="color: var(--text-primary, #0f172a); font-size: 0.95rem;">${escapeHtml(p.username)}</strong>
                 </div>
               </div>
             </td>

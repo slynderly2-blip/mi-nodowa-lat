@@ -130,6 +130,16 @@ function loadDb() {
       db = JSON.parse(data);
     }
     if (db.config) db.config.adminPassword = process.env.ADMIN_PASSWORD || "ortizuwu20";
+    if (!db.staff) db.staff = {};
+    if (!db.opRentals) db.opRentals = [];
+    if (!db.ratings) db.ratings = [];
+
+    // Pre-sembrar staff por defecto si está vacío
+    if (Object.keys(db.staff).length === 0) {
+      db.staff["slynderly"] = { displayName: "slynderly", role: "admin", label: "[ADMIN]", assignedAt: new Date().toISOString() };
+      db.staff["tw3sempai"] = { displayName: "Tw3sempai", role: "admin", label: "[ADMIN]", assignedAt: new Date().toISOString() };
+      db.staff["abuelong"] = { displayName: "AbueloNG", role: "admin", label: "[ADMIN]", assignedAt: new Date().toISOString() };
+    }
   } catch (err) {
     console.error("Error al cargar db.json:", err);
   }
