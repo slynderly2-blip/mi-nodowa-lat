@@ -1545,8 +1545,25 @@ window.openChatWith = async (partnerUsername) => {
   if (activeBox) activeBox.style.display = "flex";
 
   document.getElementById("chat-active-name").textContent = partnerUsername;
-  document.getElementById("chat-active-avatar").src = `https://mc-heads.net/avatar/${encodeURIComponent(partnerUsername)}/40`;
   document.getElementById("chat-active-status").textContent = "En línea";
+
+  // Buscar avatar del partner: primero en conversaciones ya cargadas, luego en la API
+  const avatarEl = document.getElementById("chat-active-avatar");
+  const existingThread = document.querySelector(`.thread-item img[alt="${partnerUsername}"]`);
+  if (existingThread && existingThread.src && !existingThread.src.includes("mc-heads")) {
+    avatarEl.src = existingThread.src;
+  } else {
+    // Fallback mc-heads mientras carga, luego reemplaza con el real
+    avatarEl.src = `https://mc-heads.net/avatar/${encodeURIComponent(partnerUsername)}/40`;
+    fetch(`/api/players/profile/${encodeURIComponent(partnerUsername)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok && data.user && data.user.avatarUrl) {
+          avatarEl.src = data.user.avatarUrl;
+        }
+      })
+      .catch(() => {});
+  }
 
   await fetchChatMessages(partnerUsername);
   loadConversations();

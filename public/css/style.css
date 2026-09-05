@@ -473,6 +473,7 @@ tr:hover td { background: var(--surface-hover); }
   background: rgba(24,17,46,0.5); backdrop-filter: blur(4px);
   display: none; align-items: center; justify-content: center;
   z-index: 150; padding: 1rem;
+  overflow-y: auto;
 }
 .modal-backdrop.open { display: flex; animation: modalFade 0.18s ease; }
 @keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
