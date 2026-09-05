@@ -1958,6 +1958,118 @@ app.get("/api/admin/stats", checkAdminAuth, (req, res) => {
   });
 });
 
+// ── STAFF & OP RENTALS ────────────────────────────────────────
+
+// GET /api/admin/staff — lista todo el staff + rentals activos
+app.get("/api/admin/staff", checkAdminAuth, (req, res) => {
+  try {
+    const now = Date.now();
+
+    // Calcular días restantes para op_rented y marcar como expirado si corresponde
+    let changed = false;
+    for (const uname in db.staff) {
+      const s = db.staff[uname];
+      if (s.role === "op_rented" && s.expiresAt) {
+        const msLeft = new Date(s.expiresAt).getTime() - now;
+        s.daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+        if (msLeft <= 0) {
+          s.expired = true;
+        }
+        changed = true;
+      }
+    }
+    if (changed) saveDb();
+
+    const staffList = Object.entries(db.staff).map(([uname, s]) => ({
+      username: uname,
+      displayName: s.displayName || uname,
+      role: s.role,
+      label: s.label || "",
+      assignedAt: s.assignedAt || null,
+      rental: (s.role === "op_rented" && s.expiresAt) ? {
+        expiresAt: s.expiresAt,
+        daysLeft: s.daysLeft || 0,
+        expired: s.expired || false
+      } : null
+    }));
+
+    res.json({ ok: true, staff: staffList });
+  } catch (err) {
+    console.error("[Staff] Error al listar staff:", err);
+    res.status(500).json({ ok: false, error: "Error interno al cargar staff" });
+  }
+});
+
+// POST /api/admin/staff/manage — crear o editar un miembro de staff
+app.post("/api/admin/staff/manage", checkAdminAuth, (req, res) => {
+  try {
+    const { username, role, days, label } = req.body;
+    if (!username || !username.trim()) return res.status(400).json({ ok: false, error: "Gamertag requerido" });
+    if (!["admin", "op_rented", "moderator"].includes(role)) return res.status(400).json({ ok: false, error: "Rol inválido" });
+
+    const uname = username.trim().toLowerCase();
+    const displayName = username.trim();
+    const now = new Date();
+
+    const entry = {
+      displayName,
+      role,
+      label: label ? label.trim() : (role === "admin" ? "[ADMIN]" : role === "op_rented" ? "[OP RENTA]" : "[MOD]"),
+      assignedAt: db.staff[uname]?.assignedAt || now.toISOString()
+    };
+
+    if (role === "op_rented") {
+      const numDays = Math.max(1, parseInt(days) || 30);
+      const expiresAt = new Date(now.getTime() + numDays * 24 * 60 * 60 * 1000);
+      entry.expiresAt = expiresAt.toISOString();
+      entry.daysLeft = numDays;
+      entry.expired = false;
+    } else {
+      delete entry.expiresAt;
+      delete entry.daysLeft;
+      delete entry.expired;
+    }
+
+    db.staff[uname] = entry;
+    saveDb();
+
+    broadcastToAll({ type: "STAFF_UPDATE", username: uname, role, label: entry.label });
+    res.json({ ok: true, message: `Staff actualizado: ${displayName} como ${role}` });
+  } catch (err) {
+    console.error("[Staff] Error al gestionar staff:", err);
+    res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// DELETE /api/admin/staff/:username — revocar a un miembro de staff
+app.delete("/api/admin/staff/:username", checkAdminAuth, (req, res) => {
+  try {
+    const uname = req.params.username.toLowerCase();
+    if (!db.staff[uname]) return res.status(404).json({ ok: false, error: "Miembro de staff no encontrado" });
+    const name = db.staff[uname].displayName || uname;
+    delete db.staff[uname];
+    saveDb();
+    res.json({ ok: true, message: `${name} eliminado del staff` });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// GET /api/addon/staff/list — para el addon de Minecraft (sin auth admin, usa ADDON_TOKEN)
+app.get("/api/addon/staff/list", (req, res) => {
+  try {
+    const admins = Object.entries(db.staff)
+      .filter(([, s]) => s.role === "admin")
+      .map(([uname, s]) => s.displayName || uname);
+    const ops = Object.entries(db.staff)
+      .filter(([, s]) => s.role === "op_rented" && !s.expired)
+      .map(([uname, s]) => ({ name: s.displayName || uname, daysLeft: s.daysLeft || 0 }));
+    res.json({ ok: true, admins, ops });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
 // ── Rutas HTML ────────────────────────────────────────────────
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));

@@ -1095,23 +1095,19 @@ function setupStaffForm() {
 }
 
 async function revokeStaffRole(username) {
-  if (!confirm(`¿Estás seguro de revocar los permisos de OP / Staff a ${username}? Se enviará deop en Minecraft.`)) return;
+  if (!confirm(`¿Revocar rol de staff a ${username}? Esta acción elimina el registro del sistema.`)) return;
 
   try {
-    const res = await fetch("/api/admin/staff/manage", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-token": adminToken
-      },
-      body: JSON.stringify({ action: "revoke", username })
+    const res = await fetch(`/api/admin/staff/${encodeURIComponent(username)}`, {
+      method: "DELETE",
+      headers: { "x-admin-token": adminToken }
     });
     const data = await res.json();
     if (data.ok) {
-      showAdminToast(data.message || `Permisos revocados de ${username}`, "success");
+      showAdminToast(data.message || `Rol revocado de ${username}`, "success");
       loadAdminStaff();
     } else {
-      showAdminToast(data.error || "Error al revocar permisos", "error");
+      showAdminToast(data.error || "Error al revocar", "error");
     }
   } catch (err) {
     showAdminToast("Error de conexión", "error");
