@@ -141,7 +141,7 @@ system.runInterval(async () => {
           const { daysLeft, hoursLeft } = res.activeRental;
           const timeStr = daysLeft > 0 ? `${daysLeft}d ${hoursLeft}h` : `${hoursLeft}h`;
           try {
-            player.onScreenDisplay.setActionBar(`§e⚡ Rango OP: §fQuedan §e${timeStr} §7| Nodowa OP`);
+            player.onScreenDisplay.setActionBar(`§e[OP] Quedan: §f${timeStr} §7| Nodowa`);
           } catch (_) {}
         }
       }
@@ -446,11 +446,83 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
   console.log("[NodowaEconomy] Comandos nativos registrados: /eco:tienda, /eco:link, /eco:saldo, /eco:pagar, /eco:buzon, /eco:menu");
 });
 
-// ── Captura de Chat Universal (!tienda, !link, !esfera, !menu, /tienda, /link) ──
+// ── Comandos In-Game de Staff/Admins (/admins, /adminadd, /admindel) ──
+async function handleAdminsListCommand(player) {
+  try {
+    const res = await httpGet(`${BACKEND_URL}/api/addon/staff/list`);
+    if (res && res.ok && Array.isArray(res.staff)) {
+      if (res.staff.length === 0) {
+        player.sendMessage(`§7[ADMINS] No hay miembros de staff o admins registrados.`);
+        return;
+      }
+      player.sendMessage(`§d========================================`);
+      player.sendMessage(`§5[STAFF] LISTA DE ADMINISTRADORES Y OPS`);
+      for (const s of res.staff) {
+        const timeStr = s.daysLeft !== null ? `(${s.daysLeft} dias restantes)` : `(Permanente)`;
+        player.sendMessage(`§e- §f${s.username} §7- §b${s.label || s.role} §7${timeStr}`);
+      }
+      player.sendMessage(`§d========================================`);
+    } else {
+      player.sendMessage(`§cError al obtener lista de admins.`);
+    }
+  } catch (_) {
+    player.sendMessage(`§cError de conexion con la web.`);
+  }
+}
+
+async function handleAdminAddCommand(player, targetName, daysStr) {
+  if (!targetName) {
+    player.sendMessage(`§cUso: /adminadd <jugador> [dias]`);
+    return;
+  }
+  const days = parseInt(daysStr) || 30;
+
+  try {
+    const res = await httpPost(`${BACKEND_URL}/api/addon/staff/manage`, {
+      action: "assign",
+      username: targetName,
+      days,
+      role: "op_rented"
+    });
+    if (res && res.ok) {
+      player.sendMessage(`§a[ADMIN] ${res.message || `OP/Admin ${targetName} registrado.`}`);
+      await checkDeliveriesForPlayer(player, false);
+    } else {
+      player.sendMessage(`§cError: ${res?.error || "No se pudo registrar admin"}`);
+    }
+  } catch (_) {
+    player.sendMessage(`§cError de conexion con la web.`);
+  }
+}
+
+async function handleAdminDelCommand(player, targetName) {
+  if (!targetName) {
+    player.sendMessage(`§cUso: /admindel <jugador>`);
+    return;
+  }
+
+  try {
+    const res = await httpPost(`${BACKEND_URL}/api/addon/staff/manage`, {
+      action: "revoke",
+      username: targetName
+    });
+    if (res && res.ok) {
+      player.sendMessage(`§a[ADMIN] Permisos revocados de ${targetName}.`);
+      await checkDeliveriesForPlayer(player, false);
+    } else {
+      player.sendMessage(`§cError: ${res?.error || "No se pudo revocar admin"}`);
+    }
+  } catch (_) {
+    player.sendMessage(`§cError de conexion con la web.`);
+  }
+}
+
+// ── Captura de Chat Universal (!tienda, !link, !admins, /admins) ──
 if (world.beforeEvents && world.beforeEvents.chatSend) {
   const ECONOMY_COMMANDS = new Set([
     "menu", "saldo", "bal", "dinero", "money", "eco",
-    "pagar", "pay", "link", "buzon", "reclamar", "tienda", "web"
+    "pagar", "pay", "link", "buzon", "reclamar", "tienda", "web",
+    "admins", "adminlist", "adminadd", "admindel"
   ]);
 
   world.beforeEvents.chatSend.subscribe((event) => {
@@ -481,6 +553,9 @@ if (world.beforeEvents && world.beforeEvents.chatSend) {
             else if (cmd === "link") handleLinkCode(p, parts[1] || "");
             else if ((cmd === "pagar" || cmd === "pay") && parts[1] && parts[2]) handlePayCommand(p, parts[1], parseInt(parts[2]));
             else if (cmd === "buzon" || cmd === "reclamar") checkDeliveriesForPlayer(p);
+            else if (cmd === "admins" || cmd === "adminlist") handleAdminsListCommand(p);
+            else if (cmd === "adminadd") handleAdminAddCommand(p, parts[1], parts[2]);
+            else if (cmd === "admindel") handleAdminDelCommand(p, parts[1]);
           } catch (_) {}
         });
       }

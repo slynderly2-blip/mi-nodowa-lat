@@ -1224,15 +1224,15 @@ async function loadPlayersRegistry() {
 
       tbody.innerHTML = data.players.map(p => {
         // Badge de Rol
-        let roleBadge = `<span class="badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-muted); font-size: 0.75rem;">🎮 Jugador</span>`;
+        let roleBadge = `<span class="badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-muted); font-size: 0.75rem;">[JUGADOR]</span>`;
         if (p.staff) {
           if (p.staff.role === "admin") {
-            roleBadge = `<span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); font-size: 0.75rem;">👑 Admin</span>`;
+            roleBadge = `<span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); font-size: 0.75rem;">[ADMIN]</span>`;
           } else if (p.staff.role === "op_rented" || p.staff.role === "op") {
             const daysText = p.activeRental ? ` (${p.activeRental.daysLeft}d)` : '';
-            roleBadge = `<span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-size: 0.75rem;">⚡ OP Alquilado${daysText}</span>`;
+            roleBadge = `<span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-size: 0.75rem;">[OP RENTA${daysText}]</span>`;
           } else {
-            roleBadge = `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); font-size: 0.75rem;">🛡️ Staff</span>`;
+            roleBadge = `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); font-size: 0.75rem;">[STAFF]</span>`;
           }
         }
 

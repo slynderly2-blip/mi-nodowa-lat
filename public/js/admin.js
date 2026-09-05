@@ -963,10 +963,10 @@ async function loadAdminStaff() {
       const isOpRented = s.role === "op_rented";
       const isAdmin = s.role === "admin";
       const roleBadge = isAdmin 
-        ? `<span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4);">👑 Admin</span>`
+        ? `<span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4);">[ADMIN]</span>`
         : isOpRented
-        ? `<span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);">⚡ OP Alquilado</span>`
-        : `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);">🛡️ Moderador</span>`;
+        ? `<span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);">[OP RENTA]</span>`
+        : `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);">[MODERADOR]</span>`;
 
       const rentalBadge = s.rental 
         ? `<span class="badge text-emerald" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3);">ACTIVA</span>`
