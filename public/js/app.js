@@ -1185,57 +1185,223 @@ function renderTransactionsTable(transactions) {
 // ── Directorio / Registro de Jugadores ──────────────────────────
 function setupPlayersRegistryEvents() {
   const searchInput = document.getElementById("input-search-players");
+  const statusFilter = document.getElementById("filter-status-players");
+  const roleFilter = document.getElementById("filter-role-players");
   let searchTimeout = null;
+
+  const triggerFilter = () => {
+    loadPlayersRegistry();
+  };
 
   searchInput?.addEventListener("input", () => {
     clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      loadPlayersRegistry(searchInput.value.trim());
-    }, 250);
+    searchTimeout = setTimeout(triggerFilter, 250);
   });
 
-  document.getElementById("btn-refresh-players")?.addEventListener("click", () => {
-    loadPlayersRegistry(searchInput?.value.trim());
-  });
+  statusFilter?.addEventListener("change", triggerFilter);
+  roleFilter?.addEventListener("change", triggerFilter);
+
+  document.getElementById("btn-refresh-players")?.addEventListener("click", triggerFilter);
 }
 
-async function loadPlayersRegistry(search = "") {
+async function loadPlayersRegistry() {
   const tbody = document.getElementById("players-registry-table-body");
   if (!tbody) return;
 
+  const search = document.getElementById("input-search-players")?.value.trim() || "";
+  const status = document.getElementById("filter-status-players")?.value || "all";
+  const role = document.getElementById("filter-role-players")?.value || "all";
+
   try {
-    const res = await fetch(`/api/players/registry?search=${encodeURIComponent(search)}`);
+    const res = await fetch(`/api/players/public?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&role=${encodeURIComponent(role)}`);
     const data = await res.json();
+
     if (data.ok) {
       if (!data.players || data.players.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-muted" style="text-align: center; padding: 2.5rem;">No se encontraron jugadores registrados.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-muted" style="text-align: center; padding: 2.5rem;">No se encontraron jugadores que coincidan con la búsqueda.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = data.players.map(p => `
-        <tr onclick="openUserProfileModal('${p.username}')" style="cursor: pointer;" title="Toca para ver el perfil de ${p.username}">
-          <td>
-            <div style="display: flex; align-items: center; gap: 0.65rem;">
-              <img src="${p.avatar}" alt="${p.username}" style="width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--purple-300); object-fit: cover; background: var(--purple-50);">
-              <div>
-                <strong>${p.username}</strong>
-                ${p.bio ? `<div class="text-muted" style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">${p.bio}</div>` : ''}
+      tbody.innerHTML = data.players.map(p => {
+        // Badge de Rol
+        let roleBadge = `<span class="badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-muted); font-size: 0.75rem;">🎮 Jugador</span>`;
+        if (p.staff) {
+          if (p.staff.role === "admin") {
+            roleBadge = `<span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); font-size: 0.75rem;">👑 Admin</span>`;
+          } else if (p.staff.role === "op_rented" || p.staff.role === "op") {
+            const daysText = p.activeRental ? ` (${p.activeRental.daysLeft}d)` : '';
+            roleBadge = `<span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-size: 0.75rem;">⚡ OP Alquilado${daysText}</span>`;
+          } else {
+            roleBadge = `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); font-size: 0.75rem;">🛡️ Staff</span>`;
+          }
+        }
+
+        // Reputación
+        const starsText = p.rating && p.rating.avgStars 
+          ? `<span style="color: #facc15; font-weight: 700;">⭐ ${p.rating.avgStars}</span> <span class="text-muted" style="font-size: 0.75rem;">(${p.rating.totalReviews})</span>` 
+          : `<span class="text-muted" style="font-size: 0.75rem;">Sin reseñas</span>`;
+
+        const headAvatar = `https://mc-heads.net/avatar/${encodeURIComponent(p.username)}/32`;
+
+        return `
+          <tr>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <img src="${headAvatar}" onError="this.src='/uploads/default_qr.svg'" alt="${escapeHtml(p.username)}" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border-color); background: #000; object-fit: contain;">
+                <div>
+                  <strong style="color: #fff; font-size: 0.95rem;">${escapeHtml(p.username)}</strong>
+                </div>
               </div>
-            </div>
-          </td>
-          <td>
-            <span class="status-badge ${p.linked ? 'status-approved' : 'status-pending'}">
-              ${p.linked ? 'Vinculado' : 'Sin Vincular'}
-            </span>
-          </td>
-          <td class="mono text-purple" style="font-weight: 700;">${p.wallet.toLocaleString()} NC</td>
-          <td class="mono text-emerald" style="font-weight: 700;">${p.bank.toLocaleString()} NC</td>
-          <td class="mono" style="font-weight: 900; color: var(--accent-purple);">${p.total.toLocaleString()} NC</td>
-          <td class="text-muted mono" style="font-size: 0.8rem;">${p.lastActive ? new Date(p.lastActive).toLocaleDateString() : '—'}</td>
-        </tr>
-      `).join("");
+            </td>
+            <td>${roleBadge}</td>
+            <td>
+              <span class="status-badge ${p.linked ? 'status-approved' : 'status-pending'}" style="font-size: 0.75rem;">
+                ${p.linked ? 'Vinculado' : 'Sin Vincular'}
+              </span>
+            </td>
+            <td>${starsText}</td>
+            <td class="mono text-purple" style="font-weight: 700;">${p.wallet.toLocaleString()} NC</td>
+            <td class="mono text-emerald" style="font-weight: 700;">${p.bank.toLocaleString()} NC</td>
+            <td class="mono" style="font-weight: 900; color: var(--accent-purple);">${p.totalFortune.toLocaleString()} NC</td>
+            <td>
+              <button class="cat-btn" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3);" onclick="openPlayerReviewsModal('${escapeHtml(p.username)}')">
+                <span class="icon-slot" data-icon="star"></span> Reseñas / Reportar
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      renderIcons(tbody);
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("Error al cargar directorio de jugadores:", e);
+  }
+}
+
+// ── Modal de Reseñas y Reportes para Jugadores/OPs ─────────────
+async function openPlayerReviewsModal(username) {
+  const modal = document.getElementById("modal-player-reviews");
+  const title = document.getElementById("modal-player-title");
+  const body = document.getElementById("modal-player-body");
+
+  if (!modal || !body) return;
+
+  title.textContent = `Reputación de ${username}`;
+  body.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">Cargando reseñas...</div>`;
+  modal.classList.add("active");
+
+  try {
+    const res = await fetch(`/api/ratings/user/${encodeURIComponent(username)}`);
+    const data = await res.json();
+
+    const reviews = data.reviews || [];
+    const avgStars = data.avgStars ? `⭐ ${data.avgStars} / 5` : 'Sin calificaciones aún';
+
+    body.innerHTML = `
+      <div style="text-align: center; margin-bottom: 1.5rem; background: var(--bg-surface); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+        <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-gold);">${avgStars}</div>
+        <div class="text-muted" style="font-size: 0.8rem;">Basado en ${data.totalReviews || 0} reseñas de la comunidad</div>
+      </div>
+
+      <!-- Formulario para agregar Reseña o Reporte -->
+      <div style="background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+        <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem;">Dejar Reseña o Reporte a ${escapeHtml(username)}</h4>
+        <form id="form-player-rating">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 0.75rem;">Tipo de Entrada</label>
+              <select id="rating-type" class="form-input" style="font-size: 0.85rem;" onchange="toggleRatingStars(this.value)">
+                <option value="REVIEW">⭐ Reseña Pública</option>
+                <option value="REPORT">🚨 Reportar a la Admin</option>
+              </select>
+            </div>
+            <div class="form-group" id="group-rating-stars" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 0.75rem;">Calificación (Estrellas)</label>
+              <select id="rating-stars" class="form-input" style="font-size: 0.85rem;">
+                <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
+                <option value="4">⭐⭐⭐⭐ (4/5)</option>
+                <option value="3">⭐⭐⭐ (3/5)</option>
+                <option value="2">⭐⭐ (2/5)</option>
+                <option value="1">⭐ (1/5)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label" style="font-size: 0.75rem;">Tu Gamertag (Firma)</label>
+            <input type="text" id="rating-author" class="form-input" style="font-size: 0.85rem;" placeholder="Tu Gamertag de Minecraft" value="${currentUser ? escapeHtml(currentUser.displayName || currentUser.username) : ''}" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label" style="font-size: 0.75rem;">Comentario / Motivo del Reporte</label>
+            <textarea id="rating-comment" class="form-input" rows="2" style="font-size: 0.85rem;" placeholder="Escribe tu opinión sobre este jugador u OP..." required></textarea>
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%; font-size: 0.85rem; padding: 0.5rem;">
+            Publicar Reseña / Enviar
+          </button>
+        </form>
+      </div>
+
+      <!-- Lista de Reseñas -->
+      <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem;">Reseñas de Jugadores:</h4>
+      ${reviews.length === 0 ? `<p class="text-muted" style="font-size: 0.85rem;">No hay reseñas publicadas aún.</p>` : `
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto;">
+          ${reviews.map(r => `
+            <div style="background: var(--bg-surface); padding: 0.75rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                <strong style="color: #fff; font-size: 0.85rem;">${escapeHtml(r.author)}</strong>
+                <span style="color: var(--accent-gold); font-size: 0.8rem;">⭐ ${r.stars}/5</span>
+              </div>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0;">${escapeHtml(r.comment)}</p>
+              <div class="text-muted mono" style="font-size: 0.7rem; margin-top: 0.25rem;">${new Date(r.createdAt).toLocaleDateString()}</div>
+            </div>
+          `).join("")}
+        </div>
+      `}
+    `;
+
+    // Event handler para guardar reseña
+    document.getElementById("form-player-rating")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const type = document.getElementById("rating-type").value;
+      const stars = document.getElementById("rating-stars").value;
+      const author = document.getElementById("rating-author").value.trim();
+      const comment = document.getElementById("rating-comment").value.trim();
+
+      if (!author || !comment) return showToast("Por favor completa todos los campos.", "error");
+
+      try {
+        const postRes = await fetch("/api/ratings/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetUser: username, author, stars, comment, type })
+        });
+        const postData = await postRes.json();
+        if (postData.ok) {
+          showToast(postData.message || "Publicado correctamente.", "success");
+          openPlayerReviewsModal(username); // Recargar modal
+          loadPlayersRegistry(); // Recargar tabla
+        } else {
+          showToast(postData.error || "No se pudo enviar.", "error");
+        }
+      } catch (err) {
+        showToast("Error de conexión.", "error");
+      }
+    });
+
+  } catch (err) {
+    body.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--accent-rose);">Error al obtener datos.</div>`;
+  }
+}
+
+function toggleRatingStars(type) {
+  const starsGroup = document.getElementById("group-rating-stars");
+  if (starsGroup) {
+    starsGroup.style.display = type === "REPORT" ? "none" : "block";
+  }
+}
+
+function closePlayerReviewsModal() {
+  document.getElementById("modal-player-reviews")?.classList.remove("active");
 }
 
 // ── Buzón de Entregas ───────────────────────────────────────────

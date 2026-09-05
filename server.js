@@ -117,7 +117,10 @@ let db = {
   orders: [],
   deliveries: [],
   transactions: [],
-  linkTokens: {}
+  linkTokens: {},
+  staff: {},       // { "username": { role: "admin"|"op_rented"|"moderator", label: "...", assignedAt: "" } }
+  opRentals: [],   // [ { id, username, startsAt, expiresAt, active, revokedAt } ]
+  ratings: []      // [ { id, targetUser, author, stars, comment, type: "RECOMMEND"|"REPORT", createdAt } ]
 };
 
 function loadDb() {
@@ -213,6 +216,60 @@ function processBankInterest() {
 
 // Revisa intereses bancarios cada hora
 setInterval(processBankInterest, 60 * 60 * 1000);
+
+// ── Auto-Expiración de Alquileres OP ──────────────────────────
+function checkOpRentalsExpiration() {
+  if (!db.opRentals || db.opRentals.length === 0) return;
+  const now = Date.now();
+  let changed = false;
+
+  for (const rental of db.opRentals) {
+    if (!rental.active) continue;
+    if (now < new Date(rental.expiresAt).getTime()) continue;
+
+    // Expirado: marcar como inactivo
+    rental.active = false;
+    rental.revokedAt = new Date().toISOString();
+    rental.revokeReason = "expired";
+    changed = true;
+
+    // Quitar del staff si aún tiene rol op_rented
+    const ukey = rental.username.toLowerCase();
+    if (db.staff[ukey] && db.staff[ukey].role === "op_rented") {
+      delete db.staff[ukey];
+    }
+
+    // Encolar comandos de revocación para que el addon los ejecute
+    const displayName = (db.users[ukey] && db.users[ukey].displayName) || rental.username;
+    const cmdBase = [
+      `deop "${displayName}"`,
+      `gamemode s "${displayName}"`,
+      `tellraw "${displayName}" {"rawtext":[{"text":"§c[Nodowa] §fTu alquiler de OP de 1 mes ha vencido. Se restablecio el modo supervivencia."}]}`
+    ];
+
+    for (const cmd of cmdBase) {
+      db.deliveries.unshift({
+        id: "op_exp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        username: rental.username,
+        itemTitle: "OP Expirado - Revocación automática",
+        command: cmd,
+        giveCoins: 0,
+        status: "PENDING",
+        createdAt: new Date().toISOString(),
+        isOpRevoke: true
+      });
+    }
+
+    broadcastWs("OP_RENTAL_EXPIRED", { username: rental.username, rentalId: rental.id });
+    console.log(`[OP Rental] Alquiler expirado y revocado para: ${rental.username}`);
+  }
+
+  if (changed) saveDb();
+}
+
+// Verificar expiración de OP cada 60 segundos
+setInterval(checkOpRentalsExpiration, 60 * 1000);
+checkOpRentalsExpiration(); // Verificar al arrancar el servidor
 
 function logTransaction(from, to, amount, type, description) {
   const tx = {
@@ -600,29 +657,71 @@ app.get("/api/user/profile", (req, res) => {
   res.json({ ok: true, user });
 });
 
-// Directorio y Registro de Jugadores (Todos los usuarios registrados en cache/db)
+// Directorio y Registro de Jugadores con Filtros Avanzados
 app.get("/api/players/registry", (req, res) => {
-  const search = (req.query.search || "").trim().toLowerCase();
-  let list = Object.values(db.users).map(u => ({
-    username: u.displayName || u.username,
-    linked: !!u.linked,
-    xuid: u.xuid || null,
-    wallet: u.wallet || 0,
-    bank: u.bank || 0,
-    total: (u.wallet || 0) + (u.bank || 0),
-    avatar: u.avatar || `https://mc-heads.net/avatar/${encodeURIComponent(u.username)}/100`,
-    bio: u.bio || "",
-    whatsapp: u.whatsapp || null,
-    discord: u.discord || null,
-    createdAt: u.createdAt,
-    lastActive: u.lastActive || u.createdAt
-  }));
+  const search       = (req.query.search       || "").trim().toLowerCase();
+  const sortBy       = req.query.sortBy        || "date_desc"; // rich_desc | rich_asc | date_desc | date_asc | name_asc | name_desc
+  const staffFilter  = req.query.staffFilter   || "all";       // all | only_staff | hide_staff
+  const linkedFilter = req.query.linkedFilter  || "all";       // all | linked | unlinked
 
-  if (search) {
-    list = list.filter(p => p.username.toLowerCase().includes(search));
-  }
+  let list = Object.values(db.users).map(u => {
+    const ukey = u.username.toLowerCase();
+    const staffInfo = db.staff ? db.staff[ukey] : null;
+    const reviews = (db.ratings || []).filter(r => r.targetUser.toLowerCase() === ukey);
+    const recommendations = reviews.filter(r => r.type === "RECOMMEND").length;
+    const reports         = reviews.filter(r => r.type === "REPORT").length;
+    const avgStars = reviews.length > 0
+      ? (reviews.reduce((s, r) => s + (r.stars || 0), 0) / reviews.length).toFixed(1)
+      : null;
 
-  list.sort((a, b) => new Date(b.lastActive || 0) - new Date(a.lastActive || 0));
+    // Alquiler OP activo
+    const activeRental = (db.opRentals || []).find(r => r.username.toLowerCase() === ukey && r.active);
+
+    return {
+      username:        u.displayName || u.username,
+      linked:          !!u.linked,
+      xuid:            u.xuid || null,
+      wallet:          u.wallet || 0,
+      bank:            u.bank  || 0,
+      total:           (u.wallet || 0) + (u.bank || 0),
+      avatar:          u.avatar || `https://mc-heads.net/avatar/${encodeURIComponent(u.username)}/100`,
+      bio:             u.bio || "",
+      whatsapp:        u.whatsapp || null,
+      discord:         u.discord  || null,
+      createdAt:       u.createdAt,
+      lastActive:      u.lastActive || u.createdAt,
+      isStaff:         !!staffInfo,
+      staffRole:       staffInfo ? staffInfo.role : null,
+      staffLabel:      staffInfo ? staffInfo.label : null,
+      recommendations,
+      reports,
+      avgStars,
+      activeRental:    activeRental ? { expiresAt: activeRental.expiresAt, startsAt: activeRental.startsAt } : null
+    };
+  });
+
+  // Filtro de búsqueda
+  if (search) list = list.filter(p => p.username.toLowerCase().includes(search));
+
+  // Filtro de vinculación
+  if (linkedFilter === "linked")   list = list.filter(p => p.linked);
+  if (linkedFilter === "unlinked") list = list.filter(p => !p.linked);
+
+  // Filtro de staff
+  if (staffFilter === "only_staff") list = list.filter(p => p.isStaff);
+  if (staffFilter === "hide_staff") list = list.filter(p => !p.isStaff);
+
+  // Ordenamiento
+  const sorts = {
+    rich_desc:  (a, b) => b.total - a.total,
+    rich_asc:   (a, b) => a.total - b.total,
+    date_desc:  (a, b) => new Date(b.lastActive || 0) - new Date(a.lastActive || 0),
+    date_asc:   (a, b) => new Date(a.lastActive || 0) - new Date(b.lastActive || 0),
+    name_asc:   (a, b) => a.username.localeCompare(b.username),
+    name_desc:  (a, b) => b.username.localeCompare(a.username)
+  };
+  if (sorts[sortBy]) list.sort(sorts[sortBy]);
+
   res.json({ ok: true, count: list.length, players: list });
 });
 
@@ -1289,6 +1388,354 @@ app.get("/api/admin/players", checkAdminAuth, (req, res) => {
     console.error("[Admin Players] Error:", err.message);
     res.status(500).json({ ok: false, error: err.message, players: [] });
   }
+});
+
+// ── Sistema de Expiración Automática de Rentas OP ─────────────
+function checkOpRentalsExpiry() {
+  const now = Date.now();
+  let updated = false;
+
+  if (!db.opRentals) db.opRentals = [];
+  if (!db.staff) db.staff = {};
+
+  for (const rental of db.opRentals) {
+    if (rental.active && rental.expiresAt && rental.expiresAt < now) {
+      rental.active = false;
+      rental.expiredAt = new Date().toISOString();
+      updated = true;
+
+      const uname = (rental.username || "").toLowerCase();
+      if (db.staff[uname] && db.staff[uname].role === "op_rented") {
+        delete db.staff[uname];
+      }
+
+      if (!db.deliveries) db.deliveries = [];
+      db.deliveries.push({
+        id: "del_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
+        targetGamertag: rental.username,
+        command: `deop "${rental.username}"`,
+        status: "PENDING",
+        createdAt: new Date().toISOString()
+      });
+      db.deliveries.push({
+        id: "del_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
+        targetGamertag: rental.username,
+        command: `gamemode s "${rental.username}"`,
+        status: "PENDING",
+        createdAt: new Date().toISOString()
+      });
+      db.deliveries.push({
+        id: "del_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
+        targetGamertag: rental.username,
+        command: `tellraw "${rental.username}" {"rawtext":[{"text":"§c[Nodowa] Tu tiempo de Renta OP ha finalizado. Rango removido."}]}`,
+        status: "PENDING",
+        createdAt: new Date().toISOString()
+      });
+
+      console.log(`[OP Rental Expiry] Expiró renta OP de ${rental.username}. Comandos deop/gamemode s encolados.`);
+    }
+  }
+
+  if (updated) saveDb();
+}
+setInterval(checkOpRentalsExpiry, 60000);
+
+// ── API Jugadores Registro Público con Filtros ──────────────────
+app.get("/api/players/public", (req, res) => {
+  try {
+    const search = (req.query.search || "").trim().toLowerCase();
+    const status = req.query.status || "all";
+    const role = req.query.role || "all";
+    const sortBy = req.query.sortBy || "fortune";
+
+    if (!db.staff) db.staff = {};
+    if (!db.opRentals) db.opRentals = [];
+    if (!db.ratings) db.ratings = [];
+
+    let users = Object.values(db.users || {}).map(u => {
+      const uname = (u.username || u.displayName || "").toLowerCase();
+      const staffInfo = db.staff[uname] || null;
+
+      const userRatings = db.ratings.filter(r => (r.targetUser || "").toLowerCase() === uname);
+      const reviews = userRatings.filter(r => r.type === "REVIEW");
+      const avgStars = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + Number(r.stars), 0) / reviews.length).toFixed(1) : null;
+      const activeRental = db.opRentals.find(r => r.active && (r.username || "").toLowerCase() === uname);
+
+      return {
+        username: u.displayName || u.username,
+        cleanUsername: uname,
+        wallet: Math.floor(u.wallet || 0),
+        bank: Math.floor(u.bank || 0),
+        totalFortune: Math.floor((u.wallet || 0) + (u.bank || 0)),
+        linked: !!(u.linked || u.linkedAt),
+        xuid: u.xuid || null,
+        lastSeen: u.updatedAt || u.linkedAt || u.createdAt || null,
+        staff: staffInfo,
+        activeRental: activeRental ? {
+          expiresAt: activeRental.expiresAt,
+          daysLeft: Math.max(0, Math.ceil((activeRental.expiresAt - Date.now()) / (1000 * 60 * 60 * 24)))
+        } : null,
+        rating: {
+          avgStars: avgStars ? Number(avgStars) : null,
+          totalReviews: reviews.length,
+          totalReports: userRatings.filter(r => r.type === "REPORT").length
+        }
+      };
+    });
+
+    if (search) users = users.filter(u => u.username.toLowerCase().includes(search));
+    if (status === "linked") users = users.filter(u => u.linked);
+    else if (status === "unlinked") users = users.filter(u => !u.linked);
+
+    if (role === "staff") users = users.filter(u => u.staff);
+    else if (role === "admin") users = users.filter(u => u.staff && u.staff.role === "admin");
+    else if (role === "op") users = users.filter(u => u.staff && (u.staff.role === "op_rented" || u.staff.role === "op"));
+
+    if (sortBy === "wallet") users.sort((a, b) => b.wallet - a.wallet);
+    else if (sortBy === "bank") users.sort((a, b) => b.bank - a.bank);
+    else if (sortBy === "lastSeen") users.sort((a, b) => new Date(b.lastSeen || 0) - new Date(a.lastSeen || 0));
+    else users.sort((a, b) => b.totalFortune - a.totalFortune);
+
+    res.json({ ok: true, players: users, total: users.length });
+  } catch (err) {
+    console.error("[Public Players] Error:", err.message);
+    res.status(500).json({ ok: false, error: err.message, players: [] });
+  }
+});
+
+// Consulta de estado de Renta OP (Para Addon o UI)
+app.get("/api/staff/my-status/:username", (req, res) => {
+  const uname = (req.params.username || "").trim().toLowerCase();
+  if (!db.staff) db.staff = {};
+  if (!db.opRentals) db.opRentals = [];
+
+  const staff = db.staff[uname] || null;
+  const activeRental = db.opRentals.find(r => r.active && (r.username || "").toLowerCase() === uname);
+
+  if (!staff && !activeRental) {
+    return res.json({ ok: true, isOp: false, isStaff: false });
+  }
+
+  let daysLeft = 0;
+  let hoursLeft = 0;
+  if (activeRental && activeRental.expiresAt) {
+    const diff = activeRental.expiresAt - Date.now();
+    if (diff > 0) {
+      daysLeft = Math.floor(diff / (1000 * 60 * 60 * 24));
+      hoursLeft = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    }
+  }
+
+  res.json({
+    ok: true,
+    isStaff: true,
+    role: staff ? staff.role : "op_rented",
+    roleLabel: staff ? staff.label : "OP Alquilado",
+    activeRental: activeRental ? {
+      expiresAt: activeRental.expiresAt,
+      daysLeft,
+      hoursLeft,
+      expiresDateStr: new Date(activeRental.expiresAt).toLocaleDateString("es-ES")
+    } : null
+  });
+});
+
+// Enviar Reseña o Reporte a Jugador/OP
+app.post("/api/ratings/submit", (req, res) => {
+  const { targetUser, author, stars, comment, type } = req.body;
+  if (!targetUser || !author || !comment) {
+    return res.status(400).json({ ok: false, error: "Datos requeridos faltantes." });
+  }
+
+  if (!db.ratings) db.ratings = [];
+  const ratingEntry = {
+    id: "rat_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
+    targetUser: targetUser.trim(),
+    author: author.trim(),
+    stars: Math.min(5, Math.max(1, Number(stars) || 5)),
+    comment: comment.trim(),
+    type: type === "REPORT" ? "REPORT" : "REVIEW",
+    status: "PENDING", // PENDING, RESOLVED, DISMISSED
+    createdAt: new Date().toISOString()
+  };
+
+  db.ratings.push(ratingEntry);
+  saveDb();
+
+  res.json({ ok: true, message: type === "REPORT" ? "Reporte enviado a los admins." : "Reseña registrada con éxito.", rating: ratingEntry });
+});
+
+// Obtener Reseñas de un Jugador
+app.get("/api/ratings/user/:username", (req, res) => {
+  const uname = (req.params.username || "").trim().toLowerCase();
+  if (!db.ratings) db.ratings = [];
+
+  const userRatings = db.ratings.filter(r => (r.targetUser || "").toLowerCase() === uname);
+  const reviews = userRatings.filter(r => r.type === "REVIEW");
+  const reports = userRatings.filter(r => r.type === "REPORT");
+  const avgStars = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + Number(r.stars), 0) / reviews.length).toFixed(1) : null;
+
+  res.json({
+    ok: true,
+    targetUser: req.params.username,
+    avgStars: avgStars ? Number(avgStars) : null,
+    totalReviews: reviews.length,
+    reviews,
+    reportsCount: reports.length
+  });
+});
+
+// ── Rutas de Administración de Staff y Rentas OP ────────────────
+app.get("/api/admin/staff", checkAdminAuth, (req, res) => {
+  if (!db.staff) db.staff = {};
+  if (!db.opRentals) db.opRentals = [];
+
+  const staffList = Object.keys(db.staff).map(uname => {
+    const s = db.staff[uname];
+    const rental = db.opRentals.find(r => r.active && (r.username || "").toLowerCase() === uname);
+    return {
+      username: s.displayName || uname,
+      role: s.role,
+      label: s.label,
+      assignedAt: s.assignedAt,
+      rental: rental ? {
+        id: rental.id,
+        expiresAt: rental.expiresAt,
+        daysLeft: Math.max(0, Math.ceil((rental.expiresAt - Date.now()) / (1000 * 60 * 60 * 24)))
+      } : null
+    };
+  });
+
+  const activeRentals = db.opRentals.filter(r => r.active);
+
+  res.json({ ok: true, staff: staffList, rentals: activeRentals });
+});
+
+// Asignar o Editar Rol de Staff / Renta OP por el Admin
+app.post("/api/admin/staff/manage", checkAdminAuth, (req, res) => {
+  const { username, role, days, label, action } = req.body; // action: "assign" | "revoke"
+  const uname = (username || "").trim().toLowerCase();
+
+  if (!uname) return res.status(400).json({ ok: false, error: "Gamertag requerido." });
+
+  if (!db.staff) db.staff = {};
+  if (!db.opRentals) db.opRentals = [];
+  if (!db.deliveries) db.deliveries = [];
+
+  if (action === "revoke") {
+    delete db.staff[uname];
+    // Desactivar rentas activas
+    db.opRentals.forEach(r => {
+      if ((r.username || "").toLowerCase() === uname) {
+        r.active = false;
+        r.revokedAt = new Date().toISOString();
+      }
+    });
+
+    // Encolar comandos de deop y gamemode s
+    db.deliveries.push({
+      id: "del_" + Date.now() + "_1",
+      targetGamertag: username,
+      command: `deop "${username}"`,
+      status: "PENDING",
+      createdAt: new Date().toISOString()
+    });
+    db.deliveries.push({
+      id: "del_" + Date.now() + "_2",
+      targetGamertag: username,
+      command: `gamemode s "${username}"`,
+      status: "PENDING",
+      createdAt: new Date().toISOString()
+    });
+
+    saveDb();
+    return res.json({ ok: true, message: `Rol y permisos revocado de ${username}.` });
+  }
+
+  // Asignar o actualizar rol
+  const targetRole = role || "op_rented"; // admin, op_rented, moderator
+  const roleLabels = {
+    admin: "👑 Administrador Principal",
+    op_rented: "⚡ OP (Renta)",
+    moderator: "🛡️ Moderador"
+  };
+
+  db.staff[uname] = {
+    displayName: username.trim(),
+    role: targetRole,
+    label: label || roleLabels[targetRole] || "Staff",
+    assignedAt: new Date().toISOString()
+  };
+
+  // Manejar tiempo de OP si aplica
+  let expiresAt = null;
+  const rentalDays = Number(days);
+  if (rentalDays && rentalDays > 0) {
+    const expiresMs = Date.now() + (rentalDays * 24 * 60 * 60 * 1000);
+    expiresAt = expiresMs;
+
+    // Desactivar rentas previas
+    db.opRentals.forEach(r => {
+      if ((r.username || "").toLowerCase() === uname) r.active = false;
+    });
+
+    const rentalRecord = {
+      id: "op_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
+      username: username.trim(),
+      startsAt: Date.now(),
+      expiresAt: expiresMs,
+      days: rentalDays,
+      active: true,
+      createdAt: new Date().toISOString()
+    };
+    db.opRentals.push(rentalRecord);
+
+    // Encolar comando OP en Minecraft
+    db.deliveries.push({
+      id: "del_" + Date.now() + "_op",
+      targetGamertag: username,
+      command: `op "${username}"`,
+      status: "PENDING",
+      createdAt: new Date().toISOString()
+    });
+    db.deliveries.push({
+      id: "del_" + Date.now() + "_msg",
+      targetGamertag: username,
+      command: `tellraw "${username}" {"rawtext":[{"text":"§a[Nodowa] Se te ha asignado Rango OP por ${rentalDays} días. ¡Disfrútalo!"}]}`,
+      status: "PENDING",
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  saveDb();
+  res.json({
+    ok: true,
+    message: `Staff ${username} actualizado como ${roleLabels[targetRole]}.`,
+    staff: db.staff[uname],
+    expiresAt
+  });
+});
+
+// Ver Reportes de Jugadores en Admin
+app.get("/api/admin/reports", checkAdminAuth, (req, res) => {
+  if (!db.ratings) db.ratings = [];
+  const reports = db.ratings.filter(r => r.type === "REPORT").sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json({ ok: true, reports });
+});
+
+// Resolver/Desestimar Reporte
+app.post("/api/admin/reports/resolve", checkAdminAuth, (req, res) => {
+  const { reportId, status } = req.body; // status: "RESOLVED" | "DISMISSED"
+  if (!db.ratings) db.ratings = [];
+
+  const report = db.ratings.find(r => r.id === reportId);
+  if (!report) return res.status(404).json({ ok: false, error: "Reporte no encontrado." });
+
+  report.status = status || "RESOLVED";
+  report.resolvedAt = new Date().toISOString();
+  saveDb();
+
+  res.json({ ok: true, message: `Reporte marcado como ${report.status}.`, report });
 });
 
 // Estadísticas del Panel Admin

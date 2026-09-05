@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCatalogForm();
   setupBulkImportForm();
   setupPlayerBalanceForm();
+  setupStaffForm();
 
   if (adminToken) {
     showAdminPanel();
@@ -94,6 +95,7 @@ function setupAdminTabs() {
       if (target === "qr") loadAdminQrConfig();
       if (target === "catalog") loadAdminCatalog();
       if (target === "players") loadAdminPlayers();
+      if (target === "staff") loadAdminStaff();
       if (target === "reports") loadAdminReports();
     });
   });
@@ -932,4 +934,263 @@ function setupBulkImportForm() {
       showAdminToast("Error de comunicación al importar catálogo", "error");
     }
   });
+}
+
+// ── GESTIÓN DE STAFF Y RENTAS OP ──────────────────────────────
+async function loadAdminStaff() {
+  const tbody = document.getElementById("admin-staff-table-body");
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 2rem;">Cargando lista de staff...</td></tr>`;
+
+  try {
+    const res = await fetch("/api/admin/staff", {
+      headers: { "x-admin-token": adminToken }
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--accent-rose); padding: 2rem;">${data.error || "Error al cargar staff."}</td></tr>`;
+      return;
+    }
+
+    if (!data.staff || data.staff.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 2rem;">No hay miembros de staff o rentas OP activas registradas.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.staff.map(s => {
+      const isOpRented = s.role === "op_rented";
+      const isAdmin = s.role === "admin";
+      const roleBadge = isAdmin 
+        ? `<span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4);">👑 Admin</span>`
+        : isOpRented
+        ? `<span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);">⚡ OP Alquilado</span>`
+        : `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);">🛡️ Moderador</span>`;
+
+      const rentalBadge = s.rental 
+        ? `<span class="badge text-emerald" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3);">ACTIVA</span>`
+        : `<span class="text-muted">—</span>`;
+
+      const daysLeftStr = s.rental 
+        ? `<strong style="color: var(--accent-gold);">${s.rental.daysLeft} días</strong>` 
+        : `—`;
+
+      const expiresDateStr = s.rental && s.rental.expiresAt 
+        ? new Date(s.rental.expiresAt).toLocaleDateString("es-ES") 
+        : `Permanente / Indefinido`;
+
+      const assignedDate = s.assignedAt ? new Date(s.assignedAt).toLocaleDateString("es-ES") : "---";
+
+      return `
+        <tr>
+          <td>
+            <div style="font-weight: 600; color: #fff;">${escapeHtml(s.username)}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(s.label || "")}</div>
+          </td>
+          <td>${roleBadge}</td>
+          <td>${rentalBadge}</td>
+          <td class="mono">${daysLeftStr}</td>
+          <td class="mono" style="font-size: 0.82rem;">${expiresDateStr}</td>
+          <td>
+            <div style="display: flex; gap: 0.4rem;">
+              <button class="cat-btn" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; background: rgba(234, 179, 8, 0.15); color: #facc15;" onclick="openEditStaffModal('${escapeHtml(s.username)}', '${s.role}', ${s.rental ? s.rental.daysLeft : 30}, '${escapeHtml(s.label || "")}')">
+                Editar / Renovar
+              </button>
+              <button class="cat-btn" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; background: rgba(239, 68, 68, 0.15); color: #f87171;" onclick="revokeStaffRole('${escapeHtml(s.username)}')">
+                Revocar OP
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    renderAdminIcons(tbody);
+  } catch (err) {
+    console.error("Error al cargar staff:", err);
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--accent-rose); padding: 2rem;">Error de conexión.</td></tr>`;
+  }
+}
+
+function openAddStaffModal() {
+  document.getElementById("staff-modal-title").textContent = "Asignar Rol / Rentar OP";
+  document.getElementById("staff-input-gamertag").value = "";
+  document.getElementById("staff-input-role").value = "op_rented";
+  document.getElementById("staff-input-days").value = "30";
+  document.getElementById("staff-input-label").value = "";
+  toggleStaffDaysInput();
+  document.getElementById("modal-manage-staff").style.display = "flex";
+}
+
+function openEditStaffModal(username, role, daysLeft, label) {
+  document.getElementById("staff-modal-title").textContent = `Editar Staff: ${username}`;
+  document.getElementById("staff-input-gamertag").value = username;
+  document.getElementById("staff-input-role").value = role || "op_rented";
+  document.getElementById("staff-input-days").value = daysLeft || "30";
+  document.getElementById("staff-input-label").value = label || "";
+  toggleStaffDaysInput();
+  document.getElementById("modal-manage-staff").style.display = "flex";
+}
+
+function closeManageStaffModal() {
+  document.getElementById("modal-manage-staff").style.display = "none";
+}
+
+function toggleStaffDaysInput() {
+  const role = document.getElementById("staff-input-role").value;
+  const daysGroup = document.getElementById("group-staff-days");
+  if (role === "op_rented") {
+    daysGroup.style.display = "block";
+  } else {
+    daysGroup.style.display = "none";
+  }
+}
+
+function setupStaffForm() {
+  document.getElementById("modal-manage-staff")?.addEventListener("click", (e) => {
+    if (e.target.id === "modal-manage-staff") closeManageStaffModal();
+  });
+
+  document.getElementById("form-manage-staff")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = document.getElementById("staff-input-gamertag").value.trim();
+    const role = document.getElementById("staff-input-role").value;
+    const days = document.getElementById("staff-input-days").value;
+    const label = document.getElementById("staff-input-label").value.trim();
+
+    if (!username) return showAdminToast("Ingresa el gamertag", "error");
+
+    try {
+      const res = await fetch("/api/admin/staff/manage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": adminToken
+        },
+        body: JSON.stringify({ action: "assign", username, role, days, label })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showAdminToast(data.message || "Staff actualizado correctamente", "success");
+        closeManageStaffModal();
+        loadAdminStaff();
+      } else {
+        showAdminToast(data.error || "No se pudo guardar el staff", "error");
+      }
+    } catch (err) {
+      showAdminToast("Error de conexión", "error");
+    }
+  });
+}
+
+async function revokeStaffRole(username) {
+  if (!confirm(`¿Estás seguro de revocar los permisos de OP / Staff a ${username}? Se enviará deop en Minecraft.`)) return;
+
+  try {
+    const res = await fetch("/api/admin/staff/manage", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-token": adminToken
+      },
+      body: JSON.stringify({ action: "revoke", username })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showAdminToast(data.message || `Permisos revocados de ${username}`, "success");
+      loadAdminStaff();
+    } else {
+      showAdminToast(data.error || "Error al revocar permisos", "error");
+    }
+  } catch (err) {
+    showAdminToast("Error de conexión", "error");
+  }
+}
+
+// ── GESTIÓN DE REPORTES DE USUARIOS ────────────────────────────
+async function loadAdminReports() {
+  const tbody = document.getElementById("admin-reports-table-body");
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2rem;">Cargando reportes...</td></tr>`;
+
+  try {
+    const res = await fetch("/api/admin/reports", {
+      headers: { "x-admin-token": adminToken }
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--accent-rose); padding: 2rem;">${data.error || "Error al cargar reportes."}</td></tr>`;
+      return;
+    }
+
+    if (!data.reports || data.reports.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2rem;">No hay denuncias o reportes registrados.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.reports.map(r => {
+      const isResolved = r.status === "RESOLVED";
+      const isDismissed = r.status === "DISMISSED";
+      const statusBadge = isResolved
+        ? `<span class="badge text-emerald" style="background: rgba(16, 185, 129, 0.15);">RESUELTO</span>`
+        : isDismissed
+        ? `<span class="badge text-muted" style="background: rgba(107, 114, 128, 0.2);">DESESTIMADO</span>`
+        : `<span class="badge text-amber" style="background: rgba(245, 158, 11, 0.15);">PENDIENTE</span>`;
+
+      const dateStr = new Date(r.createdAt).toLocaleDateString("es-ES") + " " + new Date(r.createdAt).toLocaleTimeString("es-ES", { hour: '2-digit', minute: '2-digit' });
+
+      return `
+        <tr>
+          <td class="mono" style="font-size: 0.8rem;">${dateStr}</td>
+          <td><strong style="color: #fff;">${escapeHtml(r.author)}</strong></td>
+          <td><strong style="color: var(--accent-rose);">${escapeHtml(r.targetUser)}</strong></td>
+          <td><span class="badge" style="background: rgba(239, 68, 68, 0.1); color: #f87171;">REPORTE</span></td>
+          <td style="max-width: 250px; font-size: 0.85rem;">${escapeHtml(r.comment)}</td>
+          <td>${statusBadge}</td>
+          <td>
+            ${!isResolved && !isDismissed ? `
+              <div style="display: flex; gap: 0.35rem;">
+                <button class="cat-btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: rgba(16, 185, 129, 0.2); color: #34d399;" onclick="resolveReport('${r.id}', 'RESOLVED')">
+                  Aprobar
+                </button>
+                <button class="cat-btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: rgba(107, 114, 128, 0.2); color: #9ca3af;" onclick="resolveReport('${r.id}', 'DISMISSED')">
+                  Desestimar
+                </button>
+              </div>
+            ` : `<span class="text-muted" style="font-size: 0.75rem;">Procesado</span>`}
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    renderAdminIcons(tbody);
+  } catch (err) {
+    console.error("Error al cargar reportes:", err);
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--accent-rose); padding: 2rem;">Error de conexión.</td></tr>`;
+  }
+}
+
+async function resolveReport(reportId, status) {
+  try {
+    const res = await fetch("/api/admin/reports/resolve", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-token": adminToken
+      },
+      body: JSON.stringify({ reportId, status })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showAdminToast(data.message || "Reporte actualizado", "success");
+      loadAdminReports();
+    } else {
+      showAdminToast(data.error || "Error al actualizar reporte", "error");
+    }
+  } catch (err) {
+    showAdminToast("Error de conexión", "error");
+  }
 }

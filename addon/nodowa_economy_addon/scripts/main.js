@@ -122,6 +122,33 @@ world.afterEvents.playerSpawn.subscribe((event) => {
   }, 40);
 });
 
+// ── Verificación Periódica de Compras y Comandos (Cada 30s) ───
+system.runInterval(async () => {
+  for (const player of world.getAllPlayers()) {
+    try {
+      await checkDeliveriesForPlayer(player, false);
+    } catch (_) {}
+  }
+}, 600);
+
+// ── Contador Discreto de Renta OP en la Actionbar ─────────────
+system.runInterval(async () => {
+  try {
+    for (const player of world.getAllPlayers()) {
+      if (player.isOp || player.isOp?.()) {
+        const res = await httpGet(`${BACKEND_URL}/api/staff/my-status/${encodeURIComponent(player.name)}`);
+        if (res && res.ok && res.activeRental) {
+          const { daysLeft, hoursLeft } = res.activeRental;
+          const timeStr = daysLeft > 0 ? `${daysLeft}d ${hoursLeft}h` : `${hoursLeft}h`;
+          try {
+            player.onScreenDisplay.setActionBar(`§e⚡ Rango OP: §fQuedan §e${timeStr} §7| Nodowa OP`);
+          } catch (_) {}
+        }
+      }
+    }
+  } catch (_) {}
+}, 200); // Cada 10 segundos
+
 async function showBalance(player) {
   const bal = await syncWebBalance(player);
   player.sendMessage(`§d[Billetera Web] §fTu saldo en mano es: §e§l${bal.toLocaleString()} Nodocoins§r`);

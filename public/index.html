@@ -244,25 +244,38 @@
           <span class="icon-slot text-purple" data-icon="user"></span>
           <h2>Registro de Jugadores del Servidor</h2>
         </div>
-        <div style="display: flex; gap: 0.75rem;">
-          <input type="text" id="input-search-players" class="form-input" style="width: 280px;" placeholder="Buscar por Gamertag...">
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <input type="text" id="input-search-players" class="form-input" style="width: 220px;" placeholder="Buscar por Gamertag...">
+          <select id="filter-status-players" class="form-input" style="width: 150px;">
+            <option value="all">⚡ Todos (Estado)</option>
+            <option value="linked">✅ Vinculados</option>
+            <option value="unlinked">❌ Sin Vincular</option>
+          </select>
+          <select id="filter-role-players" class="form-input" style="width: 150px;">
+            <option value="all">👑 Todos (Roles)</option>
+            <option value="staff">🛡️ Todo el Staff</option>
+            <option value="admin">👑 Solo Admins</option>
+            <option value="op">⚡ OP Alquilado</option>
+          </select>
           <button class="cat-btn" id="btn-refresh-players">
             <span class="icon-slot" data-icon="refresh"></span> Actualizar
           </button>
         </div>
       </div>
-      <p class="text-muted" style="margin-bottom: 1.5rem;">Lista de todos los jugadores registrados en el servidor, su estado de vinculación y balances.</p>
+      <p class="text-muted" style="margin-bottom: 1.5rem;">Lista de todos los jugadores registrados en el servidor, su estado de vinculación, rangos de staff, tiempo de OP y riqueza total.</p>
 
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>Gamertag</th>
-              <th>Vinculado</th>
+              <th>Gamertag / Jugador</th>
+              <th>Rol / Rango</th>
+              <th>Estado</th>
+              <th>Reputación</th>
               <th>En Mano</th>
               <th>En Banco</th>
               <th>Fortuna Total</th>
-              <th>Última Actividad</th>
+              <th>Acción</th>
             </tr>
           </thead>
           <tbody id="players-registry-table-body">
@@ -808,6 +821,22 @@
         <button class="btn-primary" id="btn-execute-purchase" style="flex: 1.5; justify-content: center;">
           <span class="icon-slot" data-icon="check"></span> Confirmar Compra
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Reseñas y Reportar Jugador -->
+  <div class="modal-backdrop" id="modal-player-reviews">
+    <div class="modal-card" style="max-width: 560px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h3 id="modal-player-title">Reseñas y Reputación</h3>
+        <button class="modal-close" onclick="closePlayerReviewsModal()">
+          <span class="icon-slot" data-icon="x"></span>
+        </button>
+      </div>
+
+      <div id="modal-player-body">
+        <!-- Contenido dinámico -->
       </div>
     </div>
   </div>

@@ -156,6 +156,9 @@
           <button class="admin-nav-btn" data-admin-tab="players">
             <span class="icon-slot" data-icon="user"></span> Balances de Jugadores
           </button>
+          <button class="admin-nav-btn" data-admin-tab="staff">
+            <span class="icon-slot" data-icon="crown"></span> Staff y Rentas OP
+          </button>
           <button class="admin-nav-btn" data-admin-tab="reports">
             <span class="icon-slot" data-icon="shield"></span> Reportes Anti-Estafas
           </button>
@@ -352,8 +355,44 @@
             </div>
           </div>
 
+          <!-- ── SUBTAB: GESTIÓN DE STAFF Y RENTAS OP ────────────────────── -->
+          <div class="admin-tab-view" id="admin-view-staff" style="display: none;">
+            <div class="section-header">
+              <div class="section-title">
+                <span class="icon-slot text-gold" data-icon="crown"></span>
+                <h2>Gestión de Staff y Rentas de OP</h2>
+              </div>
+              <div style="display: flex; gap: 0.5rem;">
+                <button class="cat-btn" onclick="loadAdminStaff()">
+                  <span class="icon-slot" data-icon="refresh"></span> Recargar Staff
+                </button>
+                <button class="btn-primary" onclick="openAddStaffModal()" style="background: linear-gradient(135deg, var(--accent-gold), #d97706); color: #000; font-weight: 700;">
+                  <span class="icon-slot" data-icon="plus"></span> Asignar Rol / Rentar OP
+                </button>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Jugador / Gamertag</th>
+                    <th>Rol de Staff</th>
+                    <th>Renta OP Activa</th>
+                    <th>Tiempo Restante</th>
+                    <th>Asignado En</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-staff-table-body">
+                  <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 2rem;">Cargando staff y rentas de OP...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- ── SUBTAB: REPORTES ANTI-ESTAFAS ────────────────────── -->
-          <div class="admin-tab-view" id="admin-view-reports">
+          <div class="admin-tab-view" id="admin-view-reports" style="display: none;">
             <div class="section-header">
               <div class="section-title">
                 <span class="icon-slot text-rose" data-icon="shield"></span>
@@ -525,6 +564,47 @@
           <button type="button" class="cat-btn" onclick="closeBulkImportModal()">Cerrar</button>
           <button type="submit" class="btn-primary" style="background: var(--accent-rose);">
             <span class="icon-slot" data-icon="check"></span> Importar / Guardar en el Catálogo
+          </button>
+        </div>
+      </form>
+    </div>
+  <!-- Modal: Asignar / Rentar OP -->
+  <div class="modal-backdrop" id="modal-manage-staff">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="staff-modal-title">Asignar Rol / Rentar OP</h3>
+        <button class="modal-close" onclick="closeManageStaffModal()">
+          <span class="icon-slot" data-icon="x"></span>
+        </button>
+      </div>
+      <form id="form-manage-staff">
+        <div class="form-group">
+          <label class="form-label">Gamertag del Jugador (Exacto de Minecraft)</label>
+          <input type="text" id="staff-input-gamertag" class="form-input" placeholder="Ej. Sotoox911" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rol a Asignar</label>
+          <select id="staff-input-role" class="form-input" onchange="toggleStaffDaysInput()">
+            <option value="op_rented">⚡ OP Alquilado (Renta con Tiempo Limitado)</option>
+            <option value="admin">👑 Administrador Principal (Permanente)</option>
+            <option value="moderator">🛡️ Moderador del Servidor</option>
+          </select>
+        </div>
+        <div class="form-group" id="group-staff-days">
+          <label class="form-label">Días de OP a Otorgar / Renovar</label>
+          <input type="number" id="staff-input-days" class="form-input" value="30" min="1" placeholder="Ej. 7, 15, 30...">
+          <div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">
+            Se enviará `/op` automáticamente en el servidor y un contador discreto en pantalla.
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Etiqueta Personalizada (opcional)</label>
+          <input type="text" id="staff-input-label" class="form-input" placeholder="Ej. OP Renta 30 Días">
+        </div>
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.25rem;">
+          <button type="button" class="cat-btn" onclick="closeManageStaffModal()">Cancelar</button>
+          <button type="submit" class="btn-primary" style="background: var(--accent-gold); color: #000; font-weight: 700;">
+            <span class="icon-slot" data-icon="check"></span> Guardar Staff / OP
           </button>
         </div>
       </form>
