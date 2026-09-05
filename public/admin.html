@@ -97,7 +97,16 @@
 
     <!-- TAB 1: Órdenes Binance -->
     <section class="admin-tab active" id="atab-orders">
-      <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:0.75rem;">📋 Comprobantes de Pago Binance</h2>
+      <div class="admin-tab-header" style="margin-bottom:1rem;">
+        <div>
+          <h2 style="font-size:1.2rem; font-weight:700;">📋 Comprobantes de Pago Binance</h2>
+          <p style="font-size:0.83rem; color:var(--text-muted); margin-top:2px;">Revisa y aprueba depósitos USDT y recargas de jugadores.</p>
+        </div>
+        <div class="admin-search-wrapper">
+          <svg class="admin-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="admin-orders-search" class="admin-search-input" placeholder="Buscar por jugador, TXID o producto...">
+        </div>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -119,7 +128,16 @@
 
     <!-- TAB 2: Reclamos de Entregas -->
     <section class="admin-tab" id="atab-issues" style="display:none;">
-      <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:0.75rem;">⚠️ Reportes: "No recibí mi producto"</h2>
+      <div class="admin-tab-header" style="margin-bottom:1rem;">
+        <div>
+          <h2 style="font-size:1.2rem; font-weight:700;">⚠️ Reportes: "No recibí mi producto"</h2>
+          <p style="font-size:0.83rem; color:var(--text-muted); margin-top:2px;">Atiende reclamos y re-encola entregas en Minecraft Bedrock con 1 clic.</p>
+        </div>
+        <div class="admin-search-wrapper">
+          <svg class="admin-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="admin-issues-search" class="admin-search-input" placeholder="Buscar reporte por jugador o artículo...">
+        </div>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -140,16 +158,32 @@
 
     <!-- TAB 3: Catálogo Tienda Visual -->
     <section class="admin-tab" id="atab-catalog" style="display:none;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+      <div class="admin-tab-header" style="margin-bottom:0.75rem;">
         <div>
           <h2 style="font-size:1.2rem; font-weight:700;">🛍️ Artículos de la Tienda</h2>
-          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Gestiona productos visualmente o edítalos en directo.</p>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Busca, crea o edita productos visualmente con formulario interactivo.</p>
         </div>
-        <div style="display:flex; gap:0.5rem;">
-          <button class="btn btn-secondary btn-sm" onclick="switchAdminSubTab('code-catalog')">💻 Abrir en Código JSON</button>
+        <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+          <div class="admin-search-wrapper" style="max-width:260px;">
+            <svg class="admin-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="admin-catalog-search" class="admin-search-input" placeholder="Buscar producto en catálogo...">
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="switchAdminSubTab('code-catalog')">💻 Abrir en JSON</button>
           <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-item')">+ Nuevo Artículo</button>
         </div>
       </div>
+
+      <!-- Filtros rápidos por categoría de catálogo -->
+      <div class="admin-players-toolbar" style="margin-bottom:1rem;">
+        <div class="admin-filter-pills" id="admin-catalog-filter-pills">
+          <button type="button" class="filter-pill active" data-cfilter="all" onclick="filterAdminCatalog('all')">Todos</button>
+          <button type="button" class="filter-pill" data-cfilter="coins" onclick="filterAdminCatalog('coins')">🪙 Monedas</button>
+          <button type="button" class="filter-pill" data-cfilter="ranks" onclick="filterAdminCatalog('ranks')">👑 Rangos</button>
+          <button type="button" class="filter-pill" data-cfilter="crates" onclick="filterAdminCatalog('crates')">🗝️ Llaves</button>
+          <button type="button" class="filter-pill" data-cfilter="kits" onclick="filterAdminCatalog('kits')">⚔️ Kits</button>
+        </div>
+      </div>
+
       <div class="table-wrap">
         <table>
           <thead>

@@ -51,12 +51,17 @@ window.setSearchTag = (tag) => {
 };
 
 // Tabs Navigation (Desktop cabecera y Mobile barra inferior sincronizados)
-document.querySelectorAll(".tab-btn").forEach(btn => {
+document.querySelectorAll(".nav-tab-btn, .mobile-tab-btn, .tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     const tabName = btn.dataset.tab;
-    document.querySelectorAll(".tab-btn").forEach(b => {
-      b.classList.toggle("active", b.dataset.tab === tabName);
+    if (!tabName) return;
+
+    document.querySelectorAll(".nav-tab-btn, .mobile-tab-btn, .tab-btn").forEach(b => {
+      if (b.dataset.tab) {
+        b.classList.toggle("active", b.dataset.tab === tabName);
+      }
     });
+
     document.querySelectorAll(".tab-view").forEach(v => v.classList.remove("active"));
     const target = document.getElementById(`view-${tabName}`);
     if (target) target.classList.add("active");
@@ -762,6 +767,7 @@ document.getElementById("transfer-form").addEventListener("submit", async (e) =>
 // SERVIDOR MINECRAFT & CATÁLOGO DINÁMICO
 // ============================================================
 let currentStoreCategory = "all";
+let currentStoreSort = "default";
 let currentReceiptData = null;
 
 // Helper: Copiar IP de Minecraft Bedrock
@@ -774,6 +780,12 @@ window.copyServerIp = () => {
   }).catch(() => {
     showToast(`IP Servidor: ${fullText}`);
   });
+};
+
+// Helper: Cambiar orden del catálogo
+window.setStoreSort = (sort) => {
+  currentStoreSort = sort || "default";
+  renderStore();
 };
 
 // Store & Catalog
@@ -891,6 +903,26 @@ function renderStore() {
 
     if (storeTitle) storeTitle.textContent = curInfo.title;
     if (storeSubtitle) storeSubtitle.textContent = curInfo.desc;
+  }
+
+  // Ordenamiento interactivo del catálogo
+  itemsToDisplay = [...itemsToDisplay];
+  if (currentStoreSort === "newest") {
+    itemsToDisplay.reverse();
+  } else if (currentStoreSort === "price-asc") {
+    itemsToDisplay.sort((a, b) => {
+      const pA = a.priceCoins > 0 ? a.priceCoins : ((a.priceUsdt || 0) * 1000);
+      const pB = b.priceCoins > 0 ? b.priceCoins : ((b.priceUsdt || 0) * 1000);
+      return pA - pB;
+    });
+  } else if (currentStoreSort === "price-desc") {
+    itemsToDisplay.sort((a, b) => {
+      const pA = a.priceCoins > 0 ? a.priceCoins : ((a.priceUsdt || 0) * 1000);
+      const pB = b.priceCoins > 0 ? b.priceCoins : ((b.priceUsdt || 0) * 1000);
+      return pB - pA;
+    });
+  } else if (currentStoreSort === "name-asc") {
+    itemsToDisplay.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }
 
   if (itemsToDisplay.length === 0) {

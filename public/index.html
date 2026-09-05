@@ -81,29 +81,29 @@
 
   <!-- Mobile Bottom Navigation (Barra ergonómica estilo App) -->
   <nav class="mobile-bottom-nav">
-    <button class="mobile-tab-btn tab-btn active" data-tab="store">
+    <button class="mobile-tab-btn active" data-tab="store">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>
       <span>Tienda</span>
     </button>
-    <button class="mobile-tab-btn tab-btn" data-tab="market">
+    <button class="mobile-tab-btn" data-tab="market">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
       <span>Mercado</span>
     </button>
-    <button class="mobile-tab-btn tab-btn" data-tab="social">
+    <button class="mobile-tab-btn" data-tab="social">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <span>Chat</span>
       <span id="badge-social-mobile" class="nav-badge-floating" style="display:none;">0</span>
     </button>
-    <button class="mobile-tab-btn tab-btn" data-tab="wallet">
+    <button class="mobile-tab-btn" data-tab="wallet">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
       <span>Billetera</span>
     </button>
-    <button class="mobile-tab-btn tab-btn" data-tab="deliveries">
+    <button class="mobile-tab-btn" data-tab="deliveries">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
       <span>Buzón</span>
       <span id="badge-deliveries-mobile" class="nav-badge-floating" style="display:none;">0</span>
     </button>
-    <button class="mobile-tab-btn tab-btn" data-tab="leaderboard">
+    <button class="mobile-tab-btn" data-tab="leaderboard">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
       <span>Top</span>
     </button>
@@ -167,6 +167,17 @@
         <div>
           <h2 class="section-title" id="store-title">Catálogo Completo</h2>
           <p class="section-subtitle" id="store-subtitle">Acreditación instantánea sincronizada en tiempo real con tu cuenta de Minecraft Bedrock.</p>
+        </div>
+        <div class="store-sort-wrapper" style="display:flex; align-items:center; gap:0.45rem;">
+          <label for="store-sort-select" style="font-size:0.78rem; font-weight:700; color:var(--text-muted); white-space:nowrap;">Ordenar:</label>
+          <select id="store-sort-select" class="input" style="padding:0.4rem 0.8rem; font-size:0.82rem; font-weight:700; border-radius:var(--radius-full); cursor:pointer; width:auto; background:var(--surface);" onchange="setStoreSort(this.value)">
+            <option value="default">⭐ Destacados</option>
+            <option value="newest">✨ Más Recientes</option>
+            <option value="oldest">⏳ Más Antiguos</option>
+            <option value="price-asc">💵 Menor Precio</option>
+            <option value="price-desc">💎 Mayor Precio</option>
+            <option value="name-asc">🔤 Nombre (A - Z)</option>
+          </select>
         </div>
       </div>
 

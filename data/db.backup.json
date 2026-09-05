@@ -1,0 +1,145 @@
+{
+  "config": {
+    "serverName": "Nodowa Network",
+    "currencyName": "Nodocoins",
+    "currencySymbol": "NC",
+    "adminPassword": "ortizuwu20",
+    "binance": {
+      "payId": "1255344898",
+      "walletAddress": "USDT",
+      "instruction": "+591 64770568",
+      "qrImage": "/uploads/default_qr.svg"
+    }
+  },
+  "users": {
+    "slynderly": {
+      "username": "slynderly",
+      "displayName": "slynderly",
+      "pin": null,
+      "wallet": 1989,
+      "bank": 884,
+      "linked": true,
+      "xuid": null,
+      "createdAt": "2026-09-01T04:21:21.314Z",
+      "lastActive": "2026-09-01T19:00:00.000Z"
+    }
+  },
+  "storeItems": [
+    {
+      "id": "pack_monedas_500",
+      "name": "500 Nodocoins",
+      "category": "coins",
+      "priceCoins": 0,
+      "priceUsdt": 0.5,
+      "giveCoins": 500,
+      "command": null,
+      "description": "Bolsita básica de 500 Nodocoins para compras rápidas en Minecraft Bedrock.",
+      "iconType": "coins",
+      "badge": "Popular"
+    },
+    {
+      "id": "pack_monedas_1k",
+      "name": "1,000 Nodocoins",
+      "category": "coins",
+      "priceCoins": 0,
+      "priceUsdt": 1,
+      "giveCoins": 1000,
+      "command": null,
+      "description": "Acredita 1,000 Nodocoins directamente a tu saldo web y de Minecraft.",
+      "iconType": "coins",
+      "badge": "Más Vendido"
+    },
+    {
+      "id": "pack_monedas_2500",
+      "name": "2,500 Nodocoins (+Bonus)",
+      "category": "coins",
+      "priceCoins": 0,
+      "priceUsdt": 2.25,
+      "giveCoins": 2500,
+      "command": null,
+      "description": "Paquete mediano con 10% de ahorro incluido.",
+      "iconType": "coins",
+      "badge": "Recomendado"
+    },
+    {
+      "id": "pack_monedas_5k",
+      "name": "5,000 Nodocoins (+Super Bonus)",
+      "category": "coins",
+      "priceCoins": 0,
+      "priceUsdt": 4.5,
+      "giveCoins": 5000,
+      "command": null,
+      "description": "Cofre lleno de 5,000 Nodocoins para los más ricos del servidor.",
+      "iconType": "coins",
+      "badge": "Oferta Top"
+    },
+    {
+      "id": "pack_monedas_10k",
+      "name": "10,000 Nodocoins (Tesoro Real)",
+      "category": "coins",
+      "priceCoins": 0,
+      "priceUsdt": 8.5,
+      "giveCoins": 10000,
+      "command": null,
+      "description": "Bolsa de oro masiva de 10,000 Nodocoins. ¡Máximo ahorro!",
+      "iconType": "coins",
+      "badge": "VIP Pack"
+    },
+    {
+      "id": "rango_vip",
+      "name": "Rango VIP",
+      "category": "ranks",
+      "priceCoins": 5000,
+      "priceUsdt": 4.99,
+      "giveCoins": 0,
+      "command": "tag {player} add vip",
+      "description": "Rango VIP permanente con prefijo especial en chat y comandos exclusivos.",
+      "iconType": "shield",
+      "badge": "Rango"
+    },
+    {
+      "id": "rango_mvp",
+      "name": "Rango MVP+",
+      "category": "ranks",
+      "priceCoins": 12000,
+      "priceUsdt": 9.99,
+      "giveCoins": 0,
+      "command": "tag {player} add mvp",
+      "description": "Rango MVP+ con fly en lobby, cosméticos exclusivos y kit semanal.",
+      "iconType": "shield",
+      "badge": "Exclusivo"
+    },
+    {
+      "id": "llave_mistica",
+      "name": "Llave Mística x3",
+      "category": "crates",
+      "priceCoins": 1500,
+      "priceUsdt": 1.5,
+      "giveCoins": 0,
+      "command": "give {player} tripwire_hook 3",
+      "description": "3 Llaves para la caja Mística en el Spawn con probabilidad de items legendarios.",
+      "iconType": "key",
+      "badge": "Crate"
+    },
+    {
+      "id": "kit_gladiador",
+      "name": "Kit Gladiador Supremo",
+      "category": "kits",
+      "priceCoins": 3500,
+      "priceUsdt": 3,
+      "giveCoins": 0,
+      "command": "give {player} netherite_sword 1",
+      "description": "Set de combate de Netherite con encantamientos de nivel alto.",
+      "iconType": "sword",
+      "badge": "PvP"
+    }
+  ],
+  "p2pMarket": [],
+  "orders": [],
+  "deliveries": [],
+  "deliveryIssues": [],
+  "transactions": [],
+  "linkTokens": {},
+  "ratings": [],
+  "usedTxids": {}
+}

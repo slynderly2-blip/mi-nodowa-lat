@@ -24,16 +24,18 @@ router.use("/players", playersRoutes);
 router.use("/admin", adminRoutes);
 router.use("/social", socialRoutes);
 
+import { db } from "../database/index.js";
+
 // Configuración pública (moneda, binance)
 router.get("/config", (req, res) => {
   res.json({
     ok: true,
-    currencyName: "Nodocoins",
-    currencySymbol: "NC",
-    binance: {
-      payId: "847291039",
-      walletAddress: "0x71C...b84F (USDT TRC20 / BEP20)",
-      instruction: "Transfiere el monto exacto vía Binance Pay ID o USDT y sube el comprobante.",
+    currencyName: db.config?.currencyName || "Nodocoins",
+    currencySymbol: db.config?.currencySymbol || "NC",
+    binance: db.config?.binance || {
+      payId: "1255344898",
+      walletAddress: "USDT",
+      instruction: "+591 64770568",
       qrImage: "/uploads/default_qr.svg"
     }
   });

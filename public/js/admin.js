@@ -105,6 +105,9 @@ async function loadStats() {
 }
 
 // 1. Órdenes Binance
+let cachedOrders = [];
+let ordersSearchQuery = "";
+
 async function loadAdminOrders() {
   const tbody = document.getElementById("admin-orders-tbody");
   tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Cargando órdenes...</td></tr>`;
@@ -112,45 +115,68 @@ async function loadAdminOrders() {
   try {
     const res = await fetch("/api/admin/orders", { headers: { "x-admin-token": adminToken } });
     const data = await res.json();
-    const orders = data.orders || [];
-
-    if (orders.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);">No hay órdenes registradas.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = orders.map(o => {
-      let badge = `<span class="badge warning">Pendiente</span>`;
-      if (o.status === "APPROVED") badge = `<span class="badge success">Aprobada</span>`;
-      if (o.status === "REJECTED") badge = `<span class="badge danger">Rechazada</span>`;
-
-      return `
-        <tr>
-          <td style="font-family:monospace; font-size:0.8rem;">${o.id.slice(-6)}</td>
-          <td><strong>🎮 ${o.username}</strong></td>
-          <td>${o.itemTitle}</td>
-          <td>$${o.priceUsdt.toFixed(2)} USDT</td>
-          <td style="font-family:monospace; font-size:0.8rem;">${o.txid || "N/A"}</td>
-          <td>
-            ${o.receiptImage
-              ? `<a href="${o.receiptImage}" target="_blank" class="btn btn-secondary btn-sm">Ver Comprobante</a>`
-              : `<span style="color:var(--text-muted); font-size:0.8rem;">Sin imagen</span>`
-            }
-          </td>
-          <td>${badge}</td>
-          <td>
-            ${o.status === "PENDING" ? `
-              <button class="btn btn-success btn-sm" onclick="approveOrder('${o.id}')">✓ Aprobar</button>
-              <button class="btn btn-danger btn-sm" onclick="rejectOrder('${o.id}')">✗ Rechazar</button>
-            ` : `<span style="font-size:0.8rem; color:var(--text-muted);">Procesado</span>`}
-          </td>
-        </tr>
-      `;
-    }).join("");
+    cachedOrders = data.orders || [];
+    renderAdminOrders();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--red);">Error al cargar órdenes</td></tr>`;
   }
 }
+
+function renderAdminOrders() {
+  const tbody = document.getElementById("admin-orders-tbody");
+  if (!tbody) return;
+
+  let filtered = cachedOrders;
+  if (ordersSearchQuery) {
+    const q = ordersSearchQuery.toLowerCase();
+    filtered = filtered.filter(o =>
+      (o.username || "").toLowerCase().includes(q) ||
+      (o.itemTitle || "").toLowerCase().includes(q) ||
+      (o.txid || "").toLowerCase().includes(q) ||
+      (o.id || "").toLowerCase().includes(q) ||
+      (o.status || "").toLowerCase().includes(q)
+    );
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);">${ordersSearchQuery ? `No hay órdenes que coincidan con "${ordersSearchQuery}"` : 'No hay órdenes registradas.'}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(o => {
+    let badge = `<span class="badge warning">Pendiente</span>`;
+    if (o.status === "APPROVED") badge = `<span class="badge success">Aprobada</span>`;
+    if (o.status === "REJECTED") badge = `<span class="badge danger">Rechazada</span>`;
+
+    return `
+      <tr>
+        <td style="font-family:monospace; font-size:0.8rem;">${o.id.slice(-6)}</td>
+        <td><strong>🎮 ${escapeHtml(o.username)}</strong></td>
+        <td>${escapeHtml(o.itemTitle)}</td>
+        <td>$${Number(o.priceUsdt || 0).toFixed(2)} USDT</td>
+        <td style="font-family:monospace; font-size:0.8rem;">${escapeHtml(o.txid || "N/A")}</td>
+        <td>
+          ${o.receiptImage
+            ? `<a href="${o.receiptImage}" target="_blank" class="btn btn-secondary btn-sm">Ver Comprobante</a>`
+            : `<span style="color:var(--text-muted); font-size:0.8rem;">Sin imagen</span>`
+          }
+        </td>
+        <td>${badge}</td>
+        <td>
+          ${o.status === "PENDING" ? `
+            <button class="btn btn-success btn-sm" onclick="approveOrder('${o.id}')">✓ Aprobar</button>
+            <button class="btn btn-danger btn-sm" onclick="rejectOrder('${o.id}')">✗ Rechazar</button>
+          ` : `<span style="font-size:0.8rem; color:var(--text-muted);">Procesado</span>`}
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+document.getElementById("admin-orders-search")?.addEventListener("input", (e) => {
+  ordersSearchQuery = e.target.value.trim();
+  renderAdminOrders();
+});
 
 window.approveOrder = async (orderId) => {
   if (!confirm("¿Aprobar orden y acreditar beneficios al jugador?")) return;
@@ -174,8 +200,8 @@ window.approveOrder = async (orderId) => {
 };
 
 window.rejectOrder = async (orderId) => {
-  const reason = prompt("Motivo del rechazo:", "Comprobante inválido o no recibido");
-  if (!reason) return;
+  const reason = prompt("Motivo del rechazo de la orden (opcional):", "Comprobante no válido");
+  if (reason === null) return;
   try {
     const res = await fetch("/api/admin/orders/reject", {
       method: "POST",
@@ -195,7 +221,10 @@ window.rejectOrder = async (orderId) => {
   }
 };
 
-// 2. Reclamos de Entrega ("No recibí mi producto")
+// 2. Reclamos de Entregas
+let cachedIssues = [];
+let issuesSearchQuery = "";
+
 async function loadAdminIssues() {
   const tbody = document.getElementById("admin-issues-tbody");
   tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Cargando reclamos...</td></tr>`;
@@ -203,39 +232,61 @@ async function loadAdminIssues() {
   try {
     const res = await fetch("/api/admin/delivery-issues", { headers: { "x-admin-token": adminToken } });
     const data = await res.json();
-    const issues = data.issues || [];
-
-    if (issues.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">No hay reportes de entrega pendientes.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = issues.map(i => {
-      let badge = `<span class="badge danger">⚠️ Pendiente</span>`;
-      if (i.status === "REDELIVERED") badge = `<span class="badge success">🔄 Re-encolado</span>`;
-      if (i.status === "RESOLVED") badge = `<span class="badge success">✅ Resuelto</span>`;
-
-      return `
-        <tr>
-          <td style="font-size:0.8rem; color:var(--text-muted);">${new Date(i.createdAt).toLocaleString()}</td>
-          <td><strong>🎮 ${i.player}</strong></td>
-          <td>${i.itemTitle}</td>
-          <td style="font-family:monospace; font-size:0.8rem; color:var(--primary);">${i.command || "N/A"}</td>
-          <td>${i.note || "Sin nota"}</td>
-          <td>${badge}</td>
-          <td>
-            ${i.status === "PENDING" ? `
-              <button class="btn btn-primary btn-sm" onclick="handleIssueAction('${i.id}', 'redeliver')">🔄 Re-encolar en MC</button>
-              <button class="btn btn-success btn-sm" onclick="handleIssueAction('${i.id}', 'resolve')">✓ Resolver</button>
-            ` : `<span style="font-size:0.8rem; color:var(--text-muted);">Finalizado</span>`}
-          </td>
-        </tr>
-      `;
-    }).join("");
+    cachedIssues = data.issues || [];
+    renderAdminIssues();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--red);">Error al cargar reclamos</td></tr>`;
   }
 }
+
+function renderAdminIssues() {
+  const tbody = document.getElementById("admin-issues-tbody");
+  if (!tbody) return;
+
+  let filtered = cachedIssues;
+  if (issuesSearchQuery) {
+    const q = issuesSearchQuery.toLowerCase();
+    filtered = filtered.filter(i =>
+      (i.player || "").toLowerCase().includes(q) ||
+      (i.itemTitle || "").toLowerCase().includes(q) ||
+      (i.note || "").toLowerCase().includes(q) ||
+      (i.command || "").toLowerCase().includes(q)
+    );
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">${issuesSearchQuery ? `No hay reportes que coincidan con "${issuesSearchQuery}"` : 'No hay reportes de entrega pendientes.'}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(i => {
+    let badge = `<span class="badge danger">⚠️ Pendiente</span>`;
+    if (i.status === "REDELIVERED") badge = `<span class="badge success">🔄 Re-encolado</span>`;
+    if (i.status === "RESOLVED") badge = `<span class="badge success">✅ Resuelto</span>`;
+
+    return `
+      <tr>
+        <td style="font-size:0.8rem; color:var(--text-muted);">${new Date(i.createdAt).toLocaleString()}</td>
+        <td><strong>🎮 ${escapeHtml(i.player)}</strong></td>
+        <td>${escapeHtml(i.itemTitle)}</td>
+        <td style="font-family:monospace; font-size:0.8rem; color:var(--primary);">${escapeHtml(i.command || "N/A")}</td>
+        <td>${escapeHtml(i.note || "Sin nota")}</td>
+        <td>${badge}</td>
+        <td>
+          ${i.status === "PENDING" ? `
+            <button class="btn btn-primary btn-sm" onclick="handleIssueAction('${i.id}', 'redeliver')">🔄 Re-encolar en MC</button>
+            <button class="btn btn-success btn-sm" onclick="handleIssueAction('${i.id}', 'resolve')">✓ Resolver</button>
+          ` : `<span style="font-size:0.8rem; color:var(--text-muted);">Finalizado</span>`}
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+document.getElementById("admin-issues-search")?.addEventListener("input", (e) => {
+  issuesSearchQuery = e.target.value.trim();
+  renderAdminIssues();
+});
 
 window.handleIssueAction = async (issueId, action) => {
   try {
@@ -267,10 +318,13 @@ window.switchAdminSubTab = (tabName) => {
 
   if (tabName === "code-catalog") loadRawCatalogEditor();
   if (tabName === "players") loadAdminPlayers();
+  if (tabName === "catalog") loadAdminCatalog();
 };
 
 // 3. Catálogo Tienda (Visual)
 let cachedCatalogItems = [];
+let catalogSearchQuery = "";
+let catalogCategoryFilter = "all";
 
 async function loadAdminCatalog() {
   const tbody = document.getElementById("admin-catalog-tbody");
@@ -278,28 +332,76 @@ async function loadAdminCatalog() {
     const res = await fetch("/api/store");
     const data = await res.json();
     cachedCatalogItems = data.items || [];
-
-    tbody.innerHTML = cachedCatalogItems.map(i => `
-      <tr>
-        <td><strong>${escapeHtml(i.name)}</strong></td>
-        <td><span class="badge">${i.category}</span></td>
-        <td>🪙 ${i.priceCoins.toLocaleString()} NC</td>
-        <td>💵 $${i.priceUsdt.toFixed(2)} USDT</td>
-        <td style="font-family:monospace; font-size:0.8rem;">${escapeHtml(i.command || "N/A")}</td>
-        <td>
-          <div style="display:flex; gap:0.35rem;">
-            <button class="btn btn-secondary btn-sm" onclick="openEditItemModal('${i.id}')">Editar</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteCatalogItem('${i.id}')">Eliminar</button>
-          </div>
-        </td>
-      </tr>
-    `).join("");
-  } catch (e) {}
+    renderAdminCatalog();
+  } catch (e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--red);">Error cargando catálogo</td></tr>`;
+  }
 }
+
+function renderAdminCatalog() {
+  const tbody = document.getElementById("admin-catalog-tbody");
+  if (!tbody) return;
+
+  let filtered = cachedCatalogItems;
+
+  if (catalogCategoryFilter !== "all") {
+    filtered = filtered.filter(i => (i.category || (i.giveCoins > 0 ? "coins" : "other")) === catalogCategoryFilter);
+  }
+
+  if (catalogSearchQuery) {
+    const q = catalogSearchQuery.toLowerCase();
+    filtered = filtered.filter(i =>
+      (i.name || "").toLowerCase().includes(q) ||
+      (i.category || "").toLowerCase().includes(q) ||
+      (i.command || "").toLowerCase().includes(q) ||
+      (i.description || "").toLowerCase().includes(q) ||
+      (i.id || "").toLowerCase().includes(q)
+    );
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">${catalogSearchQuery ? `No hay productos que coincidan con "${catalogSearchQuery}"` : 'No hay artículos en esta categoría.'}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(i => `
+    <tr>
+      <td>
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <strong>${escapeHtml(i.name)}</strong>
+          ${i.badge ? `<span class="badge" style="font-size:0.68rem; background:var(--primary-light); color:var(--primary);">${escapeHtml(i.badge)}</span>` : ''}
+        </div>
+      </td>
+      <td><span class="badge" style="background:var(--tiktok-gray);">${escapeHtml(i.category)}</span></td>
+      <td>🪙 ${Number(i.priceCoins || 0).toLocaleString()} NC</td>
+      <td>💵 $${Number(i.priceUsdt || 0).toFixed(2)} USDT</td>
+      <td style="font-family:monospace; font-size:0.8rem; color:var(--primary);">${escapeHtml(i.command || "N/A")}</td>
+      <td>
+        <div style="display:flex; gap:0.35rem;">
+          <button class="btn btn-primary btn-sm" onclick="openEditItemModal('${i.id}')" title="Editar este producto">✏️ Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCatalogItem('${i.id}')" title="Eliminar del catálogo">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+}
+
+window.filterAdminCatalog = (cat) => {
+  catalogCategoryFilter = cat;
+  document.querySelectorAll("#admin-catalog-filter-pills .filter-pill").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.cfilter === cat);
+  });
+  renderAdminCatalog();
+};
+
+document.getElementById("admin-catalog-search")?.addEventListener("input", (e) => {
+  catalogSearchQuery = e.target.value.trim();
+  renderAdminCatalog();
+});
 
 window.openEditItemModal = (itemId) => {
   const item = cachedCatalogItems.find(i => i.id === itemId);
-  if (!item) return;
+  if (!item) return showToast("Artículo no encontrado");
 
   document.getElementById("edit-item-id").value = item.id;
   document.getElementById("edit-item-name").value = item.name || "";
@@ -337,7 +439,7 @@ document.getElementById("edit-item-form")?.addEventListener("submit", async (e) 
     const data = await res.json();
     if (data.ok) {
       closeModal("modal-edit-item");
-      showToast("Artículo actualizado con éxito");
+      showToast("¡Artículo actualizado con éxito!");
       loadAdminCatalog();
     } else {
       showToast(data.error || "Error al actualizar artículo");

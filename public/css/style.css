@@ -218,9 +218,10 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--text-muted) !important;
   font-family: inherit;
   font-size: 0.68rem;
   font-weight: 600;
@@ -229,12 +230,15 @@ body {
   cursor: pointer;
   transition: all 0.18s ease;
   position: relative;
-  border-radius: var(--radius-sm);
+  border-radius: 0 !important;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
 }
 .mobile-tab-btn svg {
   width: 20px;
   height: 20px;
   stroke: var(--text-muted);
+  fill: none;
   transition: stroke 0.15s, transform 0.15s;
   flex-shrink: 0;
 }
@@ -248,12 +252,116 @@ body {
   transform: scale(0.92);
 }
 .mobile-tab-btn.active {
-  color: var(--primary);
-  font-weight: 700;
+  background: transparent !important;
+  color: var(--primary) !important;
+  font-weight: 800;
+  box-shadow: none !important;
 }
 .mobile-tab-btn.active svg {
-  stroke: var(--primary);
+  stroke: var(--primary) !important;
+  fill: none !important;
   transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   TARJETAS DE JUGADORES (Comunidad)
+   ========================================================================== */
+.player-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.15rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.player-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-hover);
+}
+.player-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.player-card-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.player-card.linked .player-card-avatar {
+  border-color: var(--emerald);
+}
+.player-card-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.player-card-name {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+}
+.player-card-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-top: 1px;
+}
+.player-card-stats {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.player-card-stat-item strong {
+  color: var(--text);
+  font-weight: 800;
+}
+.player-card-actions {
+  display: flex;
+  gap: 0.45rem;
+  width: 100%;
+  align-items: stretch;
+}
+.player-card-actions .btn {
+  padding: 0.48rem 0.75rem !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  border-radius: var(--radius-sm) !important;
+  line-height: 1.2 !important;
+}
+.player-card-actions .btn-tiktok {
+  color: #ffffff !important;
+  background: var(--primary) !important;
+}
+.player-card-actions .btn-tiktok svg {
+  stroke: #ffffff !important;
+}
+.player-card-actions .btn-secondary {
+  color: var(--text) !important;
+  background: var(--tiktok-gray) !important;
+  border: 1px solid var(--border) !important;
+}
+.player-card-actions .btn-secondary svg {
+  stroke: var(--text) !important;
 }
 
 /* Badge flotante móvil discreto - No tapa textos */
