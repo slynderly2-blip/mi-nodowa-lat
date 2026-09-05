@@ -205,11 +205,19 @@ function openReceiptModal(orderId) {
     btnReject.style.display = "none";
   }
 
-  document.getElementById("modal-view-receipt").classList.add("active");
+  const modal = document.getElementById("modal-view-receipt");
+  if (modal) {
+    modal.classList.add("active");
+    modal.style.display = "flex";
+  }
 }
 
 function closeReceiptModal() {
-  document.getElementById("modal-view-receipt").classList.remove("active");
+  const modal = document.getElementById("modal-view-receipt");
+  if (modal) {
+    modal.classList.remove("active");
+    modal.style.display = "none";
+  }
 }
 
 async function approveOrder(orderId) {
@@ -379,17 +387,25 @@ function escapeHtmlAdmin(str) {
 }
 
 function openCreateItemModal() {
-  document.getElementById("item-modal-title").innerText = "Nuevo Artículo de Tienda";
-  document.getElementById("form-save-store-item").reset();
-  document.getElementById("item-input-id").value = "";
-  document.getElementById("modal-edit-item").classList.add("active");
+  const title = document.getElementById("item-modal-title");
+  if (title) title.innerText = "Nuevo Artículo de Tienda";
+  const form = document.getElementById("form-save-store-item");
+  if (form) form.reset();
+  const inputId = document.getElementById("item-input-id");
+  if (inputId) inputId.value = "";
+  const modal = document.getElementById("modal-edit-item");
+  if (modal) {
+    modal.classList.add("active");
+    modal.style.display = "flex";
+  }
 }
 
 function openEditItemModal(itemId) {
   const item = cachedCatalog.find(i => i.id === itemId);
   if (!item) return;
 
-  document.getElementById("item-modal-title").innerText = "Editar Artículo";
+  const title = document.getElementById("item-modal-title");
+  if (title) title.innerText = "Editar Artículo";
   document.getElementById("item-input-id").value = item.id;
   document.getElementById("item-input-name").value = item.name;
   document.getElementById("item-input-category").value = item.category;
@@ -400,11 +416,19 @@ function openEditItemModal(itemId) {
   document.getElementById("item-input-desc").value = item.description || "";
   document.getElementById("item-input-image-url").value = item.imageUrl || "";
 
-  document.getElementById("modal-edit-item").classList.add("active");
+  const modal = document.getElementById("modal-edit-item");
+  if (modal) {
+    modal.classList.add("active");
+    modal.style.display = "flex";
+  }
 }
 
 function closeEditItemModal() {
-  document.getElementById("modal-edit-item").classList.remove("active");
+  const modal = document.getElementById("modal-edit-item");
+  if (modal) {
+    modal.classList.remove("active");
+    modal.style.display = "none";
+  }
 }
 
 function setupCatalogForm() {
@@ -700,6 +724,7 @@ function openBulkImportModal() {
   const modal = document.getElementById("modal-bulk-import");
   if (modal) {
     modal.classList.add("active");
+    modal.style.display = "flex";
     renderAdminIcons(modal);
     updateBulkItemsStats();
   }
@@ -709,6 +734,7 @@ function closeBulkImportModal() {
   const modal = document.getElementById("modal-bulk-import");
   if (modal) {
     modal.classList.remove("active");
+    modal.style.display = "none";
   }
 }
 
@@ -974,6 +1000,7 @@ function openAddStaffModal(e) {
   if (inputLabel) inputLabel.value = "";
   toggleStaffDaysInput();
 
+  modal.classList.add("active");
   modal.style.display = "flex";
 }
 
@@ -991,6 +1018,8 @@ function openEditStaffModal(username, role, daysLeft, label, e) {
   document.getElementById("staff-input-days").value = daysLeft || "30";
   document.getElementById("staff-input-label").value = label || "";
   toggleStaffDaysInput();
+
+  modal.classList.add("active");
   modal.style.display = "flex";
 }
 
@@ -1000,7 +1029,10 @@ function closeManageStaffModal(e) {
     e.stopPropagation();
   }
   const modal = document.getElementById("modal-manage-staff");
-  if (modal) modal.style.display = "none";
+  if (modal) {
+    modal.classList.remove("active");
+    modal.style.display = "none";
+  }
 }
 
 function toggleStaffDaysInput() {

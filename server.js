@@ -142,6 +142,29 @@ function loadDb() {
     if (!db.staff) db.staff = {};
     if (!db.opRentals) db.opRentals = [];
     if (!db.ratings) db.ratings = [];
+
+    // Pre-cargar administradores principales del servidor si el registro de staff esta vacio
+    if (Object.keys(db.staff).length === 0) {
+      db.staff["slynderly"] = {
+        displayName: "slynderly",
+        role: "admin",
+        label: "[ADMIN] Administrador Principal",
+        assignedAt: new Date().toISOString()
+      };
+      db.staff["tw3sempai"] = {
+        displayName: "Tw3sempai",
+        role: "admin",
+        label: "[ADMIN] Administrador Principal",
+        assignedAt: new Date().toISOString()
+      };
+      db.staff["abuelong"] = {
+        displayName: "AbueloNG",
+        role: "admin",
+        label: "[ADMIN] Administrador Principal",
+        assignedAt: new Date().toISOString()
+      };
+      saveDb();
+    }
   } catch (err) {
     console.error("Error al cargar db.json:", err);
   }
