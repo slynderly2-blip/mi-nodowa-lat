@@ -1,4 +1,4 @@
-﻿import { Client } from "ssh2";
+import { Client } from "ssh2";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -21,6 +21,10 @@ const ADDONS = [
   {
     localDir:   path.join(__dirname, "addon", "nodowa_worldedit_addon"),
     remoteDest: "/development_behavior_packs/nodowa_worldedit_addon"
+  },
+  {
+    localDir:   path.join(__dirname, "addon", "nodowa_titles_addon"),
+    remoteDest: "/development_behavior_packs/nodowa_titles_addon"
   }
 ];
 

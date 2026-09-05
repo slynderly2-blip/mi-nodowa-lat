@@ -1,0 +1,29 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Nodowa Titles & Player Stats",
+    "description": "Addon independiente de Estadísticas de Jugador y Títulos Épicos para Nodowa Network",
+    "uuid": "3c7a9142-b09f-4de1-9ef2-57cb5a127f88",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 100]
+  },
+  "modules": [
+    {
+      "type": "script",
+      "language": "javascript",
+      "uuid": "98f4e157-cd23-4b69-8a21-197e8b61c944",
+      "entry": "scripts/main.js",
+      "version": [1, 0, 0]
+    }
+  ],
+  "dependencies": [
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.1.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "2.1.0"
+    }
+  ]
+}
