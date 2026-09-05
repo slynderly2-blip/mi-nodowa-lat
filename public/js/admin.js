@@ -1024,13 +1024,26 @@ async function loadAdminStaff() {
 }
 
 function openAddStaffModal() {
-  document.getElementById("staff-modal-title").textContent = "Asignar Rol / Rentar OP";
-  document.getElementById("staff-input-gamertag").value = "";
-  document.getElementById("staff-input-role").value = "op_rented";
-  document.getElementById("staff-input-days").value = "30";
-  document.getElementById("staff-input-label").value = "";
+  console.log("[Staff Modal] Abriendo modal...");
+  const modal = document.getElementById("modal-manage-staff");
+  const title = document.getElementById("staff-modal-title");
+  const inputGt = document.getElementById("staff-input-gamertag");
+  const inputRole = document.getElementById("staff-input-role");
+  const inputDays = document.getElementById("staff-input-days");
+  const inputLabel = document.getElementById("staff-input-label");
+
+  if (!modal) { console.error("[Staff Modal] ERROR: #modal-manage-staff no existe en el DOM"); return; }
+  if (!title) { console.error("[Staff Modal] ERROR: #staff-modal-title no existe"); return; }
+
+  title.textContent = "Asignar Rol / Rentar OP";
+  if (inputGt) inputGt.value = "";
+  if (inputRole) inputRole.value = "op_rented";
+  if (inputDays) inputDays.value = "30";
+  if (inputLabel) inputLabel.value = "";
   toggleStaffDaysInput();
-  document.getElementById("modal-manage-staff").style.display = "flex";
+
+  modal.style.display = "flex";
+  console.log("[Staff Modal] Modal abierto, display:", modal.style.display, "z-index:", getComputedStyle(modal).zIndex);
 }
 
 function openEditStaffModal(username, role, daysLeft, label) {
