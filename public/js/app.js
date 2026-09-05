@@ -758,6 +758,24 @@ document.getElementById("transfer-form").addEventListener("submit", async (e) =>
   }
 });
 
+// ============================================================
+// SERVIDOR MINECRAFT & CATÁLOGO DINÁMICO
+// ============================================================
+let currentStoreCategory = "all";
+let currentReceiptData = null;
+
+// Helper: Copiar IP de Minecraft Bedrock
+window.copyServerIp = () => {
+  const ip = "mi.nodowa.lat";
+  const port = "19132";
+  const fullText = `${ip}:${port}`;
+  navigator.clipboard.writeText(fullText).then(() => {
+    showToast(`¡IP Copiada! ${fullText} (Minecraft Bedrock)`);
+  }).catch(() => {
+    showToast(`IP Servidor: ${fullText}`);
+  });
+};
+
 // Store & Catalog
 async function loadStore() {
   try {
@@ -765,12 +783,62 @@ async function loadStore() {
     const data = await res.json();
     if (data.ok) {
       storeItems = data.items || [];
+      renderCategoryFilters();
       renderStore();
     }
   } catch (err) {
     console.error("Error cargando tienda:", err);
   }
 }
+
+// Generación Dinámica de Filtros según Productos Existentes
+function renderCategoryFilters() {
+  const container = document.getElementById("store-category-filters");
+  if (!container) return;
+
+  // Extraer categorías únicas de los items
+  const categoryCounts = { all: storeItems.length };
+  storeItems.forEach(item => {
+    const cat = item.category || (item.giveCoins > 0 ? "coins" : "other");
+    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+  });
+
+  const categoryMeta = {
+    all: { label: "Todos", icon: "🔥" },
+    coins: { label: "Monedas (NC)", icon: "🪙" },
+    ranks: { label: "Rangos", icon: "👑" },
+    crates: { label: "Llaves", icon: "🗝️" },
+    kits: { label: "Kits PvP", icon: "⚔️" }
+  };
+
+  const categories = Object.keys(categoryCounts);
+  if (!categories.includes(currentStoreCategory)) {
+    currentStoreCategory = "all";
+  }
+
+  container.innerHTML = categories.map(cat => {
+    const meta = categoryMeta[cat] || {
+      label: cat.charAt(0).toUpperCase() + cat.slice(1),
+      icon: "📦"
+    };
+    const count = categoryCounts[cat] || 0;
+    const isActive = currentStoreCategory === cat;
+
+    return `
+      <button type="button" class="category-pill-btn ${isActive ? 'active' : ''}" onclick="setStoreCategory('${cat}')">
+        <span>${meta.icon}</span>
+        <span>${meta.label}</span>
+        <span class="cat-count">${count}</span>
+      </button>
+    `;
+  }).join("");
+}
+
+window.setStoreCategory = (cat) => {
+  currentStoreCategory = cat;
+  renderCategoryFilters();
+  renderStore();
+};
 
 function renderStore() {
   const grid = document.getElementById("store-grid");
@@ -785,15 +853,18 @@ function renderStore() {
     clearBtn.style.display = query ? "flex" : "none";
   }
 
-  let itemsToDisplay = [];
+  let itemsToDisplay = storeItems;
 
-  if (!query) {
-    // Por defecto: solo monedas
-    itemsToDisplay = storeItems.filter(i => i.category === "coins" || (i.giveCoins && i.giveCoins > 0));
-    if (storeTitle) storeTitle.textContent = "Paquetes de Nodocoins";
-    if (storeSubtitle) storeSubtitle.textContent = "Acreditación instantánea en tu cuenta. Escribe en el buscador para ver otros productos.";
-  } else {
-    // Si busca: buscar en todo el catálogo
+  // Filtrar por categoría seleccionada si no es 'all'
+  if (currentStoreCategory !== "all") {
+    itemsToDisplay = itemsToDisplay.filter(i => {
+      const itemCat = i.category || (i.giveCoins > 0 ? "coins" : "other");
+      return itemCat === currentStoreCategory;
+    });
+  }
+
+  // Filtrar por búsqueda si el usuario ingresó texto
+  if (query) {
     itemsToDisplay = storeItems.filter(i => {
       const matchName = (i.name || "").toLowerCase().includes(query);
       const matchDesc = (i.description || "").toLowerCase().includes(query);
@@ -801,8 +872,25 @@ function renderStore() {
       const matchBadge = (i.badge || "").toLowerCase().includes(query);
       return matchName || matchDesc || matchCategory || matchBadge;
     });
-    if (storeTitle) storeTitle.innerHTML = `Resultados para: <span style="color:var(--tiktok-red)">"${query}"</span>`;
-    if (storeSubtitle) storeSubtitle.innerHTML = `Mostrando productos coincidentes. <button class="link-btn" onclick="clearSearch()">Ver solo monedas</button>`;
+
+    if (storeTitle) storeTitle.innerHTML = `Resultados para: <span style="color:var(--primary)">"${query}"</span>`;
+    if (storeSubtitle) storeSubtitle.innerHTML = `Mostrando ${itemsToDisplay.length} producto(s) encontrado(s). <button class="link-btn" onclick="clearSearch()">Restablecer búsqueda</button>`;
+  } else {
+    const titlesMap = {
+      all: { title: "Catálogo Completo de Nodowa", desc: "Paquetes de monedas, rangos, llaves y kits sincronizados con Minecraft Bedrock." },
+      coins: { title: "Paquetes de Nodocoins (NC)", desc: "Recargas de monedas oficiales con bonos extra y acreditación instantánea." },
+      ranks: { title: "Rangos VIP & Exclusivos", desc: "Ventajas permanentes, prefijos en chat, cosméticos y comandos dentro del servidor." },
+      crates: { title: "Llaves Místicas & Crates", desc: "Ábrelas en el spawn de Nodowa para conseguir ítems y recompensas épicas." },
+      kits: { title: "Kits de Equipamiento", desc: "Sets de combate, armaduras encantadas y herramientas para tu aventura." }
+    };
+
+    const curInfo = titlesMap[currentStoreCategory] || {
+      title: `Artículos: ${currentStoreCategory.toUpperCase()}`,
+      desc: "Productos disponibles en la tienda oficial de Nodowa."
+    };
+
+    if (storeTitle) storeTitle.textContent = curInfo.title;
+    if (storeSubtitle) storeSubtitle.textContent = curInfo.desc;
   }
 
   if (itemsToDisplay.length === 0) {
@@ -811,9 +899,9 @@ function renderStore() {
         <div class="empty-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         </div>
-        <h3>No encontramos productos para "${query}"</h3>
-        <p>Prueba buscando "vip", "mvp", "llave", "kit" o vuelve al catálogo de monedas.</p>
-        <button class="btn btn-secondary btn-sm" onclick="clearSearch()">Ver Monedas</button>
+        <h3>No encontramos artículos disponibles</h3>
+        <p>${query ? `No hay resultados para "${query}".` : 'No hay productos en esta categoría por ahora.'}</p>
+        <button class="btn btn-secondary btn-sm" onclick="clearSearch(); setStoreCategory('all');">Ver Todo el Catálogo</button>
       </div>
     `;
     return;
@@ -838,7 +926,7 @@ function renderStore() {
             ${item.priceCoins > 0 ? `<span class="price-coins">${item.priceCoins.toLocaleString()} <small>NC</small></span>` : ""}
             ${item.priceUsdt > 0 ? `<span class="price-usdt">$${item.priceUsdt.toFixed(2)} <small>USDT</small></span>` : ""}
           </div>
-          <button class="btn btn-tiktok btn-block" onclick="startCheckout('${item.id}')">
+          <button class="btn ${isCoin ? 'btn-amber' : 'btn-tiktok'} btn-block" onclick="startCheckout('${item.id}')">
             ${isCoin ? 'Recargar Monedas' : 'Comprar Producto'}
           </button>
         </div>
@@ -901,6 +989,49 @@ window.startCheckout = (itemId) => {
   openModal("modal-checkout");
 };
 
+// Generador de Comprobante / Recibo Oficial de Compra
+window.showPurchaseReceipt = (details) => {
+  currentReceiptData = details;
+
+  document.getElementById("receipt-folio").textContent = details.folio || `NDW-TX-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+  document.getElementById("receipt-player").textContent = details.player || currentUser || "Jugador Nodowa";
+  document.getElementById("receipt-item-name").textContent = details.itemName || "Artículo Nodowa";
+  document.getElementById("receipt-item-price").textContent = details.priceFormatted || "Gratis";
+  document.getElementById("receipt-date").textContent = details.date || new Date().toLocaleString();
+  document.getElementById("receipt-method").textContent = details.method || "Nodocoins (NC)";
+  
+  const statusEl = document.getElementById("receipt-status-text");
+  if (statusEl) {
+    statusEl.textContent = details.status || "Verificado";
+  }
+
+  openModal("modal-receipt");
+};
+
+window.printReceipt = () => {
+  window.print();
+};
+
+window.copyReceiptSummary = () => {
+  if (!currentReceiptData) return showToast("No hay datos de recibo.");
+  const summary = `🧾 COMPROBANTE DE COMPRA - NODOWA NETWORK\n` +
+    `----------------------------------------\n` +
+    `Folio: ${currentReceiptData.folio || 'N/A'}\n` +
+    `Jugador: ${currentReceiptData.player || currentUser}\n` +
+    `Producto: ${currentReceiptData.itemName}\n` +
+    `Total: ${currentReceiptData.priceFormatted}\n` +
+    `Método: ${currentReceiptData.method}\n` +
+    `Fecha: ${currentReceiptData.date || new Date().toLocaleString()}\n` +
+    `Servidor: mi.nodowa.lat:19132\n` +
+    `Comando entrega: /buzon\n` +
+    `----------------------------------------`;
+  navigator.clipboard.writeText(summary).then(() => {
+    showToast("¡Resumen del recibo copiado al portapapeles!");
+  }).catch(() => {
+    showToast("Recibo disponible en pantalla");
+  });
+};
+
 async function buyWithCoins(itemId) {
   try {
     const res = await fetch("/api/store/buy", {
@@ -913,12 +1044,18 @@ async function buyWithCoins(itemId) {
       closeModal("modal-checkout");
       loadBalance();
 
-      // Desplegar modal explicativo con el comando /buzon
-      const successTitle = document.getElementById("purchase-success-item-name");
-      if (successTitle && selectedItem) {
-        successTitle.textContent = selectedItem.name;
-      }
-      openModal("modal-purchase-success");
+      // Generar y desplegar recibo oficial
+      const folioCode = `NDW-NC-${Date.now().toString().slice(-6)}`;
+      showPurchaseReceipt({
+        folio: folioCode,
+        player: currentUser,
+        itemName: selectedItem.name,
+        priceFormatted: `${selectedItem.priceCoins.toLocaleString()} NC`,
+        method: "Billetera Nodocoins (Saldo Web)",
+        status: "Acreditado",
+        date: new Date().toLocaleString()
+      });
+      showToast("¡Compra completada con éxito!");
     } else {
       showToast(data.error || "No se pudo completar la compra");
     }
@@ -965,6 +1102,17 @@ document.getElementById("binance-order-form").addEventListener("submit", async (
     if (data.ok) {
       closeModal("modal-checkout");
       document.getElementById("binance-order-form").reset();
+
+      // Generar y desplegar recibo oficial en estado de revisión
+      showPurchaseReceipt({
+        folio: `NDW-USDT-${txid.slice(0, 8).toUpperCase() || Date.now().toString().slice(-6)}`,
+        player: currentUser,
+        itemName: selectedItem.name,
+        priceFormatted: `$${selectedItem.priceUsdt.toFixed(2)} USDT`,
+        method: `Binance Pay (TXID: ${txid})`,
+        status: "En Verificación",
+        date: new Date().toLocaleString()
+      });
       showToast("Comprobante enviado. Será validado en breve.");
     } else {
       showToast(data.error || "Error al enviar comprobante");
@@ -1800,10 +1948,21 @@ async function loadDeliveries() {
           <td style="font-size:0.82rem; color:var(--text-muted);">${new Date(d.createdAt).toLocaleString()}</td>
           <td>${badgeHtml}</td>
           <td>
-            ${hasIssue
-              ? `<span style="font-size:0.8rem; color:var(--red); font-weight:600;">En revisión</span>`
-              : `<button class="btn btn-danger btn-sm" onclick="openReportModal('${d.id}')">Reportar Problema</button>`
-            }
+            <div style="display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="showPurchaseReceipt({
+                folio: '${d.id || "NDW-DEL-" + Date.now().toString().slice(-6)}',
+                player: '${d.username || currentUser}',
+                itemName: '${escapeHtml(d.itemTitle || "Artículo")}',
+                priceFormatted: '${d.giveCoins ? `${d.giveCoins.toLocaleString()} NC` : 'Acreditado'}',
+                method: 'Entrega en Servidor (Minecraft)',
+                status: '${isDelivered ? 'Entregado' : (hasIssue ? 'En Revisión' : 'Listo en Servidor')}',
+                date: '${new Date(d.createdAt).toLocaleString()}'
+              })">🧾 Recibo</button>
+              ${hasIssue
+                ? `<span style="font-size:0.75rem; color:var(--red); font-weight:700;">En revisión</span>`
+                : `<button class="btn btn-danger-soft btn-sm" onclick="openReportModal('${d.id}')">Reportar</button>`
+              }
+            </div>
           </td>
         </tr>
       `;

@@ -79,20 +79,20 @@
     </div>
   </header>
 
-  <!-- Mobile Bottom Navigation (Estilo TikTok App - Fija en la parte inferior) -->
+  <!-- Mobile Bottom Navigation (Barra ergonómica estilo App) -->
   <nav class="mobile-bottom-nav">
     <button class="mobile-tab-btn tab-btn active" data-tab="store">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>
-      <span>Monedas</span>
+      <span>Tienda</span>
     </button>
     <button class="mobile-tab-btn tab-btn" data-tab="market">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
       <span>Mercado</span>
     </button>
-    <button class="mobile-tab-btn tab-btn" data-tab="social" style="position:relative;">
+    <button class="mobile-tab-btn tab-btn" data-tab="social">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <span>Chat</span>
-      <span id="badge-social-mobile" class="badge danger" style="display:none; position:absolute; top:4px; right:12px; font-size:0.65rem; padding:1px 5px;">0</span>
+      <span id="badge-social-mobile" class="nav-badge-floating" style="display:none;">0</span>
     </button>
     <button class="mobile-tab-btn tab-btn" data-tab="wallet">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
@@ -101,6 +101,7 @@
     <button class="mobile-tab-btn tab-btn" data-tab="deliveries">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
       <span>Buzón</span>
+      <span id="badge-deliveries-mobile" class="nav-badge-floating" style="display:none;">0</span>
     </button>
     <button class="mobile-tab-btn tab-btn" data-tab="leaderboard">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
@@ -113,9 +114,40 @@
 
     <!-- 1. Tienda / Monedas -->
     <section class="tab-view active" id="view-store">
+
+      <!-- Banner de Conexión Directa al Servidor Bedrock -->
+      <div class="server-connect-banner">
+        <div class="server-banner-info">
+          <div class="server-banner-icon">🎮</div>
+          <div class="server-banner-text">
+            <div class="server-banner-title-row">
+              <span class="server-banner-title">Servidor Oficial de Nodowa</span>
+              <span class="server-status-pill">
+                <span class="server-live-dot"></span>
+                <span>Bedrock 1.20 / 1.21+</span>
+              </span>
+            </div>
+            <div class="server-ip-row">
+              <span>IP: <strong class="server-ip-code" id="server-host-text">mi.nodowa.lat</strong></span>
+              <span>Puerto: <strong class="server-ip-code" id="server-port-text">19132</strong></span>
+            </div>
+          </div>
+        </div>
+        <div class="server-banner-actions">
+          <a href="minecraft://?addExternalServer=Nodowa|mi.nodowa.lat:19132" class="btn-connect-mc" id="btn-quick-join" title="Abre Minecraft directamente con el servidor agregado">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Unirse a Minecraft</span>
+          </a>
+          <button type="button" class="btn-copy-ip" id="btn-quick-copy-ip" onclick="copyServerIp()" title="Copiar IP y puerto al portapapeles">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <span>Copiar IP</span>
+          </button>
+        </div>
+      </div>
+
       <div class="search-hero">
         <h1 class="hero-title">Tienda Oficial de Nodowa</h1>
-        <p class="hero-subtitle">Paquetes de monedas instantáneos. Escribe en el buscador para ver rangos, llaves o kits.</p>
+        <p class="hero-subtitle">Monedas instantáneas, rangos exclusivos, llaves místicas y kits de combate para Minecraft Bedrock.</p>
         
         <div class="search-box">
           <span class="search-icon-svg">
@@ -125,19 +157,16 @@
           <button id="search-clear-btn" class="search-clear-btn" onclick="clearSearch()" title="Limpiar búsqueda">&times;</button>
         </div>
 
-        <div class="search-tags">
-          <span class="search-tags-label">Populares:</span>
-          <button class="search-tag-pill" onclick="setSearchTag('vip')">VIP</button>
-          <button class="search-tag-pill" onclick="setSearchTag('mvp')">MVP+</button>
-          <button class="search-tag-pill" onclick="setSearchTag('llave')">Llaves</button>
-          <button class="search-tag-pill" onclick="setSearchTag('kit')">Kits</button>
+        <!-- Categorías generadas dinámicamente según productos existentes -->
+        <div class="category-filters-container" id="store-category-filters">
+          <!-- Renderizado dinámico desde app.js -->
         </div>
       </div>
 
       <div class="section-header">
         <div>
-          <h2 class="section-title" id="store-title">Paquetes de Nodocoins</h2>
-          <p class="section-subtitle" id="store-subtitle">Sincronizados en tiempo real con tu cuenta de Minecraft Bedrock.</p>
+          <h2 class="section-title" id="store-title">Catálogo Completo</h2>
+          <p class="section-subtitle" id="store-subtitle">Acreditación instantánea sincronizada en tiempo real con tu cuenta de Minecraft Bedrock.</p>
         </div>
       </div>
 
@@ -749,37 +778,84 @@
     </div>
   </div>
 
-  <!-- Modal: Aviso Especial de Compra Exitosa y Buzón Minecraft -->
-  <div class="modal-backdrop" id="modal-purchase-success">
-    <div class="modal-box" style="max-width:460px; text-align:center;">
-      <div style="width:58px; height:58px; border-radius:50%; background:var(--emerald-light); color:var(--emerald); display:flex; align-items:center; justify-content:center; margin:0.5rem auto 1rem;">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      </div>
-      <h3 style="font-size:1.35rem; font-weight:800; color:var(--text); margin-bottom:0.4rem;">¡Compra Completada!</h3>
-      <p id="purchase-success-item-name" style="font-weight:700; color:var(--primary); font-size:1.05rem; margin-bottom:1rem;"></p>
-      
-      <div style="background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-md); padding:1rem; text-align:left; margin-bottom:1.25rem;">
-        <div style="font-weight:800; font-size:0.88rem; color:var(--text); display:flex; align-items:center; gap:0.45rem; margin-bottom:0.4rem;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg>
-          <span>¿Cómo recibo mi producto?</span>
+  <!-- Modal: Comprobante / Recibo Oficial de Compra Nodowa -->
+  <div class="modal-backdrop" id="modal-receipt">
+    <div class="modal-box" style="max-width:480px; padding:0; background:transparent; border:none; box-shadow:none;">
+      <div class="receipt-card" id="receipt-printable-area">
+        <div class="receipt-header-banner">
+          <div>
+            <div class="receipt-brand-logo">
+              <span class="brand-icon" style="width:28px; height:28px; font-size:0.9rem;">N</span>
+              <span>Nodowa Network</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Comprobante Digital Oficial</div>
+          </div>
+          <div class="receipt-stamp-verified">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span id="receipt-status-text">Verificado</span>
+          </div>
         </div>
-        <ul style="margin:0; padding-left:1.25rem; font-size:0.84rem; color:var(--text-muted); line-height:1.5;">
-          <li><strong>Entrega automática:</strong> Entra al servidor <strong>Nodowa</strong> en Minecraft Bedrock y el sistema te lo otorgará al conectarte.</li>
-          <li><strong>Si ya estás dentro:</strong> Abre el chat de Minecraft y escribe el comando:</li>
-        </ul>
-        <div style="margin-top:0.75rem; background:#111; color:#10b981; font-family:monospace; padding:0.6rem 0.85rem; border-radius:var(--radius-sm); font-size:1rem; display:flex; justify-content:space-between; align-items:center;">
-          <span>/buzon</span>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('/buzon'); showToast('Comando /buzon copiado');" style="padding:2px 8px; font-size:0.75rem;">Copiar</button>
+
+        <div class="receipt-item-highlight">
+          <div>
+            <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">Artículo Adquirido</div>
+            <div class="receipt-item-name" id="receipt-item-name">-</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">Total Pagado</div>
+            <div class="receipt-item-price" id="receipt-item-price">-</div>
+          </div>
         </div>
-      </div>
 
-      <div style="display:flex; gap:0.5rem;">
-        <button type="button" class="btn btn-secondary btn-block" onclick="closeModal('modal-purchase-success'); const bTab=document.querySelector(`.tab-btn[data-tab='deliveries']`); if(bTab) bTab.click();">Ver Mi Buzón Web</button>
-        <button type="button" class="btn btn-tiktok btn-block" onclick="closeModal('modal-purchase-success')">¡Entendido!</button>
-      </div>
-    </div>
-  </div>
+        <div class="receipt-details-grid">
+          <div class="receipt-detail-item">
+            <span class="receipt-detail-label">Folio / TXID</span>
+            <span class="receipt-detail-value" id="receipt-folio" style="font-family:monospace; color:var(--primary);">-</span>
+          </div>
+          <div class="receipt-detail-item">
+            <span class="receipt-detail-label">Jugador / Gamertag</span>
+            <span class="receipt-detail-value" id="receipt-player">-</span>
+          </div>
+          <div class="receipt-detail-item">
+            <span class="receipt-detail-label">Fecha y Hora</span>
+            <span class="receipt-detail-value" id="receipt-date" style="font-size:0.8rem;">-</span>
+          </div>
+          <div class="receipt-detail-item">
+            <span class="receipt-detail-label">Método de Pago</span>
+            <span class="receipt-detail-value" id="receipt-method">-</span>
+          </div>
+        </div>
 
+        <div class="receipt-instructions-box">
+          <div class="receipt-instructions-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Reclamo en Minecraft Bedrock</span>
+          </div>
+          <div style="font-size:0.82rem; color:#e2e8f0; line-height:1.45;">
+            Conéctate a <strong>mi.nodowa.lat:19132</strong>. Si ya estás en el servidor, escribe en el chat:
+          </div>
+          <div style="margin-top:0.5rem; background:#000; padding:0.4rem 0.7rem; border-radius:4px; font-family:monospace; color:#34d399; display:flex; justify-content:space-between; align-items:center;">
+            <span>/buzon</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('/buzon'); showToast('Comando /buzon copiado');" style="padding:1px 6px; font-size:0.7rem; background:#222; color:#fff; border:none;">Copiar</button>
+          </div>
+        </div>
+
+        <div class="receipt-actions-row">
+          <button type="button" class="btn btn-secondary btn-sm btn-block" onclick="window.printReceipt()" style="flex:1;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+            <span>Imprimir / PDF</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm btn-block" onclick="window.copyReceiptSummary()" style="flex:1;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <span>Copiar Datos</span>
+          </button>
+          <button type="button" class="btn btn-primary btn-sm btn-block" onclick="closeModal('modal-receipt'); const bTab=document.querySelector(`.tab-btn[data-tab='deliveries']`); if(bTab) bTab.click();" style="flex:1;">
+            <span>Ver Buzón</span>
+          </button>
+        </div>
+        <div style="text-align:center; margin-top:0.75rem;">
+          <button type="button" class="link-btn" onclick="closeModal('modal-receipt')" style="font-size:0.8rem; color:var(--text-muted);">Cerrar Comprobante</button>
+        </div>
       </div>
     </div>
   </div>
