@@ -47,11 +47,18 @@ function handleWsMessage(ws, data) {
     user.linked = true;
     user.linkedAt = new Date().toISOString();
     user.displayName = player;
+
+    const sessionToken = tokenData.sessionToken;
+    if (sessionToken && db.sessions && db.sessions[sessionToken]) {
+      db.sessions[sessionToken].pending = false;
+      db.sessions[sessionToken].verifiedAt = new Date().toISOString();
+    }
+
     delete db.linkTokens[code];
     saveDb();
 
     ws.send(JSON.stringify({ type: "LINK_SUCCESS", player, username: user.username }));
-    broadcastWs("USER_LINKED", { username: user.username, user });
+    broadcastWs("USER_LINKED", { username: user.username, displayName: user.displayName, user, sessionToken });
   } else if (data.type === "POLL_DELIVERIES") {
     const uname = (data.player || "").trim().toLowerCase();
     const pendings = (db.deliveries || []).filter(d => {

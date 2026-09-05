@@ -686,6 +686,77 @@ tr:hover td { background: var(--surface-hover); }
   color: var(--tiktok-black);
 }
 
+/* Auth /link Modal Styles */
+.auth-code-box {
+  background: var(--tiktok-gray);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  text-align: center;
+  margin: 1.25rem 0;
+  position: relative;
+}
+
+.auth-code-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.auth-command-display {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--tiktok-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+}
+
+.auth-waiting-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--tiktok-black);
+  margin-top: 0.75rem;
+}
+
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--tiktok-red);
+  box-shadow: 0 0 0 0 rgba(254, 44, 85, 0.7);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(254, 44, 85, 0); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(254, 44, 85, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(254, 44, 85, 0); }
+}
+
+.auth-steps-list {
+  background: var(--surface-hover);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  text-align: left;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+.auth-steps-list strong {
+  color: var(--text);
+}
+
 /* Toast */
 #toast {
   position: fixed;

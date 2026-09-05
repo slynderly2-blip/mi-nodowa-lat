@@ -41,7 +41,13 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
   });
 });
 
-// Auth & User State
+// Auth & User State (Vinculación segura mediante /link)
+let pendingAuthCode = null;
+let pendingAuthUsername = null;
+let pendingSessionToken = localStorage.getItem("nodowa_session_token") || null;
+let authCountdownInterval = null;
+let authPollingInterval = null;
+
 function updateAuthUI() {
   const container = document.getElementById("user-widget");
   if (currentUser) {
@@ -52,9 +58,21 @@ function updateAuthUI() {
       </div>
       <button class="btn btn-secondary btn-sm" id="btn-logout">Salir</button>
     `;
-    document.getElementById("btn-logout").onclick = () => {
+    document.getElementById("btn-logout").onclick = async () => {
+      const sessionToken = localStorage.getItem("nodowa_session_token");
+      if (sessionToken) {
+        try {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionToken })
+          });
+        } catch (_) {}
+      }
       localStorage.removeItem("nodowa_user");
+      localStorage.removeItem("nodowa_session_token");
       currentUser = null;
+      pendingSessionToken = null;
       userData = { wallet: 0, bank: 0 };
       updateAuthUI();
       showToast("Sesión cerrada.");
@@ -62,37 +80,154 @@ function updateAuthUI() {
     loadBalance();
   } else {
     container.innerHTML = `<button class="btn btn-primary btn-sm" id="btn-login">👤 Iniciar Sesión</button>`;
-    document.getElementById("btn-login").onclick = () => openModal("modal-login");
+    document.getElementById("btn-login").onclick = () => {
+      resetAuthModal();
+      openModal("modal-login");
+    };
   }
 }
 
+function resetAuthModal() {
+  clearInterval(authCountdownInterval);
+  clearInterval(authPollingInterval);
+  pendingAuthCode = null;
+  pendingAuthUsername = null;
+  const s1 = document.getElementById("auth-step-1");
+  const s2 = document.getElementById("auth-step-2");
+  if (s1) s1.style.display = "block";
+  if (s2) s2.style.display = "none";
+}
+
+// Paso 1: Solicitar código /link
 document.getElementById("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const uname = document.getElementById("login-username").value.trim();
-  if (!uname) return;
+  if (!uname) return showToast("Ingresa tu Gamertag de Minecraft");
+
+  const btn = document.getElementById("btn-request-link");
+  if (btn) btn.disabled = true;
 
   try {
-    const res = await fetch("/api/auth/login", {
+    const res = await fetch("/api/auth/request-link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: uname })
     });
     const data = await res.json();
     if (data.ok) {
-      currentUser = data.user.displayName || data.user.username;
-      localStorage.setItem("nodowa_user", currentUser);
-      userData.wallet = data.user.wallet || 0;
-      userData.bank = data.user.bank || 0;
-      closeModal("modal-login");
-      updateAuthUI();
-      showToast(`¡Bienvenido, ${currentUser}!`);
+      pendingAuthCode = data.code;
+      pendingAuthUsername = uname;
+      pendingSessionToken = data.sessionToken;
+      localStorage.setItem("nodowa_session_token", data.sessionToken);
+
+      document.getElementById("auth-target-player").textContent = uname;
+      document.getElementById("auth-code-text").textContent = `/link ${data.code}`;
+      document.getElementById("auth-step-1").style.display = "none";
+      document.getElementById("auth-step-2").style.display = "block";
+
+      startAuthCountdown(data.expiresAt);
+      showToast("¡Código generado! Escríbelo en el chat de Minecraft.");
     } else {
-      showToast(data.error || "Error al iniciar sesión");
+      showToast(data.error || "No se pudo generar el código");
     }
   } catch (err) {
-    showToast("Error de conexión con el servidor");
+    showToast("Error de conexión al generar código");
+  } finally {
+    if (btn) btn.disabled = false;
   }
 });
+
+// Copiar comando /link
+document.getElementById("btn-copy-code")?.addEventListener("click", () => {
+  if (!pendingAuthCode) return;
+  const cmd = `/link ${pendingAuthCode}`;
+  navigator.clipboard.writeText(cmd).then(() => {
+    showToast(`¡Copiado: "${cmd}"! Pégalo en Minecraft`);
+  }).catch(() => {
+    showToast(`Comando: ${cmd}`);
+  });
+});
+
+// Cambiar Gamertag / Volver al paso 1
+document.getElementById("btn-cancel-link")?.addEventListener("click", () => {
+  resetAuthModal();
+});
+
+function startAuthCountdown(expiresAt) {
+  clearInterval(authCountdownInterval);
+  clearInterval(authPollingInterval);
+
+  const timerEl = document.getElementById("auth-timer-countdown");
+
+  // Contador regresivo
+  authCountdownInterval = setInterval(() => {
+    const remaining = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
+    const mins = Math.floor(remaining / 60);
+    const secs = remaining % 60;
+    const formatted = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+    if (timerEl) {
+      timerEl.textContent = `⏳ Expira en: ${formatted}`;
+    }
+
+    if (remaining <= 0) {
+      clearInterval(authCountdownInterval);
+      clearInterval(authPollingInterval);
+      if (timerEl) timerEl.textContent = `⚠️ Código expirado. Genera uno nuevo.`;
+    }
+  }, 1000);
+
+  // Sondeo en tiempo real cada 2.5 segundos
+  authPollingInterval = setInterval(async () => {
+    if (!pendingAuthCode) return;
+
+    try {
+      const res = await fetch(`/api/auth/check-link-status?code=${pendingAuthCode}&sessionToken=${pendingSessionToken || ''}`);
+      const data = await res.json();
+      if (data.ok && data.verified) {
+        completeAuth(data.user);
+      }
+    } catch (_) {}
+  }, 2500);
+}
+
+function completeAuth(user) {
+  clearInterval(authCountdownInterval);
+  clearInterval(authPollingInterval);
+
+  currentUser = user.displayName || user.username;
+  userData.wallet = user.wallet || 0;
+  userData.bank = user.bank || 0;
+
+  localStorage.setItem("nodowa_user", currentUser);
+
+  closeModal("modal-login");
+  resetAuthModal();
+  updateAuthUI();
+  showToast(`🎉 ¡Cuenta vinculada con éxito! Bienvenido, ${currentUser}`);
+}
+
+// Validar sesión persistente al abrir la web
+async function validateCurrentSession() {
+  const sessionToken = localStorage.getItem("nodowa_session_token");
+  if (!sessionToken) return;
+
+  try {
+    const res = await fetch("/api/auth/validate-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionToken })
+    });
+    const data = await res.json();
+    if (data.ok && data.user) {
+      currentUser = data.user.displayName || data.user.username;
+      userData.wallet = data.user.wallet || 0;
+      userData.bank = data.user.bank || 0;
+      localStorage.setItem("nodowa_user", currentUser);
+      updateAuthUI();
+    }
+  } catch (_) {}
+}
 
 // Balance & Wallet
 async function loadBalance() {
@@ -565,11 +700,23 @@ function initWS() {
   ws.onmessage = (e) => {
     try {
       const msg = JSON.parse(e.data);
-      if (msg.event === "STORE_UPDATED") loadStore();
-      else if (msg.event === "BALANCE_UPDATE" && currentUser && msg.data?.username?.toLowerCase() === currentUser.toLowerCase()) {
+      const eventType = msg.type || msg.event;
+
+      if (eventType === "USER_LINKED") {
+        const isTarget = (pendingSessionToken && msg.sessionToken === pendingSessionToken) ||
+                         (pendingAuthUsername && (
+                           (msg.username && msg.username.toLowerCase() === pendingAuthUsername.toLowerCase()) ||
+                           (msg.displayName && msg.displayName.toLowerCase() === pendingAuthUsername.toLowerCase())
+                         ));
+        if (isTarget && msg.user) {
+          completeAuth(msg.user);
+        }
+      }
+      else if (eventType === "STORE_UPDATED") loadStore();
+      else if (eventType === "BALANCE_UPDATE" && currentUser && msg.data?.username?.toLowerCase() === currentUser.toLowerCase()) {
         loadBalance();
       }
-      else if (msg.event === "NEW_ORDER" || msg.event === "ORDER_APPROVED") {
+      else if (eventType === "NEW_ORDER" || eventType === "ORDER_APPROVED") {
         if (currentUser) loadBalance();
       }
     } catch (err) {}
@@ -579,6 +726,7 @@ function initWS() {
 }
 
 // Inicialización
+validateCurrentSession();
 updateAuthUI();
 loadStore();
 initWS();

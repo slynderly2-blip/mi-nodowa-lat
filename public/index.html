@@ -184,20 +184,54 @@
 
   </main>
 
-  <!-- Modal: Login Gamertag -->
+  <!-- Modal: Login con Comando /link (Vía Minecraft) -->
   <div class="modal-backdrop" id="modal-login">
     <div class="modal-box">
       <div class="modal-header">
-        <h3 class="modal-title">👤 Iniciar Sesión</h3>
+        <h3 class="modal-title" id="auth-modal-title">👤 Vincular Cuenta con /link</h3>
         <button class="btn-close" onclick="closeModal('modal-login')">&times;</button>
       </div>
-      <form id="login-form">
-        <div class="form-group">
-          <label class="form-label">Tu Gamertag de Minecraft Bedrock</label>
-          <input type="text" id="login-username" class="input" placeholder="Ej: Steve" required autofocus>
+
+      <!-- Paso 1: Ingresar Gamertag -->
+      <div id="auth-step-1">
+        <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:1.25rem;">
+          Inicia sesión de forma 100% segura usando tu cuenta dentro de Minecraft Bedrock.
+        </p>
+        <form id="login-form">
+          <div class="form-group">
+            <label class="form-label">Tu Gamertag de Minecraft Bedrock</label>
+            <input type="text" id="login-username" class="input" placeholder="Ej: Steve o Alex" required autofocus>
+          </div>
+          <button type="submit" class="btn btn-tiktok btn-block" id="btn-request-link">⚡ Generar Código /link</button>
+        </form>
+      </div>
+
+      <!-- Paso 2: Ejecutar Comando en Minecraft -->
+      <div id="auth-step-2" style="display:none;">
+        <div class="auth-steps-list">
+          1. Entra a <strong>Nodowa Network</strong> con la cuenta <strong id="auth-target-player" style="color:var(--tiktok-red);">Steve</strong>.<br>
+          2. Abre el chat y escribe el comando que aparece abajo.<br>
+          3. ¡La web detectará tu cuenta y entrará automáticamente!
         </div>
-        <button type="submit" class="btn btn-tiktok btn-block">Ingresar a Nodowa</button>
-      </form>
+
+        <div class="auth-code-box">
+          <div class="auth-code-label">Comando para el Chat de Minecraft</div>
+          <div class="auth-command-display">
+            <span id="auth-code-text">/link ------</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-code" title="Copiar comando">📋 Copiar</button>
+          </div>
+          <div class="auth-waiting-indicator">
+            <span class="pulse-dot"></span>
+            <span>Esperando confirmación en el servidor...</span>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem;">
+          <span id="auth-timer-countdown" style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">⏳ Expira en: 15:00</span>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-link">🔄 Cambiar Gamertag</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
