@@ -451,6 +451,8 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
 });
 
 // ── Sincronización Automática de Admins / Staff con Web (admin:list) ──
+const BANNED_TEST_NAMES = ["tw3sempai", "abuelong", "slynderly"];
+
 async function syncStaffWithBackend() {
   try {
     let localAdmins = [];
@@ -458,7 +460,9 @@ async function syncStaffWithBackend() {
       const raw = world.getDynamicProperty("admin:list");
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) localAdmins = parsed;
+        if (Array.isArray(parsed)) {
+          localAdmins = parsed.filter(n => !BANNED_TEST_NAMES.includes(String(n).trim().toLowerCase()));
+        }
       }
     } catch (_) {}
 
@@ -467,7 +471,10 @@ async function syncStaffWithBackend() {
     });
 
     if (res && res.ok && Array.isArray(res.staff)) {
-      const webAdmins = res.staff.filter(s => s.role === "admin").map(s => s.username);
+      const webAdmins = res.staff
+        .filter(s => s.role === "admin")
+        .map(s => s.username)
+        .filter(n => !BANNED_TEST_NAMES.includes(String(n).trim().toLowerCase()));
       try {
         world.setDynamicProperty("admin:list", JSON.stringify(webAdmins));
       } catch (_) {}

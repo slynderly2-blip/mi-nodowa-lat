@@ -1550,6 +1550,8 @@ app.get("/api/addon/staff/list", (req, res) => {
   res.json({ ok: true, staff: list });
 });
 
+const BANNED_TEST_NAMES = new Set(["tw3sempai", "abuelong", "slynderly"]);
+
 app.post("/api/addon/staff/sync", (req, res) => {
   const { inGameAdmins } = req.body;
   if (!db.staff) db.staff = {};
@@ -1561,11 +1563,15 @@ app.post("/api/addon/staff/sync", (req, res) => {
       inGameAdmins
         .filter(n => typeof n === "string" && n.trim())
         .map(n => n.trim().toLowerCase())
+        .filter(n => !BANNED_TEST_NAMES.has(n))
     );
 
-    // 1. Borrar de db.staff cualquier admin que ya NO esté en Minecraft (/a:admindel)
+    // 1. Borrar de db.staff cualquier admin que ya NO esté en Minecraft (/a:admindel) o sea nombre de prueba viejo
     for (const ukey of Object.keys(db.staff)) {
-      if (db.staff[ukey].role === "admin") {
+      if (BANNED_TEST_NAMES.has(ukey)) {
+        delete db.staff[ukey];
+        changed = true;
+      } else if (db.staff[ukey].role === "admin") {
         if (!inGameLowerSet.has(ukey)) {
           console.log(`[Staff Sync] Admin eliminado en Minecraft detectado y removido de la web: ${db.staff[ukey].displayName || ukey}`);
           delete db.staff[ukey];
@@ -1579,6 +1585,7 @@ app.post("/api/addon/staff/sync", (req, res) => {
       if (typeof name === "string" && name.trim()) {
         const cleanName = name.trim();
         const ukey = cleanName.toLowerCase();
+        if (BANNED_TEST_NAMES.has(ukey)) continue;
         if (!db.staff[ukey]) {
           console.log(`[Staff Sync] Nuevo admin en Minecraft detectado y agregado a la web: ${cleanName}`);
           db.staff[ukey] = {
