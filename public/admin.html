@@ -9,15 +9,52 @@
 <body>
 
   <!-- Admin Header -->
-  <header class="header">
+  <header class="header admin-header">
     <div class="header-inner">
       <div class="brand">
-        <span>👑 Panel Admin</span>
-        <span class="brand-badge">Nodowa</span>
+        <span class="brand-icon nodowa-emblem" title="Nodowa Bedrock Network">
+          <svg class="nodowa-logo-svg" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="ndw-top-adm" x1="24" y1="4" x2="24" y2="20" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#a855f7"/>
+                <stop offset="100%" stop-color="#6b21a8"/>
+              </linearGradient>
+              <linearGradient id="ndw-left-adm" x1="6" y1="14" x2="24" y2="44" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#1e1b4b"/>
+                <stop offset="100%" stop-color="#0f172a"/>
+              </linearGradient>
+              <linearGradient id="ndw-right-adm" x1="42" y1="14" x2="24" y2="44" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#312e81"/>
+                <stop offset="100%" stop-color="#111827"/>
+              </linearGradient>
+              <linearGradient id="ndw-core-adm" x1="16" y1="14" x2="32" y2="34" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#00f2fe"/>
+                <stop offset="50%" stop-color="#38bdf8"/>
+                <stop offset="100%" stop-color="#c084fc"/>
+              </linearGradient>
+            </defs>
+            <polygon points="24,5 42,14 24,23 6,14" fill="url(#ndw-top-adm)" stroke="#c084fc" stroke-width="1.4" stroke-linejoin="round"/>
+            <polygon points="6,14 24,23 24,43 6,34" fill="url(#ndw-left-adm)" stroke="#6366f1" stroke-width="1.4" stroke-linejoin="round"/>
+            <polygon points="24,23 42,14 42,34 24,43" fill="url(#ndw-right-adm)" stroke="#818cf8" stroke-width="1.4" stroke-linejoin="round"/>
+            <path d="M16.5 33.5 V15.5 H21.5 L28 26.5 V15.5 H31.5 V33.5 H26.5 L20 22.5 V33.5 Z" fill="url(#ndw-core-adm)" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+            <circle cx="24" cy="5" r="1.5" fill="#38bdf8"/>
+          </svg>
+        </span>
+        <div class="brand-text-block">
+          <span class="brand-title">Nodowa</span>
+          <span class="brand-subtitle">Panel Maestro</span>
+        </div>
+        <span class="brand-badge admin-badge-crown">👑 ADMIN</span>
       </div>
-      <div style="display:flex; gap:0.5rem; align-items:center;">
-        <a href="/" class="btn btn-secondary btn-sm">Ir a la Web</a>
-        <button id="btn-admin-logout" class="btn btn-secondary btn-sm" style="display:none;">Cerrar Sesión</button>
+      <div class="admin-header-actions">
+        <a href="/" class="btn btn-secondary btn-sm" title="Ir a la Tienda Web">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <span>Ir a la Tienda</span>
+        </a>
+        <button id="btn-admin-logout" class="btn btn-danger-soft btn-sm" style="display:none;" title="Cerrar sesión de administrador">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>Cerrar Sesión</span>
+        </button>
       </div>
     </div>
   </header>
@@ -39,23 +76,35 @@
   <!-- Admin Main Dashboard -->
   <main class="main-container" id="admin-dashboard-view" style="display:none;">
 
-    <!-- Stat Counters -->
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
-      <div class="card">
-        <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">JUGADORES REGISTRADOS</span>
-        <div style="font-size:1.6rem; font-weight:800; color:var(--primary); margin-top:0.25rem;" id="stat-users">0</div>
+    <!-- Stat Counters Grid -->
+    <div class="admin-stats-grid">
+      <div class="admin-stat-card card-users">
+        <div class="stat-card-icon">👥</div>
+        <div class="stat-card-info">
+          <span class="stat-card-label">JUGADORES REGISTRADOS</span>
+          <div class="stat-card-value" id="stat-users">0</div>
+        </div>
       </div>
-      <div class="card">
-        <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">ÓRDENES BINANCE PENDIENTES</span>
-        <div style="font-size:1.6rem; font-weight:800; color:var(--amber);" id="stat-orders">0</div>
+      <div class="admin-stat-card card-orders">
+        <div class="stat-card-icon">⏳</div>
+        <div class="stat-card-info">
+          <span class="stat-card-label">ÓRDENES BINANCE PENDIENTES</span>
+          <div class="stat-card-value" id="stat-orders">0</div>
+        </div>
       </div>
-      <div class="card">
-        <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">RECLAMOS DE ENTREGA</span>
-        <div style="font-size:1.6rem; font-weight:800; color:var(--red);" id="stat-issues">0</div>
+      <div class="admin-stat-card card-issues">
+        <div class="stat-card-icon">⚠️</div>
+        <div class="stat-card-info">
+          <span class="stat-card-label">RECLAMOS DE ENTREGA</span>
+          <div class="stat-card-value" id="stat-issues">0</div>
+        </div>
       </div>
-      <div class="card">
-        <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">TOTAL VENTAS USDT</span>
-        <div style="font-size:1.6rem; font-weight:800; color:var(--emerald);" id="stat-usdt">$0.00</div>
+      <div class="admin-stat-card card-sales">
+        <div class="stat-card-icon">💵</div>
+        <div class="stat-card-info">
+          <span class="stat-card-label">TOTAL VENTAS USDT</span>
+          <div class="stat-card-value" id="stat-usdt">$0.00</div>
+        </div>
       </div>
     </div>
 
@@ -168,25 +217,43 @@
 
     <!-- TAB 5: Gestión de Jugadores -->
     <section class="admin-tab" id="atab-players" style="display:none;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+      <div class="admin-tab-header">
         <div>
-          <h2 style="font-size:1.2rem; font-weight:700;">👥 Gestión de Jugadores</h2>
-          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Administra cuentas, visualiza vinculaciones y ajusta saldos.</p>
+          <div style="display:flex; align-items:center; gap:0.6rem;">
+            <h2 class="admin-section-title">👥 Gestión de Jugadores</h2>
+            <span id="admin-players-count-badge" class="badge" style="background:var(--primary-light); color:var(--primary); font-weight:800;">143 Jugadores</span>
+          </div>
+          <p class="admin-section-desc">Administra cuentas, visualiza vinculaciones y ajusta saldos en directo.</p>
         </div>
-        <div style="width:280px;">
-          <input type="text" id="admin-players-search" class="input" placeholder="Buscar jugador por Gamertag...">
+        <div class="admin-search-wrapper">
+          <svg class="admin-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="admin-players-search" class="admin-search-input" placeholder="Buscar por Gamertag o nombre...">
         </div>
       </div>
-      <div class="table-wrap">
-        <table>
+
+      <!-- Quick Filter Pills & Tip Banner -->
+      <div class="admin-players-toolbar">
+        <div class="admin-filter-pills">
+          <button type="button" class="filter-pill active" data-filter="all" onclick="filterAdminPlayers('all')">Todos los Jugadores</button>
+          <button type="button" class="filter-pill" data-filter="linked" onclick="filterAdminPlayers('linked')">✓ Vinculados Bedrock</button>
+          <button type="button" class="filter-pill" data-filter="unlinked" onclick="filterAdminPlayers('unlinked')">⚠️ No Vinculados</button>
+          <button type="button" class="filter-pill" data-filter="balance" onclick="filterAdminPlayers('balance')">🪙 Con Saldo</button>
+        </div>
+        <div class="admin-tip-banner">
+          <span>💡 <strong>Tip Rápido:</strong> Toca cualquier fila de jugador o el botón <strong>💰 Ajustar Saldo</strong> para editar su balance al instante.</span>
+        </div>
+      </div>
+
+      <div class="table-wrap admin-table-wrap">
+        <table class="admin-table">
           <thead>
             <tr>
               <th>Jugador</th>
-              <th>Vinculación</th>
+              <th>Vinculación Bedrock</th>
               <th>Rango / Título</th>
               <th>Billetera</th>
-              <th>Banco</th>
-              <th>Acciones Saldo</th>
+              <th>Banco Protegido</th>
+              <th style="text-align:center;">Acción de Saldo</th>
             </tr>
           </thead>
           <tbody id="admin-players-tbody">
@@ -359,35 +426,78 @@
 
   <!-- Modal: Ajustar Saldo de Jugador -->
   <div class="modal-backdrop" id="modal-adjust-balance">
-    <div class="modal-box" style="max-width:420px;">
+    <div class="modal-box admin-modal-box" style="max-width:460px;">
       <div class="modal-header">
-        <h3 class="modal-title">💰 Ajustar Saldo</h3>
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <span style="font-size:1.5rem;">💰</span>
+          <div>
+            <h3 class="modal-title" style="margin:0;">Ajustar Saldo de Jugador</h3>
+            <span style="font-size:0.75rem; color:var(--text-muted);">Modifica monedas en tiempo real</span>
+          </div>
+        </div>
         <button class="btn-close" onclick="closeModal('modal-adjust-balance')">&times;</button>
       </div>
-      <form id="adjust-balance-form">
+
+      <div class="admin-modal-player-preview">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <img id="adjust-user-avatar" src="https://mc-heads.net/avatar/Steve/64" alt="Avatar" class="adjust-preview-avatar">
+          <div>
+            <strong id="adjust-user-display" class="adjust-preview-name">Steve</strong>
+            <span id="adjust-user-gamertag" class="adjust-preview-gamertag">@Steve</span>
+          </div>
+        </div>
+        <div class="adjust-balance-chips">
+          <div class="adjust-chip wallet">
+            <span class="chip-label">Billetera actual:</span>
+            <strong id="adjust-user-current-wallet" class="chip-val">0 NC</strong>
+          </div>
+          <div class="adjust-chip bank">
+            <span class="chip-label">Banco actual:</span>
+            <strong id="adjust-user-current-bank" class="chip-val">0 NC</strong>
+          </div>
+        </div>
+      </div>
+
+      <form id="adjust-balance-form" style="margin-top:1.25rem;">
         <input type="hidden" id="adjust-user-target">
-        <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1rem;">
-          Ajustando saldo de: <strong id="adjust-user-display" style="color:var(--primary);">Steve</strong>
-        </p>
+        
         <div class="form-group">
-          <label class="form-label">Operación</label>
-          <select id="adjust-action" class="input">
-            <option value="add">Sumar Monedas (+)</option>
-            <option value="sub">Restar Monedas (-)</option>
-            <option value="set">Fijar Saldo Exacto (=)</option>
-          </select>
+          <label class="form-label" style="font-weight:600;">Tipo de Operación</label>
+          <div class="adjust-action-pills">
+            <button type="button" class="btn-action-pill active" data-action="add" onclick="selectAdjustAction('add')">➕ Sumar</button>
+            <button type="button" class="btn-action-pill" data-action="sub" onclick="selectAdjustAction('sub')">➖ Restar</button>
+            <button type="button" class="btn-action-pill" data-action="set" onclick="selectAdjustAction('set')">🎯 Fijar</button>
+          </div>
+          <input type="hidden" id="adjust-action" value="add">
         </div>
+
         <div class="form-group">
-          <label class="form-label">Cantidad de Nodocoins (NC)</label>
-          <input type="number" id="adjust-amount" class="input" min="0" required autofocus>
+          <label class="form-label" style="font-weight:600;">Cantidad de Nodocoins (NC)</label>
+          <div class="amount-input-wrap">
+            <input type="number" id="adjust-amount" class="input input-lg" min="0" placeholder="Ej: 500" required autofocus>
+            <span class="amount-suffix">NC</span>
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-block">Aplicar Ajuste</button>
+
+        <!-- Quick Amount Buttons -->
+        <div class="quick-amounts-bar">
+          <button type="button" class="btn-quick-nc" onclick="setAdjustAmount(100)">+100</button>
+          <button type="button" class="btn-quick-nc" onclick="setAdjustAmount(500)">+500</button>
+          <button type="button" class="btn-quick-nc" onclick="setAdjustAmount(1000)">+1,000</button>
+          <button type="button" class="btn-quick-nc" onclick="setAdjustAmount(5000)">+5,000</button>
+          <button type="button" class="btn-quick-nc" onclick="setAdjustAmount(10000)">+10,000</button>
+        </div>
+
+        <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
+          <button type="button" class="btn btn-secondary btn-block" onclick="closeModal('modal-adjust-balance')">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-block btn-gold">✨ Guardar y Aplicar</button>
+        </div>
       </form>
     </div>
   </div>
 
   <div id="toast"></div>
 
-  <script src="/js/admin.js"></script>
+  <script src="/js/admin.js?v=2.2.0"></script>
 </body>
 </html>

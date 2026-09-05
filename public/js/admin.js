@@ -484,6 +484,7 @@ document.getElementById("btn-save-catalog-json")?.addEventListener("click", asyn
 
 // 5. Gestión de Jugadores
 let cachedAdminPlayers = [];
+let currentAdminPlayerFilter = "all";
 
 async function loadAdminPlayers() {
   const tbody = document.getElementById("admin-players-tbody");
@@ -496,70 +497,168 @@ async function loadAdminPlayers() {
     const data = await res.json();
     if (data.ok) {
       cachedAdminPlayers = data.players || [];
-      renderAdminPlayers(cachedAdminPlayers);
+      const countBadge = document.getElementById("admin-players-count-badge");
+      if (countBadge) countBadge.textContent = `${cachedAdminPlayers.length} Jugadores`;
+      applyPlayerFilters();
     }
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--red); padding:1rem;">Error cargando jugadores</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--red); padding:1.5rem;">Error cargando jugadores</td></tr>`;
   }
 }
+
+function applyPlayerFilters() {
+  const term = (document.getElementById("admin-players-search")?.value || "").trim().toLowerCase();
+  
+  let list = cachedAdminPlayers;
+
+  // Filtro por estado
+  if (currentAdminPlayerFilter === "linked") {
+    list = list.filter(p => p.linked);
+  } else if (currentAdminPlayerFilter === "unlinked") {
+    list = list.filter(p => !p.linked);
+  } else if (currentAdminPlayerFilter === "balance") {
+    list = list.filter(p => (p.wallet || 0) > 0 || (p.bank || 0) > 0);
+  }
+
+  // Filtro por término de búsqueda
+  if (term) {
+    list = list.filter(p => 
+      (p.username && p.username.toLowerCase().includes(term)) || 
+      (p.displayName && p.displayName.toLowerCase().includes(term)) ||
+      (p.equippedRank && p.equippedRank.toLowerCase().includes(term))
+    );
+  }
+
+  renderAdminPlayers(list);
+}
+
+window.filterAdminPlayers = (type) => {
+  currentAdminPlayerFilter = type;
+  document.querySelectorAll(".admin-filter-pills .filter-pill").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.filter === type);
+  });
+  applyPlayerFilters();
+};
 
 function renderAdminPlayers(list) {
   const tbody = document.getElementById("admin-players-tbody");
   if (!tbody) return;
 
+  const countBadge = document.getElementById("admin-players-count-badge");
+  if (countBadge) {
+    countBadge.textContent = `${list.length} de ${cachedAdminPlayers.length} Jugadores`;
+  }
+
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:2rem;">No se encontraron jugadores</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:2.5rem; font-size:0.95rem;">No se encontraron jugadores con ese filtro</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = list.map(p => `
-    <tr>
-      <td>
-        <div style="display:flex; align-items:center; gap:0.5rem;">
-          <img src="${p.avatarUrl}" alt="${p.displayName}" style="width:32px; height:32px; border-radius:50%;">
-          <div>
-            <strong>${escapeHtml(p.displayName)}</strong>
-            <div style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(p.username)}</div>
+  tbody.innerHTML = list.map(p => {
+    const isSameName = !p.displayName || p.displayName.trim().toLowerCase() === (p.username || "").trim().toLowerCase();
+    const displayNameHtml = escapeHtml(p.displayName || p.username);
+    const usernameHtml = escapeHtml(p.username);
+    const titleHtml = escapeHtml(p.selectedTitle || 'Novato');
+    const rankHtml = escapeHtml(p.equippedRank || 'NOVICIO');
+    const walletNum = p.wallet || 0;
+    const bankNum = p.bank || 0;
+    const avatar = p.avatarUrl || `https://mc-heads.net/avatar/${p.username}/64`;
+
+    return `
+    <tr class="admin-player-row" onclick="openAdjustBalanceModal('${escapeHtml(p.username)}', '${displayNameHtml}', ${walletNum}, ${bankNum}, '${avatar}')" title="Haz clic en cualquier parte de la fila para ajustar el saldo de ${displayNameHtml}">
+      <td class="cell-player">
+        <div class="admin-player-identity">
+          <div class="admin-avatar-wrapper ${p.linked ? 'is-linked' : ''}">
+            <img src="${avatar}" alt="${displayNameHtml}" class="admin-player-avatar" onerror="this.src='https://mc-heads.net/avatar/Steve/64'">
+            ${p.linked ? '<span class="avatar-linked-dot" title="Vinculado a Minecraft Bedrock"></span>' : ''}
+          </div>
+          <div class="admin-player-names">
+            <span class="admin-player-name">${displayNameHtml}</span>
+            ${!isSameName ? `<span class="admin-player-gamertag">@${usernameHtml}</span>` : ''}
           </div>
         </div>
       </td>
-      <td>
-        ${p.linked ? `<span class="badge" style="background:var(--emerald-light); color:var(--emerald);">✓ Vinculado Bedrock</span>` : `<span class="badge" style="background:var(--red-light); color:var(--red);">⚠️ No Vinculado</span>`}
+      <td class="cell-status">
+        ${p.linked 
+          ? `<span class="admin-badge badge-linked"><span class="badge-dot"></span>✓ Bedrock Vinculado</span>` 
+          : `<span class="admin-badge badge-unlinked"><span class="badge-dot"></span>⚠️ No Vinculado</span>`}
       </td>
-      <td>
-        <span style="font-size:0.85rem; font-weight:700; color:var(--primary);">[${escapeHtml(p.selectedTitle || 'Novato')}]</span>
-        <div style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(p.equippedRank || 'NOVICIO')}</div>
+      <td class="cell-rank">
+        <div class="admin-rank-pill">
+          <span class="rank-title">[${titleHtml}]</span>
+          <span class="rank-role">${rankHtml}</span>
+        </div>
       </td>
-      <td><strong>${(p.wallet || 0).toLocaleString()}</strong> <small>NC</small></td>
-      <td><strong>${(p.bank || 0).toLocaleString()}</strong> <small>NC</small></td>
-      <td>
-        <button class="btn btn-primary btn-sm" onclick="openAdjustBalanceModal('${p.username}', '${escapeHtml(p.displayName)}')">💰 Ajustar Saldo</button>
+      <td class="cell-balance">
+        <div class="admin-balance-val wallet">
+          <span>🪙</span>
+          <strong>${walletNum.toLocaleString()}</strong> <span class="currency-unit">NC</span>
+        </div>
+      </td>
+      <td class="cell-balance">
+        <div class="admin-balance-val bank">
+          <span>🏦</span>
+          <strong>${bankNum.toLocaleString()}</strong> <span class="currency-unit">NC</span>
+        </div>
+      </td>
+      <td class="cell-actions" onclick="event.stopPropagation();">
+        <button type="button" class="btn-adjust-balance" onclick="openAdjustBalanceModal('${escapeHtml(p.username)}', '${displayNameHtml}', ${walletNum}, ${bankNum}, '${avatar}')" title="Ajustar saldo">
+          <span>💰</span>
+          <span>Ajustar Saldo</span>
+        </button>
       </td>
     </tr>
-  `).join("");
+    `;
+  }).join("");
 }
 
 const adminPlayersSearch = document.getElementById("admin-players-search");
 if (adminPlayersSearch) {
-  adminPlayersSearch.addEventListener("input", (e) => {
-    const term = e.target.value.trim().toLowerCase();
-    if (!term) {
-      renderAdminPlayers(cachedAdminPlayers);
-    } else {
-      const filtered = cachedAdminPlayers.filter(p => 
-        p.username.toLowerCase().includes(term) || 
-        p.displayName.toLowerCase().includes(term)
-      );
-      renderAdminPlayers(filtered);
-    }
+  adminPlayersSearch.addEventListener("input", () => {
+    applyPlayerFilters();
   });
 }
 
-window.openAdjustBalanceModal = (username, displayName) => {
+// Modal Adjust Balance Helpers
+window.selectAdjustAction = (action) => {
+  const input = document.getElementById("adjust-action");
+  if (input) input.value = action;
+  document.querySelectorAll(".adjust-action-pills .btn-action-pill").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.action === action);
+  });
+};
+
+window.setAdjustAmount = (amount) => {
+  const input = document.getElementById("adjust-amount");
+  if (input) {
+    input.value = amount;
+    input.focus();
+  }
+};
+
+window.openAdjustBalanceModal = (username, displayName, wallet = 0, bank = 0, avatarUrl = "") => {
   document.getElementById("adjust-user-target").value = username;
   document.getElementById("adjust-user-display").textContent = displayName || username;
+  document.getElementById("adjust-user-gamertag").textContent = `@${username}`;
+  
+  const avatarEl = document.getElementById("adjust-user-avatar");
+  if (avatarEl) {
+    avatarEl.src = avatarUrl || `https://mc-heads.net/avatar/${username}/64`;
+  }
+
+  const walletEl = document.getElementById("adjust-user-current-wallet");
+  if (walletEl) walletEl.textContent = `${wallet.toLocaleString()} NC`;
+
+  const bankEl = document.getElementById("adjust-user-current-bank");
+  if (bankEl) bankEl.textContent = `${bank.toLocaleString()} NC`;
+
+  selectAdjustAction("add");
   document.getElementById("adjust-amount").value = "";
   openModal("modal-adjust-balance");
+
+  setTimeout(() => {
+    document.getElementById("adjust-amount")?.focus();
+  }, 100);
 };
 
 document.getElementById("adjust-balance-form")?.addEventListener("submit", async (e) => {

@@ -355,17 +355,65 @@
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.75rem;">
-          <div class="card" style="text-align:center;">
-            <span style="font-size:0.78rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Saldo en Mano</span>
-            <div style="font-size:2rem; font-weight:800; color:var(--tiktok-black); margin:0.35rem 0;" id="wallet-balance">0 NC</div>
-            <span style="font-size:0.78rem; color:var(--text-subtle);">Disponible para compras y transferencias</span>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.5rem;">
+          <!-- Saldo en Mano -->
+          <div class="card wallet-stat-card" style="text-align:center; display:flex; flex-direction:column; justify-content:space-between; padding:1.25rem;">
+            <div>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Saldo en Mano (Billetera)</span>
+              <div style="font-size:2rem; font-weight:800; color:#fff; margin:0.35rem 0;" id="wallet-balance">0 NC</div>
+              <span style="font-size:0.75rem; color:var(--text-subtle); display:block; margin-bottom:0.85rem;">Disponible para compras y mercado P2P</span>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm btn-block" onclick="openBankActionModal('deposit')" style="font-weight:700;">
+              📥 Depositar al Banco
+            </button>
           </div>
-          <div class="card" style="text-align:center;">
-            <span style="font-size:0.78rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Saldo en Banco</span>
-            <div style="font-size:2rem; font-weight:800; color:var(--emerald); margin:0.35rem 0;" id="bank-balance">0 NC</div>
-            <span style="font-size:0.78rem; color:var(--text-subtle);">Protegido contra pérdidas o caídas</span>
+
+          <!-- Saldo en Banco -->
+          <div class="card wallet-stat-card" style="text-align:center; display:flex; flex-direction:column; justify-content:space-between; padding:1.25rem;">
+            <div>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Saldo en Banco Seguro</span>
+              <div style="font-size:2rem; font-weight:800; color:#34d399; margin:0.35rem 0;" id="bank-balance">0 NC</div>
+              <span style="font-size:0.75rem; color:var(--text-subtle); display:block; margin-bottom:0.85rem;">Protegido y generando rendimientos</span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm btn-block" onclick="openBankActionModal('withdraw')" style="font-weight:700;">
+              📤 Retirar a Billetera
+            </button>
           </div>
+        </div>
+
+        <!-- Tarjeta de Rendimiento e Intereses Bancarios -->
+        <div class="card bank-interest-card" style="margin-bottom:1.75rem; background:linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(15, 23, 42, 0.95)); border:1px solid rgba(16, 185, 129, 0.3);">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.75rem; margin-bottom:1rem;">
+            <div>
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <span style="font-size:1.4rem;">📈</span>
+                <h2 style="font-size:1.15rem; font-weight:800; color:#fff; margin:0;">Rendimiento & Intereses Bancarios</h2>
+                <span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#34d399; font-weight:800; border:1px solid rgba(16, 185, 129, 0.4);">+2.0% DIARIO</span>
+              </div>
+              <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">
+                Tus Nodocoins guardados en el banco generan rendimientos pasivos automáticos en tiempo real.
+              </p>
+            </div>
+            <div style="text-align:right;">
+              <span style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Rendimiento Estimado</span>
+              <div style="font-size:1.2rem; font-weight:800; color:#34d399;" id="interest-estimated-daily">+0 NC / día</div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; background:rgba(15, 23, 42, 0.65); padding:0.9rem; border-radius:var(--radius-sm); border:1px solid rgba(255, 255, 255, 0.05); margin-bottom:1rem;">
+            <div>
+              <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Intereses por Cobrar</span>
+              <div style="font-size:1.55rem; font-weight:800; color:#fbbf24; margin-top:2px;" id="interest-pending-val">+0 NC</div>
+            </div>
+            <div>
+              <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Total Histórico Ganado</span>
+              <div style="font-size:1.55rem; font-weight:800; color:#38bdf8; margin-top:2px;" id="interest-total-earned">0 NC</div>
+            </div>
+          </div>
+
+          <button type="button" id="btn-claim-interest" class="btn btn-primary btn-block" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%); font-weight:800; font-size:0.95rem;" onclick="claimBankInterest()">
+            🎁 Reclamar Rendimiento Ganado
+          </button>
         </div>
 
         <div class="card">
@@ -850,6 +898,49 @@
           <textarea id="report-note" class="input" rows="3" placeholder="Ej: Estaba desconectado cuando compré, o mi inventario estaba lleno." required></textarea>
         </div>
         <button type="submit" class="btn btn-danger btn-block">Enviar Reporte al Administrador</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Depositar / Retirar Banco -->
+  <div class="modal-backdrop" id="modal-bank-action">
+    <div class="modal-box" style="max-width:440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="bank-modal-title">🏦 Depositar en Cuenta Bancaria</h3>
+        <button class="btn-close" onclick="closeModal('modal-bank-action')">&times;</button>
+      </div>
+      <div style="background:rgba(15, 23, 42, 0.6); border-radius:var(--radius-sm); padding:0.85rem; margin-bottom:1.25rem; border:1px solid rgba(255, 255, 255, 0.05);">
+        <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:5px;">
+          <span style="color:var(--text-muted);">Billetera (Mano):</span>
+          <strong id="bank-modal-wallet" style="color:#fff;">0 NC</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+          <span style="color:var(--text-muted);">Banco Protegido:</span>
+          <strong id="bank-modal-bank" style="color:#34d399;">0 NC</strong>
+        </div>
+      </div>
+      <form id="bank-action-form">
+        <input type="hidden" id="bank-action-type" value="deposit">
+        
+        <div class="form-group">
+          <label class="form-label" id="bank-modal-label">Cantidad a Depositar (NC)</label>
+          <div class="amount-input-wrap">
+            <input type="number" id="bank-action-amount" class="input input-lg" min="1" placeholder="Ej: 500" required autofocus>
+            <span class="amount-suffix">NC</span>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:0.4rem; margin-bottom:1.25rem;">
+          <button type="button" class="btn-quick-nc" onclick="setBankPercentage(25)">25%</button>
+          <button type="button" class="btn-quick-nc" onclick="setBankPercentage(50)">50%</button>
+          <button type="button" class="btn-quick-nc" onclick="setBankPercentage(75)">75%</button>
+          <button type="button" class="btn-quick-nc" style="font-weight:800; color:#fbbf24;" onclick="setBankPercentage(100)">Todo (100%)</button>
+        </div>
+
+        <div style="display:flex; gap:0.75rem;">
+          <button type="button" class="btn btn-secondary btn-block" onclick="closeModal('modal-bank-action')">Cancelar</button>
+          <button type="submit" id="btn-bank-submit" class="btn btn-primary btn-block">Confirmar Depósito</button>
+        </div>
       </form>
     </div>
   </div>

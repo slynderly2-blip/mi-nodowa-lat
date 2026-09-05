@@ -97,13 +97,79 @@ router.post("/transfer", (req, res) => {
   res.json({ ok: true, message: `Has enviado ${numAmount.toLocaleString()} NC a ${receiver.displayName || receiver.username}.` });
 });
 
-// Historial de transacciones de un jugador
-router.get("/transactions/:username", (req, res) => {
-  const uname = req.params.username.trim().toLowerCase();
-  const history = (db.transactions || [])
-    .filter(t => t.from?.toLowerCase() === uname || t.to?.toLowerCase() === uname)
-    .slice(0, 30);
-  res.json({ ok: true, transactions: history });
+// Consultar estado de intereses bancarios
+router.get("/interest/:username", (req, res) => {
+  const user = getOrCreateUser(req.params.username);
+  const bank = Math.floor(user.bank || 0);
+  const dailyRatePercent = 2.0; // 2% diario
+  const rateRatio = dailyRatePercent / 100;
+
+  const now = Date.now();
+  const lastTime = user.lastInterestDate ? new Date(user.lastInterestDate).getTime() : (now - (12 * 3600 * 1000)); // Si es nuevo, dar 12 horas acumuladas
+  const hoursElapsed = Math.max(0, (now - lastTime) / (1000 * 60 * 60));
+
+  let pending = 0;
+  if (bank >= 20) {
+    pending = Math.floor(bank * rateRatio * (hoursElapsed / 24));
+  }
+
+  const estimatedDaily = Math.max(0, Math.floor(bank * rateRatio));
+  const totalEarned = Math.floor(user.totalInterestEarned || 0);
+
+  res.json({
+    ok: true,
+    bank,
+    dailyRatePercent,
+    estimatedDaily,
+    pendingInterest: pending,
+    totalEarned,
+    hoursElapsed: Math.floor(hoursElapsed),
+    canClaim: pending >= 1
+  });
+});
+
+// Reclamar intereses bancarios ganados
+router.post("/claim-interest", (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.status(400).json({ ok: false, error: "Usuario requerido." });
+
+  const user = getOrCreateUser(username);
+  const bank = Math.floor(user.bank || 0);
+  const dailyRatePercent = 2.0;
+  const rateRatio = dailyRatePercent / 100;
+
+  const now = Date.now();
+  const lastTime = user.lastInterestDate ? new Date(user.lastInterestDate).getTime() : (now - (12 * 3600 * 1000));
+  const hoursElapsed = Math.max(0, (now - lastTime) / (1000 * 60 * 60));
+
+  let pending = 0;
+  if (bank >= 20) {
+    pending = Math.floor(bank * rateRatio * (hoursElapsed / 24));
+  }
+
+  if (pending < 1) {
+    return res.status(400).json({
+      ok: false,
+      error: "Aún no tienes intereses suficientes acumulados para reclamar (mínimo 1 NC). ¡Mantén tus monedas en el banco para generar más!"
+    });
+  }
+
+  user.bank = (user.bank || 0) + pending;
+  user.totalInterestEarned = (user.totalInterestEarned || 0) + pending;
+  user.lastInterestDate = new Date().toISOString();
+
+  logTransaction("BANK_INTEREST", user.username, pending, "INTEREST", `Rendimiento bancario 2% (+${pending} NC)`);
+  saveDb();
+
+  broadcastWs("BALANCE_UPDATE", { username: user.username, wallet: user.wallet, bank: user.bank });
+
+  res.json({
+    ok: true,
+    message: `¡Has reclamado exitosamente +${pending.toLocaleString()} NC en intereses pasivos!`,
+    claimed: pending,
+    newBank: user.bank,
+    totalEarned: user.totalInterestEarned
+  });
 });
 
 export default router;
