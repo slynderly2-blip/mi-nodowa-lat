@@ -1,1218 +1,499 @@
-// ── Estado Global de la Aplicación ───────────────────────────────
+// ── Nodowa Network - Frontend Modular & Minimalista (Tema Claro) ──
+import { apiRequest, showToast, escapeHtml, formatCoins } from "./api.js";
+import { socket } from "./ws.js";
+
+// Estado Global
 let currentUser = null;
 let currentTab = "store";
-let currentCategory = "all";
-let storeSearchQuery = "";
-let storeSortOption = "default";
 let storeCatalog = [];
-let storeConfig = null;
-let ws = null;
-let pendingAuthUsername = null;
-// ── Helper de escape HTML ──────────────────────────────────────
-function escapeHtml(str) {
-  if (!str) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
 
-// ── Inicialización ──────────────────────────────────────────────
+// Inicialización al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
+  initAuth();
+  setupNavigation();
+  setupEventListeners();
+  setupWebSocket();
+
+  // Renderizar iconos iniciales
   renderIcons();
-  setupNavTabs();
-  setupCategoryFilters();
-  setupAuthEvents();
-  setupStoreEvents();
-  setupDropzone();
-  setupP2pEvents();
-  setupWalletEvents();
-  setupPlayersRegistryEvents();
-  
-  // Validar sesión guardada en localStorage
-  const sessionToken = localStorage.getItem("nodowa_session_token");
-  const savedUser = localStorage.getItem("nodowa_user");
-  if (savedUser) {
-    try {
-      currentUser = JSON.parse(savedUser);
-      updateUserWidget();
-    } catch (_) {}
-  }
 
-  if (sessionToken) {
-    validateSavedSession(sessionToken);
-  }
-
-  loadStoreItems();
-  loadP2pListings();
-  loadLeaderboard();
-  loadPlayersRegistry();
-  setupEditProfileEvents();
-  initWebSocket();
+  // Cargar pestaña inicial
+  switchTab("store");
 });
 
-// ── Renderizado de Iconos SVG ───────────────────────────────────
-function renderIcons(container = document) {
+export function renderIcons(container = document) {
   const slots = container.querySelectorAll(".icon-slot");
   slots.forEach(slot => {
     const iconName = slot.getAttribute("data-icon");
-    if (iconName && typeof getIcon === "function") {
-      slot.innerHTML = getIcon(iconName);
+    if (iconName && typeof window.getIcon === "function") {
+      slot.innerHTML = window.getIcon(iconName);
     }
   });
-
-  const brandSlot = document.getElementById("brand-icon-slot");
-  if (brandSlot && typeof getIcon === "function") {
-    brandSlot.innerHTML = getIcon("coins");
-  }
 }
 
-// ── Navegación por Tabs (Desktop + Mobile TikTok Bar) ───────────
-function switchTab(targetTab) {
-  // Desactivar todos los tabs (desktop + mobile)
-  document.querySelectorAll(".tab-btn").forEach(t => t.classList.remove("active"));
-  document.querySelectorAll(".mobile-nav-item").forEach(t => t.classList.remove("active"));
-  document.querySelectorAll(".tab-view").forEach(v => v.classList.remove("active"));
-
-  // Activar el tab seleccionado en desktop y mobile
-  document.querySelectorAll(`.tab-btn[data-tab="${targetTab}"]`).forEach(t => t.classList.add("active"));
-  document.querySelectorAll(`.mobile-nav-item[data-tab="${targetTab}"]`).forEach(t => t.classList.add("active"));
-
-  currentTab = targetTab;
-  const targetView = document.getElementById(`view-${targetTab}`);
-  if (targetView) targetView.classList.add("active");
-
-  if (targetTab === "wallet") loadUserProfile();
-  if (targetTab === "players") loadPlayersRegistry();
-  if (targetTab === "deliveries") loadDeliveries();
-  if (targetTab === "leaderboard") loadLeaderboard();
-  if (targetTab === "market") loadP2pListings();
-}
-
-function setupNavTabs() {
-  // Desktop tabs
-  document.querySelectorAll(".tab-btn").forEach(btn => {
-    btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
-  });
-
-  // Mobile TikTok bottom navbar
-  document.querySelectorAll(".mobile-nav-item").forEach(btn => {
-    btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
-  });
-}
-
-function setupCategoryFilters() {
-  const catBtns = document.querySelectorAll(".cat-btn[data-cat]");
-  catBtns.forEach(btn => {
+// ── 1. NAVEGACIÓN SPA ──────────────────────────────────────────
+function setupNavigation() {
+  document.querySelectorAll("[data-tab]").forEach(btn => {
     btn.addEventListener("click", () => {
-      catBtns.forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      currentCategory = btn.getAttribute("data-cat");
-      renderStoreCards();
+      const target = btn.getAttribute("data-tab");
+      switchTab(target);
     });
   });
-
-  // Búsqueda interactiva en vivo
-  const searchInput = document.getElementById("store-search-input");
-  const clearBtn = document.getElementById("store-search-clear");
-  if (searchInput) {
-    searchInput.addEventListener("input", (e) => {
-      storeSearchQuery = (e.target.value || "").trim().toLowerCase();
-      if (clearBtn) clearBtn.style.display = storeSearchQuery ? "inline-flex" : "none";
-      renderStoreCards();
-    });
-  }
-
-  if (clearBtn) {
-    clearBtn.addEventListener("click", () => {
-      clearStoreSearch();
-    });
-  }
-
-  // Ordenación
-  const sortSelect = document.getElementById("store-sort-select");
-  if (sortSelect) {
-    sortSelect.addEventListener("change", (e) => {
-      storeSortOption = e.target.value;
-      renderStoreCards();
-    });
-  }
 }
 
-function clearStoreSearch() {
-  const searchInput = document.getElementById("store-search-input");
-  const clearBtn = document.getElementById("store-search-clear");
-  if (searchInput) searchInput.value = "";
-  storeSearchQuery = "";
-  if (clearBtn) clearBtn.style.display = "none";
-  if (searchInput) searchInput.focus();
-  renderStoreCards();
+function switchTab(tabId) {
+  currentTab = tabId;
+
+  // Actualizar botones de navegación
+  document.querySelectorAll("[data-tab]").forEach(b => {
+    b.classList.toggle("active", b.getAttribute("data-tab") === tabId);
+  });
+
+  // Mostrar vista correspondiente
+  document.querySelectorAll(".tab-view").forEach(view => {
+    view.classList.remove("active");
+    view.style.display = "none";
+  });
+
+  const activeView = document.getElementById(`view-${tabId}`);
+  if (activeView) {
+    activeView.classList.add("active");
+    activeView.style.display = "block";
+  }
+
+  // Cargar datos según la pestaña activa
+  if (tabId === "store") loadStoreCatalog();
+  else if (tabId === "bank") loadBankData();
+  else if (tabId === "deliveries") loadDeliveries();
+  else if (tabId === "market") loadMarketListings();
+  else if (tabId === "players") loadPlayersRegistry();
+  else if (tabId === "leaderboard") loadLeaderboard();
+
+  renderIcons();
 }
 
-// ── Validación de Sesión ────────────────────────────────────────
-async function validateSavedSession(sessionToken) {
-  try {
-    const res = await fetch("/api/auth/validate-session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionToken })
-    });
-    const data = await res.json();
-    if (data.ok && data.user) {
-      currentUser = data.user;
-      localStorage.setItem("nodowa_user", JSON.stringify(currentUser));
-      updateUserWidget();
-      loadUserProfile();
-    } else if (data.pending) {
-      console.log("[Auth] Sesión de dispositivo pendiente de confirmación en Minecraft...");
-    } else {
-      localStorage.removeItem("nodowa_session_token");
-      localStorage.removeItem("nodowa_user");
+// ── 2. AUTENTICACIÓN Y SESIÓN DE JUGADOR ────────────────────────
+function initAuth() {
+  const stored = localStorage.getItem("nodowa_user");
+  if (stored) {
+    try {
+      currentUser = JSON.parse(stored);
+      updateUserUI();
+    } catch (_) {
       currentUser = null;
-      updateUserWidget();
     }
-  } catch (_) {}
-}
-
-// ── WebSocket para Tiempo Real ──────────────────────────────────
-function initWebSocket() {
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = `${protocol}//${window.location.host}`;
-  ws = new WebSocket(wsUrl);
-
-  ws.onmessage = (evt) => {
-    try {
-      const data = JSON.parse(evt.data);
-      handleWsEvent(data);
-    } catch (_) {}
-  };
-
-  ws.onclose = () => {
-    setTimeout(initWebSocket, 4000);
-  };
-}
-
-function handleWsEvent(data) {
-  const { event, payload } = data;
-
-  if (event === "USER_LINKED") {
-    if (pendingAuthUsername && pendingAuthUsername === payload.username.toLowerCase()) {
-      currentUser = payload.user;
-      if (payload.sessionToken) {
-        localStorage.setItem("nodowa_session_token", payload.sessionToken);
-      }
-      localStorage.setItem("nodowa_user", JSON.stringify(currentUser));
-      clearInterval(authCountdownInterval);
-      updateUserWidget();
-      loadUserProfile();
-      closeAuthModal();
-      if (payload.bonusAwarded) {
-        showToast(`🎉 ¡Bienvenido! Has recibido un regalo de +${payload.bonusAmount || 500} Nodocoins.`, "success");
-      } else {
-        showToast(`¡Sesión autorizada para ${currentUser.displayName || currentUser.username}!`, "success");
-      }
-      pendingAuthUsername = null;
-    }
-  } else if (event === "BALANCE_UPDATE") {
-    if (currentUser && currentUser.username === payload.username) {
-      currentUser.wallet = payload.wallet;
-      updateUserWidget();
-      loadUserProfile();
-    }
-  } else if (event === "ORDER_APPROVED") {
-    if (currentUser && currentUser.username.toLowerCase() === payload.username.toLowerCase()) {
-      showToast(`¡Tu pago de Binance por "${payload.itemTitle}" fue APROBADO!`, "success");
-      loadUserProfile();
-      loadDeliveries();
-    }
-  } else if (event === "P2P_NEW" || event === "P2P_BOUGHT") {
-    loadP2pListings();
-  } else if (event === "STORE_UPDATED") {
-    loadStoreItems();
-  } else if (event === "PLAYERS_SYNCED") {
-    loadPlayersRegistry();
   }
-}
 
-let pendingAuthCode = null;
+  // Formulario Login
+  document.getElementById("form-login")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = document.getElementById("input-login-gamertag");
+    const name = input?.value.trim();
+    if (!name) return showToast("Ingresa tu Gamertag", "error");
 
-// ── Autenticación / Login / Vinculación con /link OTP ───────────
-function setupAuthEvents() {
-  document.getElementById("btn-open-auth")?.addEventListener("click", openAuthModal);
+    const res = await apiRequest("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username: name })
+    });
 
-  document.getElementById("btn-request-link-code")?.addEventListener("click", async () => {
-    const input = document.getElementById("auth-input-username");
-    const username = input.value.trim();
-    if (!username) return showToast("Ingresa tu Gamertag de Minecraft", "error");
-
-    try {
-      const res = await fetch("/api/auth/request-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        pendingAuthUsername = username.toLowerCase();
-        pendingAuthCode = data.code;
-        if (data.sessionToken) {
-          localStorage.setItem("nodowa_session_token", data.sessionToken);
-        }
-        document.getElementById("auth-target-player-name").innerText = username;
-        document.getElementById("auth-generated-code").innerText = `/link ${data.code}`;
-        document.getElementById("auth-step-1").style.display = "none";
-        document.getElementById("auth-step-2").style.display = "block";
-        
-        startAuthCountdown(data.expiresAt);
-        renderIcons(document.getElementById("modal-auth"));
-      } else {
-        showToast(data.error || "No se pudo generar el código", "error");
-      }
-    } catch (e) {
-      showToast("Error al solicitar código /link", "error");
+    if (res.ok && res.user) {
+      currentUser = res.user;
+      localStorage.setItem("nodowa_user", JSON.stringify(currentUser));
+      updateUserUI();
+      closeModal("modal-login");
+      showToast(`¡Bienvenido, ${currentUser.displayName || currentUser.username}!`, "success");
+      if (currentTab === "bank") loadBankData();
+      if (currentTab === "deliveries") loadDeliveries();
+    } else {
+      showToast(res.error || "No se pudo iniciar sesión", "error");
     }
   });
-
-
-
-  document.getElementById("btn-copy-link-cmd")?.addEventListener("click", () => {
-    const text = document.getElementById("auth-generated-code").innerText;
-    copyText(text);
-  });
-
-
-  // Confirmación de Logout
-  document.getElementById("btn-execute-confirmed-logout")?.addEventListener("click", async () => {
-    const sessionToken = localStorage.getItem("nodowa_session_token");
-    try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionToken })
-      });
-    } catch (_) {}
-
-    localStorage.removeItem("nodowa_session_token");
-    localStorage.removeItem("nodowa_user");
-    currentUser = null;
-    updateUserWidget();
-    closeConfirmLogoutModal();
-    showToast("Sesión cerrada correctamente", "info");
-    loadUserProfile();
-  });
 }
 
-let authPollingInterval = null;
+function updateUserUI() {
+  const authSection = document.getElementById("header-auth");
+  const mobileAuth = document.getElementById("mobile-user-card");
 
-function startAuthCountdown(expiresAt) {
-  clearInterval(authCountdownInterval);
-  clearInterval(authPollingInterval);
-
-  const timerElem = document.getElementById("auth-timer-countdown");
-
-  authCountdownInterval = setInterval(() => {
-    const remaining = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
-    const mins = Math.floor(remaining / 60);
-    const secs = remaining % 60;
-    const formatted = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-
-    if (timerElem) {
-      timerElem.innerText = `⏳ Válido por 15 minutos (Expira en: ${formatted})`;
-    }
-
-    if (remaining <= 0) {
-      clearInterval(authCountdownInterval);
-      clearInterval(authPollingInterval);
-      if (timerElem) timerElem.innerText = `⚠️ El código expiró. Genera uno nuevo.`;
-    }
-  }, 1000);
-
-  // Sondeo cada 2.5 segundos por si el evento WebSocket se pierde
-  authPollingInterval = setInterval(async () => {
-    if (!pendingAuthCode || !pendingAuthUsername) return;
-
-    try {
-      const res = await fetch(`/api/auth/check-link-status?code=${pendingAuthCode}`);
-      const data = await res.json();
-      if (data.verified) {
-        clearInterval(authCountdownInterval);
-        clearInterval(authPollingInterval);
-        
-        // Re-validar perfil o refrescar usuario
-        const profRes = await fetch(`/api/user/profile?username=${encodeURIComponent(pendingAuthUsername)}`);
-        const profData = await profRes.json();
-        if (profData.ok && profData.user) {
-          currentUser = profData.user;
-          localStorage.setItem("nodowa_user", JSON.stringify(currentUser));
-          updateUserWidget();
-          loadUserProfile();
-          closeAuthModal();
-          showToast(`¡Sesión autorizada en Minecraft para ${currentUser.displayName || currentUser.username}!`, "success");
-          pendingAuthUsername = null;
-          pendingAuthCode = null;
-        }
-      }
-    } catch (_) {}
-  }, 2500);
-}
-
-function openAuthModal() {
-  document.getElementById("modal-auth").classList.add("active");
-  document.getElementById("auth-step-1").style.display = "block";
-  document.getElementById("auth-step-2").style.display = "none";
-  renderIcons(document.getElementById("modal-auth"));
-}
-
-function closeAuthModal() {
-  document.getElementById("modal-auth").classList.remove("active");
-  clearInterval(authCountdownInterval);
-  clearInterval(authPollingInterval);
-}
-
-function backToAuthStep1() {
-  document.getElementById("auth-step-1").style.display = "block";
-  document.getElementById("auth-step-2").style.display = "none";
-  clearInterval(authCountdownInterval);
-  clearInterval(authPollingInterval);
-}
-
-
-function openConfirmLogoutModal() {
-  if (!currentUser) return;
-  document.getElementById("logout-target-name").innerText = currentUser.displayName || currentUser.username;
-  document.getElementById("modal-confirm-logout").classList.add("active");
-  renderIcons(document.getElementById("modal-confirm-logout"));
-}
-
-function closeConfirmLogoutModal() {
-  document.getElementById("modal-confirm-logout").classList.remove("active");
-}
-
-function updateUserWidget() {
-  const container = document.getElementById("user-widget-container");
-  if (!container) return;
+  if (!authSection) return;
 
   if (currentUser) {
-    const avatarUrl = currentUser.avatar || `https://mc-heads.net/avatar/${encodeURIComponent(currentUser.username)}/100`;
-    container.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <div class="user-badge-card" onclick="openEditProfileModal()" title="Editar Mi Perfil (Foto, Bio, WhatsApp, Discord)">
-          <img src="${avatarUrl}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--purple-300);">
-          <div class="user-info-mini">
-            <span class="name">${currentUser.displayName || currentUser.username}</span>
-            <span class="balance">${(currentUser.wallet || 0).toLocaleString()} NC</span>
-          </div>
-        </div>
-        <button class="cat-btn" onclick="openConfirmLogoutModal()" style="padding: 6px 10px; font-size: 0.8rem;" title="Cerrar Sesión">
-          <span class="icon-slot" data-icon="x"></span>
-        </button>
+    const avatarUrl = `https://mc-heads.net/avatar/${encodeURIComponent(currentUser.username)}/32`;
+    authSection.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 0.75rem; background: var(--purple-50); padding: 0.35rem 0.75rem; border-radius: var(--radius-full); border: 1px solid var(--purple-200);">
+        <img src="${avatarUrl}" onError="this.src='/uploads/default_qr.svg'" style="width: 28px; height: 28px; border-radius: 50%; background: #fff; object-fit: contain;">
+        <span style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">${escapeHtml(currentUser.displayName || currentUser.username)}</span>
+        <span class="mono text-purple" style="font-size: 0.85rem; font-weight: 800;">${formatCoins(currentUser.wallet || 0)}</span>
+        <button class="cat-btn" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="logout()">Salir</button>
       </div>
     `;
-    renderIcons(container);
+
+    if (mobileAuth) {
+      mobileAuth.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+          <div>
+            <strong>${escapeHtml(currentUser.displayName || currentUser.username)}</strong>
+            <div class="mono text-purple">${formatCoins(currentUser.wallet || 0)}</div>
+          </div>
+          <button class="cat-btn" onclick="logout()">Salir</button>
+        </div>
+      `;
+    }
   } else {
-    container.innerHTML = `
-      <button class="btn-auth" id="btn-open-auth" onclick="openAuthModal()">
-        <span class="icon-slot" data-icon="user"></span> Iniciar Sesión
+    authSection.innerHTML = `
+      <button class="btn-primary" onclick="openModal('modal-login')" style="padding: 0.5rem 1.15rem; font-size: 0.875rem;">
+        <span class="icon-slot" data-icon="user"></span> Entrar con Gamertag
       </button>
     `;
+    if (mobileAuth) {
+      mobileAuth.innerHTML = `
+        <button class="btn-primary" style="width:100%;" onclick="openModal('modal-login')">
+          <span class="icon-slot" data-icon="user"></span> Entrar con Gamertag
+        </button>
+      `;
+    }
+  }
+  renderIcons();
+}
+
+export function logout() {
+  currentUser = null;
+  localStorage.removeItem("nodowa_user");
+  updateUserUI();
+  showToast("Sesión cerrada.", "info");
+  if (currentTab === "bank") loadBankData();
+  if (currentTab === "deliveries") loadDeliveries();
+}
+
+// ── 3. TIENDA DE ARTÍCULOS Y COMPRAS ───────────────────────────
+async function loadStoreCatalog() {
+  const container = document.getElementById("store-catalog-grid");
+  if (!container) return;
+
+  const res = await apiRequest("/api/store/items");
+  if (res.ok && res.items) {
+    storeCatalog = res.items;
+    renderStoreCatalog();
+  }
+}
+
+function renderStoreCatalog(filterCategory = "all") {
+  const container = document.getElementById("store-catalog-grid");
+  if (!container) return;
+
+  let filtered = storeCatalog;
+  if (filterCategory !== "all") {
+    filtered = filtered.filter(i => (i.category || "").toLowerCase() === filterCategory.toLowerCase());
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="text-muted" style="grid-column: 1/-1; text-align: center; padding: 3rem;">No hay artículos disponibles en esta categoría.</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(item => {
+    const isCoinsAvailable = item.priceCoins > 0;
+    const isUsdtAvailable = item.priceUsdt > 0;
+
+    return `
+      <div class="card store-card">
+        ${item.badge ? `<span class="store-badge">${escapeHtml(item.badge)}</span>` : ""}
+        <div class="store-icon-wrap">
+          <span class="icon-slot text-purple" data-icon="${item.iconType || 'box'}"></span>
+        </div>
+        <h3 style="font-size: 1.15rem; margin-bottom: 0.35rem;">${escapeHtml(item.name)}</h3>
+        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1.25rem; min-height: 40px;">${escapeHtml(item.description || "Ítem exclusivo de Nodowa Network.")}</p>
+        
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 0.65rem;">
+          ${isCoinsAvailable ? `
+            <button class="btn-primary" style="width: 100%; justify-content: center;" onclick="promptBuyWithCoins('${item.id}')">
+              <span class="icon-slot" data-icon="coins"></span> Comprar por ${formatCoins(item.priceCoins)}
+            </button>
+          ` : ""}
+          ${isUsdtAvailable ? `
+            <button class="cat-btn" style="width: 100%; justify-content: center; background: rgba(245, 158, 11, 0.1); color: #d97706; border-color: rgba(245, 158, 11, 0.3);" onclick="promptBuyWithBinance('${item.id}')">
+              <span class="icon-slot" data-icon="qr"></span> Comprar con USDT ($${item.priceUsdt.toFixed(2)})
+            </button>
+          ` : ""}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  renderIcons(container);
+}
+
+// Comprar con Nodocoins
+window.promptBuyWithCoins = function(itemId) {
+  if (!currentUser) return openModal("modal-login");
+  const item = storeCatalog.find(i => i.id === itemId);
+  if (!item) return;
+
+  const modal = document.getElementById("modal-confirm-purchase");
+  if (!modal) return;
+
+  document.getElementById("confirm-purchase-title").textContent = item.name;
+  document.getElementById("confirm-purchase-desc").textContent = item.description || "¿Deseas comprar este artículo?";
+  document.getElementById("confirm-purchase-price").textContent = formatCoins(item.priceCoins);
+  document.getElementById("confirm-purchase-balance").textContent = formatCoins(currentUser.wallet || 0);
+
+  const remaining = (currentUser.wallet || 0) - item.priceCoins;
+  const remEl = document.getElementById("confirm-purchase-remaining");
+  remEl.textContent = formatCoins(Math.max(0, remaining));
+  remEl.style.color = remaining >= 0 ? "var(--text-main)" : "#ef4444";
+
+  const execBtn = document.getElementById("btn-execute-purchase");
+  execBtn.onclick = async () => {
+    if (remaining < 0) return showToast("Saldo insuficiente en tu billetera.", "error");
+    execBtn.disabled = true;
+
+    const res = await apiRequest("/api/store/buy", {
+      method: "POST",
+      body: JSON.stringify({ username: currentUser.username, itemId: item.id })
+    });
+
+    execBtn.disabled = false;
+    closeModal("modal-confirm-purchase");
+
+    if (res.ok) {
+      showToast(res.message, "success");
+      currentUser = res.user;
+      localStorage.setItem("nodowa_user", JSON.stringify(currentUser));
+      updateUserUI();
+    } else {
+      showToast(res.error || "No se pudo realizar la compra.", "error");
+    }
+  };
+
+  openModal("modal-confirm-purchase");
+};
+
+// Comprar con Binance USDT
+window.promptBuyWithBinance = async function(itemId) {
+  if (!currentUser) return openModal("modal-login");
+  const item = storeCatalog.find(i => i.id === itemId);
+  if (!item) return;
+
+  const res = await apiRequest("/api/orders/binance-info");
+  const binance = res.binance || {};
+
+  const modal = document.getElementById("modal-binance-payment");
+  if (!modal) return;
+
+  document.getElementById("binance-item-name").textContent = item.name;
+  document.getElementById("binance-item-price").textContent = `$${item.priceUsdt.toFixed(2)} USDT`;
+  document.getElementById("binance-pay-id").textContent = binance.payId || "—";
+  document.getElementById("binance-wallet-address").textContent = binance.walletAddress || "—";
+  document.getElementById("binance-qr-img").src = binance.qrImage || "/uploads/default_qr.svg";
+  document.getElementById("binance-order-item-id").value = item.id;
+
+  openModal("modal-binance-payment");
+};
+
+// ── 4. BANCO Y TRANSFERENCIAS ──────────────────────────────────
+async function loadBankData() {
+  if (!currentUser) return;
+
+  const res = await apiRequest(`/api/wallet/balance/${encodeURIComponent(currentUser.username)}`);
+  if (res.ok && res.user) {
+    currentUser.wallet = res.user.wallet;
+    currentUser.bank = res.user.bank;
+    localStorage.setItem("nodowa_user", JSON.stringify(currentUser));
+    updateUserUI();
+
+    document.getElementById("bank-wallet-val").textContent = formatCoins(currentUser.wallet);
+    document.getElementById("bank-balance-val").textContent = formatCoins(currentUser.bank);
+    document.getElementById("bank-total-val").textContent = formatCoins((currentUser.wallet || 0) + (currentUser.bank || 0));
+  }
+
+  // Cargar transacciones recientes
+  const txRes = await apiRequest(`/api/wallet/transactions/${encodeURIComponent(currentUser.username)}`);
+  const tbody = document.getElementById("bank-transactions-table");
+  if (tbody && txRes.ok) {
+    if (!txRes.transactions || txRes.transactions.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-muted" style="text-align:center; padding: 2rem;">No tienes transacciones registradas todavía.</td></tr>`;
+    } else {
+      tbody.innerHTML = txRes.transactions.map(t => {
+        const isIncoming = t.to?.toLowerCase() === currentUser.username.toLowerCase();
+        const color = isIncoming ? "text-emerald" : "text-purple";
+        const sign = isIncoming ? "+" : "-";
+
+        return `
+          <tr>
+            <td class="mono text-muted" style="font-size:0.8rem;">${new Date(t.createdAt).toLocaleDateString()}</td>
+            <td><strong>${escapeHtml(t.type)}</strong> <span class="text-muted" style="font-size:0.8rem;">(${escapeHtml(t.note || '')})</span></td>
+            <td><span class="mono" style="font-size:0.85rem;">${escapeHtml(isIncoming ? t.from : t.to)}</span></td>
+            <td class="mono ${color}" style="font-weight:700;">${sign}${formatCoins(t.amount)}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+  }
+}
+
+// ── 5. BUZÓN DE ENTREGAS Y BOTÓN "NO RECIBÍ MI PRODUCTO" ────────
+async function loadDeliveries() {
+  const tbody = document.getElementById("deliveries-table-body");
+  if (!tbody) return;
+
+  if (!currentUser) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-muted" style="text-align: center; padding: 2.5rem;">Inicia sesión para ver tus compras y entregas.</td></tr>`;
+    return;
+  }
+
+  const res = await apiRequest(`/api/deliveries?username=${encodeURIComponent(currentUser.username)}`);
+  if (res.ok) {
+    if (!res.deliveries || res.deliveries.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-muted" style="text-align: center; padding: 2.5rem;">Tu buzón está vacío. ¡Compra en la tienda para recibir tus ítems!</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = res.deliveries.map(d => {
+      const isDelivered = d.status === "DELIVERED";
+      const hasIssue = !!d.reportedIssue;
+
+      let actionHtml = "";
+      if (hasIssue) {
+        actionHtml = `<span class="badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.75rem;">⚠️ Reportado al Admin</span>`;
+      } else {
+        actionHtml = `
+          <button class="cat-btn" style="padding: 0.35rem 0.65rem; font-size: 0.75rem; background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); white-space: nowrap;" onclick="openReportDeliveryModal('${escapeHtml(d.id)}', '${escapeHtml(d.itemTitle || 'Artículo')}')">
+            <span class="icon-slot" data-icon="alert"></span> No recibí mi producto
+          </button>
+        `;
+      }
+
+      return `
+        <tr>
+          <td class="text-muted mono" style="font-size: 0.825rem;">${new Date(d.createdAt).toLocaleDateString()}</td>
+          <td><strong>${escapeHtml(d.itemTitle || "Artículo")}</strong></td>
+          <td class="mono text-muted" style="font-size: 0.8rem;">${escapeHtml(d.command || (d.giveCoins ? `+${d.giveCoins.toLocaleString()} NC` : 'Entrega manual'))}</td>
+          <td>
+            <span class="status-badge ${isDelivered ? 'status-approved' : 'status-pending'}">
+              ${isDelivered ? 'Entregado en Minecraft' : 'Pendiente de Reclamo'}
+            </span>
+          </td>
+          <td>${actionHtml}</td>
+        </tr>
+      `;
+    }).join("");
+
+    renderIcons(tbody);
+  }
+}
+
+window.openReportDeliveryModal = function(deliveryId, itemTitle) {
+  const modal = document.getElementById("modal-report-delivery");
+  if (!modal) return;
+  document.getElementById("report-delivery-id").value = deliveryId;
+  document.getElementById("report-delivery-item-name").textContent = itemTitle;
+  document.getElementById("report-delivery-note").value = "";
+  openModal("modal-report-delivery");
+};
+
+window.submitDeliveryReport = async function() {
+  const deliveryId = document.getElementById("report-delivery-id")?.value;
+  const note = document.getElementById("report-delivery-note")?.value.trim();
+  const btn = document.getElementById("btn-submit-delivery-report");
+
+  if (!deliveryId) return showToast("Identificador de entrega no válido.", "error");
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Enviando reporte...";
+  }
+
+  const res = await apiRequest("/api/deliveries/report-issue", {
+    method: "POST",
+    body: JSON.stringify({ deliveryId, username: currentUser.username, note })
+  });
+
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = "Enviar Reporte al Admin";
+  }
+
+  if (res.ok) {
+    showToast("¡Reporte enviado! El Administrador revisará el registro para solucionar tu entrega.", "success");
+    closeModal("modal-report-delivery");
+    loadDeliveries();
+  } else {
+    showToast(res.error || "No se pudo enviar el reporte.", "error");
+  }
+};
+
+// ── 6. MERCADO P2P ─────────────────────────────────────────────
+async function loadMarketListings() {
+  const container = document.getElementById("market-listings-grid");
+  if (!container) return;
+
+  const res = await apiRequest("/api/market/listings");
+  if (res.ok && res.market) {
+    if (res.market.length === 0) {
+      container.innerHTML = `<div class="text-muted" style="grid-column: 1/-1; text-align: center; padding: 3rem;">No hay publicaciones en el mercado P2P. ¡Sé el primero en vender!</div>`;
+      return;
+    }
+
+    container.innerHTML = res.market.map(l => {
+      const isOwner = currentUser && l.seller?.toLowerCase() === currentUser.username.toLowerCase();
+      return `
+        <div class="card p2p-card">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <img src="https://mc-heads.net/avatar/${encodeURIComponent(l.seller)}/24" style="width:24px; height:24px; border-radius:50%;">
+              <strong style="font-size: 0.9rem;">${escapeHtml(l.seller)}</strong>
+            </div>
+            <span class="badge" style="background:var(--purple-100); color:var(--purple-700);">x${l.quantity || 1}</span>
+          </div>
+          <h3 style="font-size: 1.1rem; margin-bottom: 0.35rem;">${escapeHtml(l.title)}</h3>
+          <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem; min-height: 36px;">${escapeHtml(l.description || l.itemType)}</p>
+          <div class="flex-between" style="margin-top: auto; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
+            <strong class="mono text-purple" style="font-size: 1.15rem;">${formatCoins(l.price)}</strong>
+            ${isOwner ? `
+              <button class="cat-btn" style="color:#ef4444;" onclick="deleteMarketListing('${l.id}')">Eliminar</button>
+            ` : `
+              <button class="btn-primary" style="padding: 0.4rem 0.9rem; font-size:0.85rem;" onclick="buyMarketListing('${l.id}')">Comprar</button>
+            `}
+          </div>
+        </div>
+      `;
+    }).join("");
     renderIcons(container);
   }
 }
 
-// ── Cargar y Renderizar Catálogo de Tienda ───────────────────────
-async function loadStoreItems() {
-  try {
-    const res = await fetch("/api/store/items");
-    const data = await res.json();
-    if (data.ok) {
-      storeCatalog = data.items;
-      storeConfig = data.config;
-      renderStoreCards();
-    }
-  } catch (e) {
-    console.error("Error al cargar tienda:", e);
-  }
-}
-
-function itemMatchesCategory(item, cat) {
-  if (!cat || cat === "all") return true;
-  const c = (item.category || "").toLowerCase();
-  const id = (item.id || "").toLowerCase();
-  const name = (item.name || "").toLowerCase();
-
-  if (cat === "coins") {
-    return c === "coins" || c === "monedas" || id.startsWith("coin_") || (item.giveCoins > 0 && item.priceCoins === 0);
-  }
-  if (cat === "food") {
-    return id.startsWith("food_") || /manzana|filete|chuleta|zanahoria|pan|salm[oó]n|pastel|tarta|comida/.test(name);
-  }
-  if (cat === "resources") {
-    return id.startsWith("res_") || /diamante|hierro|oro|esmeralda|lapis|redstone|amatista|carb[oó]n|cuarzo|netherite|debris|mineral/.test(name);
-  }
-  if (cat === "equipment") {
-    return id.startsWith("tool_") || id.startsWith("armor_") || /elytra|pico|espada|hacha|pala|arco|tridente|ballesta|caña|pechera|casco|botas|grebas|armadura/.test(name);
-  }
-  if (cat === "potions") {
-    return id.startsWith("pot_") || /poci[oó]n|fuerza|velocidad|regeneraci[oó]n|visi[oó]n|apnea|ca[ií]da lenta/.test(name);
-  }
-  if (cat === "utilities") {
-    return id.startsWith("util_") || /t[oó]tem|faro|beacon|shulker|cofre|yunque|encantamiento|varas|perlas|l[aá]grimas/.test(name);
-  }
-  if (cat === "ranks") {
-    return c === "rangos" || c === "ranks" || id.startsWith("rank_") || /rango|vip|mvp|elite/.test(name);
-  }
-  if (cat === "keys" || cat === "kits") {
-    return c === "keys" || c === "kits" || id.startsWith("kit_") || id.startsWith("key_") || /kit|llave|cofre m[ií]tico|b[oó]veda real/.test(name);
-  }
-  if (cat === "items") {
-    return c === "items" || (!id.startsWith("coin_") && !id.startsWith("rank_"));
-  }
-  return c === cat;
-}
-
-function itemMatchesSearch(item, query) {
-  if (!query) return true;
-  const terms = query.split(/\s+/).filter(Boolean);
-  const searchableText = `${item.name} ${item.description || ''} ${item.category || ''} ${item.badge || ''} ${item.id || ''}`.toLowerCase();
-  const normalizedText = searchableText.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-  return terms.every(term => {
-    const normTerm = term.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    return normalizedText.includes(normTerm);
-  });
-}
-
-function renderStoreCards() {
-  const grid = document.getElementById("store-items-grid");
-  const countBadge = document.getElementById("store-results-count");
-  if (!grid) return;
-  if (!storeCatalog || storeCatalog.length === 0) {
-    grid.innerHTML = `<div class="table-container" style="grid-column: 1/-1; padding: 2.5rem; text-align: center; color: var(--text-muted);">Cargando catálogo...</div>`;
-    return;
-  }
-
-  // 1. Filtrar por categoría y búsqueda en vivo
-  let filtered = storeCatalog.filter(item => {
-    return itemMatchesCategory(item, currentCategory) && itemMatchesSearch(item, storeSearchQuery);
+window.buyMarketListing = async function(listingId) {
+  if (!currentUser) return openModal("modal-login");
+  const res = await apiRequest("/api/market/buy", {
+    method: "POST",
+    body: JSON.stringify({ buyer: currentUser.username, listingId })
   });
 
-  // 2. Ordenar según selector
-  if (storeSortOption === "coins-asc") {
-    filtered.sort((a, b) => (a.priceCoins > 0 ? a.priceCoins : 9999999) - (b.priceCoins > 0 ? b.priceCoins : 9999999));
-  } else if (storeSortOption === "coins-desc") {
-    filtered.sort((a, b) => (b.priceCoins || 0) - (a.priceCoins || 0));
-  } else if (storeSortOption === "usdt-asc") {
-    filtered.sort((a, b) => (a.priceUsdt > 0 ? a.priceUsdt : 99999) - (b.priceUsdt > 0 ? b.priceUsdt : 99999));
-  } else if (storeSortOption === "usdt-desc") {
-    filtered.sort((a, b) => (b.priceUsdt || 0) - (a.priceUsdt || 0));
-  } else if (storeSortOption === "name-asc") {
-    filtered.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
+  if (res.ok) {
+    showToast(res.message, "success");
+    currentUser.wallet = res.newWallet;
+    localStorage.setItem("nodowa_user", JSON.stringify(currentUser));
+    updateUserUI();
+    loadMarketListings();
+  } else {
+    showToast(res.error || "Error en la compra", "error");
   }
+};
 
-  // 3. Actualizar contador
-  if (countBadge) {
-    if (storeSearchQuery || currentCategory !== "all") {
-      countBadge.innerText = `Mostrando ${filtered.length} de ${storeCatalog.length} artículos`;
-    } else {
-      countBadge.innerText = `${storeCatalog.length} artículos disponibles`;
-    }
-  }
-
-  // 4. Si no hay resultados
-  if (filtered.length === 0) {
-    grid.innerHTML = `
-      <div class="table-container" style="grid-column: 1/-1; padding: 3.5rem 2rem; text-align: center; border-radius: var(--radius-xl);">
-        <div style="font-size: 2.75rem; margin-bottom: 0.75rem;">🔍</div>
-        <h3 style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.35rem;">No se encontraron artículos</h3>
-        <p class="text-muted" style="max-width: 460px; margin: 0 auto 1.5rem auto; font-size: 0.95rem;">
-          No hay productos que coincidan con ${storeSearchQuery ? `la búsqueda "<strong>${storeSearchQuery}</strong>"` : 'esta categoría'}. Prueba buscando con palabras como <em>diamante</em>, <em>comida</em>, <em>pociones</em> o <em>monedas</em>.
-        </p>
-        <button class="btn-primary" onclick="clearStoreSearch()" style="display: inline-flex; margin: 0 auto; align-items: center; gap: 0.5rem;">
-          <span class="icon-slot" data-icon="refresh"></span> Ver Todo el Catálogo
-        </button>
-      </div>
-    `;
-    renderIcons(grid);
-    return;
-  }
-
-  grid.innerHTML = filtered.map(item => `
-    <div class="store-card">
-      <div>
-        ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.name}" style="width: 100%; height: 160px; object-fit: cover; border-radius: var(--radius-md) var(--radius-md) 0 0; margin-bottom: 0.75rem;">` : ''}
-        <div class="card-top" style="${item.imageUrl ? 'padding-top: 0;' : ''}">
-          <div class="card-icon">
-            <span class="icon-slot" data-icon="${item.iconType || 'box'}"></span>
-          </div>
-          ${item.badge ? `<div class="card-badge">${item.badge}</div>` : ''}
-        </div>
-        <div class="card-body">
-          <h3>${item.name}</h3>
-          <p>${item.description}</p>
-        </div>
-      </div>
-      <div class="card-footer">
-        <div class="price-tag">
-          ${item.priceCoins > 0 ? `<span class="price-coins">${item.priceCoins.toLocaleString()} NC</span>` : ''}
-          ${item.priceUsdt > 0 ? `<span class="price-usdt">$${item.priceUsdt.toFixed(2)} USDT</span>` : ''}
-        </div>
-        <div style="display: flex; gap: 0.5rem;">
-          ${item.priceCoins > 0 ? `
-            <button class="btn-buy-coins" onclick="buyItemWithCoins('${item.id}')" title="Comprar con Nodocoins">
-              <span class="icon-slot" data-icon="coins"></span> Comprar
-            </button>
-          ` : ''}
-          ${item.priceUsdt > 0 ? `
-            <button class="btn-buy-binance" onclick="openBinancePayModal('${item.id}')" title="Pagar con Binance QR">
-              <span class="icon-slot" data-icon="qr"></span> Binance
-            </button>
-          ` : ''}
-        </div>
-      </div>
-    </div>
-  `).join("");
-
-  renderIcons(grid);
-}
-
-// ── Modal de Confirmación de Compra para el Comprador ─────────
-let pendingPurchaseItemId = null;
-
-function buyItemWithCoins(itemId) {
-  if (!currentUser) {
-    showToast("Debes iniciar sesión para comprar", "error");
-    openAuthModal();
-    return;
-  }
-
-  const item = (storeCatalog || []).find(i => i.id === itemId);
-  if (!item) return;
-
-  const currentBal = currentUser.wallet || 0;
-  const cost = item.priceCoins || 0;
-
-  if (currentBal < cost) {
-    showToast(`Saldo insuficiente. Tienes ${currentBal.toLocaleString()} NC y necesitas ${cost.toLocaleString()} NC.`, "error");
-    return;
-  }
-
-  pendingPurchaseItemId = itemId;
-  const modal = document.getElementById("modal-confirm-purchase");
-  if (!modal) {
-    executeConfirmedPurchase(itemId);
-    return;
-  }
-
-  document.getElementById("confirm-purchase-title").innerText = `Comprar ${item.name}`;
-  document.getElementById("confirm-purchase-desc").innerText = item.description || "¿Deseas adquirir este artículo?";
-  document.getElementById("confirm-purchase-price").innerText = `${cost.toLocaleString()} NC`;
-  document.getElementById("confirm-purchase-balance").innerText = `${currentBal.toLocaleString()} NC`;
-  document.getElementById("confirm-purchase-remaining").innerText = `${(currentBal - cost).toLocaleString()} NC`;
-
-  const execBtn = document.getElementById("btn-execute-purchase");
-  if (execBtn) {
-    execBtn.onclick = () => executeConfirmedPurchase(itemId);
-  }
-
-  modal.classList.add("active");
-  renderIcons(modal);
-}
-
-function closeConfirmPurchaseModal() {
-  const modal = document.getElementById("modal-confirm-purchase");
-  if (modal) modal.classList.remove("active");
-  pendingPurchaseItemId = null;
-}
-
-// Ejecutar Compra Confirmada
-async function executeConfirmedPurchase(itemId) {
-  closeConfirmPurchaseModal();
+window.deleteMarketListing = async function(listingId) {
   if (!currentUser) return;
-
-  try {
-    const res = await fetch("/api/store/buy-coins", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: currentUser.username, itemId })
-    });
-    const data = await res.json();
-    if (data.ok) {
-      currentUser.wallet = data.newWallet;
-      updateUserWidget();
-      showToast(data.message, "success");
-      loadUserProfile();
-      loadDeliveries();
-    } else {
-      showToast(data.error || "No se pudo realizar la compra", "error");
-    }
-  } catch (e) {
-    showToast("Error de conexión con el servidor", "error");
-  }
-}
-
-// ── Dropzone y Subida de Comprobante Binance ────────────────────
-function setupDropzone() {
-  const dropzone = document.getElementById("binance-receipt-dropzone");
-  const fileInput = document.getElementById("binance-input-file");
-  const previewBox = document.getElementById("binance-file-preview-box");
-  const previewImg = document.getElementById("binance-preview-img");
-  const previewName = document.getElementById("binance-preview-name");
-  const previewSize = document.getElementById("binance-preview-size");
-
-  if (!dropzone || !fileInput) return;
-
-  ["dragenter", "dragover"].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      dropzone.classList.add("dragover");
-    });
+  const res = await apiRequest("/api/market/delete", {
+    method: "POST",
+    body: JSON.stringify({ username: currentUser.username, listingId })
   });
-
-  ["dragleave", "drop"].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      dropzone.classList.remove("dragover");
-    });
-  });
-
-  dropzone.addEventListener("drop", (e) => {
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      fileInput.files = files;
-      handleSelectedFile(files[0]);
-    }
-  });
-
-  fileInput.addEventListener("change", () => {
-    if (fileInput.files.length > 0) {
-      handleSelectedFile(fileInput.files[0]);
-    }
-  });
-
-  function handleSelectedFile(file) {
-    if (!file.type.startsWith("image/")) {
-      showToast("Por favor adjunta una imagen válida (JPG, PNG, WEBP)", "error");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      previewImg.src = e.target.result;
-      previewName.innerText = file.name;
-      previewSize.innerText = `${(file.size / 1024).toFixed(1)} KB`;
-      dropzone.style.display = "none";
-      previewBox.style.display = "flex";
-      renderIcons(previewBox);
-    };
-    reader.readAsDataURL(file);
+  if (res.ok) {
+    showToast("Publicación eliminada.", "success");
+    loadMarketListings();
+  } else {
+    showToast(res.error || "No se pudo eliminar.", "error");
   }
-}
+};
 
-function clearReceiptPreview() {
-  const dropzone = document.getElementById("binance-receipt-dropzone");
-  const fileInput = document.getElementById("binance-input-file");
-  const previewBox = document.getElementById("binance-file-preview-box");
-  if (fileInput) fileInput.value = "";
-  if (previewBox) previewBox.style.display = "none";
-  if (dropzone) dropzone.style.display = "block";
-}
-
-function setupStoreEvents() {
-  const formBinance = document.getElementById("form-binance-receipt");
-  formBinance?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const itemId = document.getElementById("binance-selected-item-id").value;
-    const username = document.getElementById("binance-input-username").value.trim();
-    const txid = document.getElementById("binance-input-txid").value.trim();
-    const fileInput = document.getElementById("binance-input-file");
-
-    if (!username || !txid || !fileInput.files[0]) {
-      return showToast("Completa todos los campos y adjunta la captura del comprobante", "error");
-    }
-
-    const formData = new FormData();
-    formData.append("username", username);
-    formData.append("itemId", itemId);
-    formData.append("txid", txid);
-    formData.append("receipt", fileInput.files[0]);
-
-    try {
-      const res = await fetch("/api/payments/binance/submit", {
-        method: "POST",
-        body: formData
-      });
-      const data = await res.json();
-      if (data.ok) {
-        showToast(data.message, "success");
-        closeBinanceModal();
-        formBinance.reset();
-        clearReceiptPreview();
-      } else {
-        showToast(data.error || "Error al enviar comprobante", "error");
-      }
-    } catch (err) {
-      showToast("Error de subida de archivo", "error");
-    }
-  });
-}
-
-function openBinancePayModal(itemId) {
-  let item = null;
-  if (storeCatalog && storeCatalog.length > 0) {
-    item = storeCatalog.find(i => i.id === itemId);
-  }
-  
-  // Fallbacks si aún no terminó de cargar
-  if (!item) {
-    const fallbackPrices = {
-      vip_plus: 4.99,
-      coins_pack_10k: 2.50,
-      kit_gladiator: 3.00,
-      protection_block_100: 1.99,
-      key_mythic: 1.50
-    };
-    item = { id: itemId, priceUsdt: fallbackPrices[itemId] || 2.00 };
-  }
-
-  document.getElementById("binance-selected-item-id").value = item.id;
-  document.getElementById("binance-order-amount").innerText = `$${item.priceUsdt.toFixed(2)} USDT`;
-  
-  if (storeConfig && storeConfig.binance) {
-    document.getElementById("binance-pay-id-val").innerText = storeConfig.binance.payId || "847291039";
-    document.getElementById("binance-qr-img").src = storeConfig.binance.qrImage || "/uploads/default_qr.svg";
-    document.getElementById("binance-instruction-text").innerText = storeConfig.binance.instruction || "Transfiere el monto exacto vía Binance Pay ID o USDT.";
-  }
-
-  if (currentUser) {
-    document.getElementById("binance-input-username").value = currentUser.displayName || currentUser.username;
-  }
-
-  clearReceiptPreview();
-  document.getElementById("modal-binance-pay").classList.add("active");
-  renderIcons(document.getElementById("modal-binance-pay"));
-}
-
-function closeBinanceModal() {
-  document.getElementById("modal-binance-pay").classList.remove("active");
-}
-
-// ── Mercado P2P ────────────────────────────────────────────────
-function setupP2pEvents() {
-  document.getElementById("btn-open-list-item")?.addEventListener("click", () => {
-    if (!currentUser) {
-      showToast("Inicia sesión para publicar en el mercado P2P", "error");
-      openAuthModal();
-      return;
-    }
-    document.getElementById("modal-p2p-list").classList.add("active");
-  });
-
-  document.getElementById("form-p2p-list")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!currentUser) return;
-
-    const title = document.getElementById("p2p-title").value.trim();
-    const price = document.getElementById("p2p-price").value;
-    const quantity = document.getElementById("p2p-qty").value;
-    const whatsapp = document.getElementById("p2p-whatsapp").value.trim();
-    const discord = document.getElementById("p2p-discord").value.trim();
-    const description = document.getElementById("p2p-desc").value.trim();
-    const imageFile = document.getElementById("p2p-image-file")?.files[0];
-
-    const formData = new FormData();
-    formData.append("seller", currentUser.displayName || currentUser.username);
-    formData.append("title", title);
-    formData.append("price", price);
-    formData.append("quantity", quantity);
-    if (whatsapp) formData.append("whatsapp", whatsapp);
-    if (discord) formData.append("discord", discord);
-    if (description) formData.append("description", description);
-    if (imageFile) formData.append("image", imageFile);
-
-    try {
-      const res = await fetch("/api/market/list", {
-        method: "POST",
-        body: formData
-      });
-      const data = await res.json();
-      if (data.ok) {
-        showToast("¡Anuncio publicado con éxito en el Mercado P2P!", "success");
-        closeP2pModal();
-        document.getElementById("form-p2p-list").reset();
-        loadP2pListings();
-      } else {
-        showToast(data.error || "No se pudo publicar", "error");
-      }
-    } catch (err) {
-      showToast("Error de conexión", "error");
-    }
-  });
-
-  // Handler para enviar reportes anti-estafas
-  document.getElementById("form-submit-report")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!currentUser) return;
-
-    const targetUser = document.getElementById("report-input-target-user").value;
-    const reason = document.getElementById("report-reason-select").value;
-    const description = document.getElementById("report-description").value.trim();
-    const proof = document.getElementById("report-proof").value.trim();
-
-    try {
-      const res = await fetch("/api/reports/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reporter: currentUser.displayName || currentUser.username,
-          targetUser,
-          reason,
-          description,
-          proof
-        })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        showToast("¡Reporte enviado exitosamente a la administración!", "success");
-        closeReportModal();
-        document.getElementById("form-submit-report").reset();
-      } else {
-        showToast(data.error || "Error al enviar reporte", "error");
-      }
-    } catch (_) {
-      showToast("Error de conexión", "error");
-    }
-  });
-}
-
-function closeP2pModal() {
-  document.getElementById("modal-p2p-list").classList.remove("active");
-}
-
-async function loadP2pListings() {
-  try {
-    const res = await fetch("/api/market/listings");
-    const data = await res.json();
-    if (data.ok) {
-      renderP2pCards(data.listings);
-    }
-  } catch (e) {}
-}
-
-function renderP2pCards(listings) {
-  const grid = document.getElementById("p2p-items-grid");
-  if (!grid) return;
-
-  if (!listings || listings.length === 0) {
-    grid.innerHTML = `<div class="table-container" style="grid-column: 1/-1; padding: 2.5rem; text-align: center; color: var(--text-muted);">No hay anuncios en el mercado P2P. ¡Sé el primero en publicar un ítem!</div>`;
-    return;
-  }
-
-  const currentUname = currentUser ? (currentUser.displayName || currentUser.username).toLowerCase() : "";
-
-  grid.innerHTML = listings.map(l => {
-    const isOwner = currentUname && l.seller.toLowerCase() === currentUname;
-    const cleanWa = l.whatsapp ? l.whatsapp.replace(/[^0-9]/g, '') : null;
-
-    return `
-      <div class="p2p-card">
-        <div>
-          ${l.imageUrl ? `<img src="${l.imageUrl}" alt="${l.title}" style="width: 100%; height: 180px; object-fit: cover; border-radius: var(--radius-md); margin-bottom: 1rem;">` : ''}
-          
-          <div class="p2p-seller-info" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.85rem;">
-            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted);">
-              <span class="icon-slot" data-icon="user"></span>
-              <span>Vendedor: <strong class="text-purple">${l.seller}</strong></span>
-            </div>
-            ${!isOwner ? `
-              <button class="cat-btn" style="padding: 2px 8px; font-size: 0.75rem; color: var(--accent-rose);" onclick="openReportModal('${l.seller}')" title="Reportar este vendedor">
-                <span class="icon-slot" data-icon="shield"></span> Reportar
-              </button>
-            ` : ''}
-          </div>
-
-          <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">${l.title}</h3>
-          <p class="text-muted" style="font-size: 0.95rem; margin-bottom: 1.25rem;">${l.description || 'Sin detalles adicionales'}</p>
-
-          <!-- Botones de contacto WhatsApp y Discord -->
-          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem;">
-            ${cleanWa ? `
-              <a href="https://wa.me/${cleanWa}?text=${encodeURIComponent('Hola ' + l.seller + ', vi tu anuncio "' + l.title + '" en Nodowa Network por ' + l.price + ' NC.')}" target="_blank" class="btn-whatsapp">
-                📱 Contactar por WhatsApp
-              </a>
-            ` : ''}
-            ${l.discord ? `
-              <button type="button" class="btn-discord" onclick="copyText('${l.discord}'); showToast('Tag de Discord copiado: ${l.discord}', 'info');">
-                🎮 Discord: ${l.discord}
-              </button>
-            ` : ''}
-          </div>
-        </div>
-
-        <div class="card-footer">
-          <div class="price-coins mono" style="font-size: 1.25rem;">${l.price.toLocaleString()} NC</div>
-          ${isOwner ? `
-            <button class="btn-primary" style="background: var(--accent-rose-gradient);" onclick="deleteP2pListing('${l.id}')">
-              <span class="icon-slot" data-icon="x"></span> Eliminar
-            </button>
-          ` : `
-            <button class="btn-primary" onclick="openTransferWithTarget('${l.seller}', ${l.price})">
-              <span class="icon-slot" data-icon="wallet"></span> Pagar al Vendedor
-            </button>
-          `}
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  renderIcons(grid);
-}
-
-function openTransferWithTarget(targetUser, amount) {
-  if (!currentUser) {
-    showToast("Inicia sesión para transferir monedas", "error");
-    openAuthModal();
-    return;
-  }
-  
-  // Cambiar a tab de billetera
-  document.querySelector('[data-tab="wallet"]')?.click();
-  setTimeout(() => {
-    const inputTarget = document.getElementById("transfer-target");
-    const inputAmount = document.getElementById("transfer-amount");
-    if (inputTarget) inputTarget.value = targetUser;
-    if (inputAmount) inputAmount.value = amount;
-    inputTarget?.focus();
-    showToast(`Iniciando transferencia para ${targetUser}. Completa y presiona Enviar.`, "info");
-  }, 200);
-}
-
-async function deleteP2pListing(listingId) {
-  if (!currentUser) return;
-
-  try {
-    const res = await fetch("/api/market/delete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ listingId, seller: currentUser.displayName || currentUser.username })
-    });
-    const data = await res.json();
-    if (data.ok) {
-      showToast("Anuncio eliminado del mercado P2P", "success");
-      loadP2pListings();
-    } else {
-      showToast(data.error || "No se pudo eliminar", "error");
-    }
-  } catch (_) {
-    showToast("Error de conexión", "error");
-  }
-}
-
-function showOfficialReceipt(receipt) {
-  if (!receipt) return;
-  document.getElementById("receipt-modal-id").innerText = receipt.receiptId || "REC-000000";
-  document.getElementById("receipt-modal-from").innerText = receipt.from || "--";
-  document.getElementById("receipt-modal-to").innerText = receipt.to || "--";
-  document.getElementById("receipt-modal-amount").innerText = `${(receipt.amount || 0).toLocaleString()} NC`;
-  document.getElementById("receipt-modal-date").innerText = new Date(receipt.timestamp).toLocaleString("es-ES");
-  document.getElementById("receipt-modal-hash").innerText = receipt.securityHash || "NODOWA-HASH-OFFICIAL";
-
-  document.getElementById("modal-official-receipt").classList.add("active");
-  renderIcons(document.getElementById("modal-official-receipt"));
-}
-
-function closeReceiptModal() {
-  document.getElementById("modal-official-receipt").classList.remove("active");
-}
-
-function openReportModal(targetUser) {
-  if (!currentUser) {
-    showToast("Inicia sesión para enviar un reporte", "error");
-    openAuthModal();
-    return;
-  }
-  document.getElementById("report-input-target-user").value = targetUser;
-  document.getElementById("report-target-display").value = targetUser;
-  document.getElementById("modal-report-user").classList.add("active");
-  renderIcons(document.getElementById("modal-report-user"));
-}
-
-function closeReportModal() {
-  document.getElementById("modal-report-user").classList.remove("active");
-}
-
-// ── Billetera, Banco y Transferencias ───────────────────────────
-function setupWalletEvents() {
-  document.getElementById("btn-deposit-bank")?.addEventListener("click", async () => {
-    if (!currentUser) return;
-    const amount = document.getElementById("deposit-amount").value;
-    if (!amount || amount <= 0) return showToast("Ingresa un monto válido", "error");
-
-    try {
-      const res = await fetch("/api/wallet/bank-action", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: currentUser.username, action: "deposit", amount })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        document.getElementById("deposit-amount").value = "";
-        currentUser.wallet = data.wallet;
-        currentUser.bank = data.bank;
-        updateUserWidget();
-        loadUserProfile();
-        showToast("¡Depósito al banco realizado con éxito!", "success");
-      } else {
-        showToast(data.error || "Error al depositar", "error");
-      }
-    } catch (e) {
-      showToast("Error de conexión", "error");
-    }
-  });
-
-  document.getElementById("btn-withdraw-bank")?.addEventListener("click", async () => {
-    if (!currentUser) return;
-    const amount = document.getElementById("withdraw-amount").value;
-    if (!amount || amount <= 0) return showToast("Ingresa un monto válido", "error");
-
-    try {
-      const res = await fetch("/api/wallet/bank-action", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: currentUser.username, action: "withdraw", amount })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        document.getElementById("withdraw-amount").value = "";
-        currentUser.wallet = data.wallet;
-        currentUser.bank = data.bank;
-        updateUserWidget();
-        loadUserProfile();
-        showToast("¡Retiro a mano realizado!", "success");
-      } else {
-        showToast(data.error || "Error al retirar", "error");
-      }
-    } catch (e) {
-      showToast("Error de conexión", "error");
-    }
-  });
-
-  document.getElementById("btn-send-transfer")?.addEventListener("click", async () => {
-    if (!currentUser) return;
-    const to = document.getElementById("transfer-target").value.trim();
-    const amount = document.getElementById("transfer-amount").value;
-    if (!to || !amount || amount <= 0) return showToast("Completa los datos de la transferencia", "error");
-
-    try {
-      const res = await fetch("/api/wallet/transfer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: currentUser.username, to, amount })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        document.getElementById("transfer-target").value = "";
-        document.getElementById("transfer-amount").value = "";
-        currentUser.wallet = data.senderWallet;
-        updateUserWidget();
-        loadUserProfile();
-        showToast(`¡Transferencia de ${amount} NC enviada a ${to}!`, "success");
-        if (data.receipt) {
-          showOfficialReceipt(data.receipt);
-        }
-      } else {
-        showToast(data.error || "Error en la transferencia", "error");
-      }
-    } catch (e) {
-      showToast("Error de conexión", "error");
-    }
-  });
-
-  document.getElementById("btn-refresh-deliveries")?.addEventListener("click", loadDeliveries);
-}
-
-async function loadUserProfile() {
-  const authReq = document.getElementById("wallet-auth-required");
-  const authContent = document.getElementById("wallet-authenticated-content");
-
-  if (!currentUser) {
-    if (authReq) authReq.style.display = "block";
-    if (authContent) authContent.style.display = "none";
-    return;
-  }
-
-  if (authReq) authReq.style.display = "none";
-  if (authContent) authContent.style.display = "block";
-
-  try {
-    const res = await fetch(`/api/user/profile?username=${encodeURIComponent(currentUser.username)}`);
-    const data = await res.json();
-    if (data.ok && data.user) {
-      currentUser = { ...currentUser, ...data.user };
-      localStorage.setItem("nodowa_user", JSON.stringify(currentUser));
-      updateUserWidget();
-
-      document.getElementById("user-wallet-balance").innerText = `${(currentUser.wallet || 0).toLocaleString()} NC`;
-      document.getElementById("user-bank-balance").innerText = `${(currentUser.bank || 0).toLocaleString()} NC`;
-    }
-
-    // Cargar historial de transacciones
-    const txRes = await fetch(`/api/wallet/transactions?username=${encodeURIComponent(currentUser.username)}`);
-    const txData = await txRes.json();
-    if (txData.ok) {
-      renderTransactionsTable(txData.transactions);
-    }
-  } catch (e) {}
-}
-
-function renderTransactionsTable(transactions) {
-  const tbody = document.getElementById("user-transactions-table");
-  if (!tbody) return;
-
-  if (!transactions || transactions.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="text-muted" style="text-align: center; padding: 2.5rem;">No tienes transacciones registradas todavía.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = transactions.map(t => {
-    const isIncoming = t.to && t.to.toLowerCase() === currentUser.username.toLowerCase();
-    return `
-      <tr>
-        <td class="text-muted mono" style="font-size: 0.825rem;">${new Date(t.createdAt).toLocaleDateString()} ${new Date(t.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-        <td><span class="status-badge ${isIncoming ? 'status-approved' : 'status-pending'}">${t.type}</span></td>
-        <td><strong>${t.from}</strong> <span class="text-muted">→</span> <strong>${t.to}</strong></td>
-        <td>${t.description}</td>
-        <td class="mono ${isIncoming ? 'text-emerald' : 'text-rose'}" style="font-weight: 800;">
-          ${isIncoming ? '+' : '-'}${t.amount.toLocaleString()} NC
-        </td>
-      </tr>
-    `;
-  }).join("");
-}
-
-// ── Directorio / Registro de Jugadores ──────────────────────────
-function setupPlayersRegistryEvents() {
-  const searchInput = document.getElementById("input-search-players");
-  const statusFilter = document.getElementById("filter-status-players");
-  const roleFilter = document.getElementById("filter-role-players");
-  let searchTimeout = null;
-
-  const triggerFilter = () => {
-    loadPlayersRegistry();
-  };
-
-  searchInput?.addEventListener("input", () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(triggerFilter, 250);
-  });
-
-  statusFilter?.addEventListener("change", triggerFilter);
-  roleFilter?.addEventListener("change", triggerFilter);
-
-  document.getElementById("btn-refresh-players")?.addEventListener("click", triggerFilter);
-}
-
+// ── 7. DIRECTORIO DE JUGADORES & LEADERBOARD ───────────────────
 async function loadPlayersRegistry() {
   const tbody = document.getElementById("players-registry-table-body");
   if (!tbody) return;
@@ -1220,448 +501,337 @@ async function loadPlayersRegistry() {
   const search = document.getElementById("input-search-players")?.value.trim() || "";
   const status = document.getElementById("filter-status-players")?.value || "all";
 
-  try {
-    const res = await fetch(`/api/players/public?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`);
-    const data = await res.json();
-
-    if (data.ok) {
-      if (!data.players || data.players.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-muted" style="text-align: center; padding: 2.5rem;">No se encontraron jugadores que coincidan con la búsqueda.</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = data.players.map(p => {
-        // Reputación
-        const starsText = p.rating && p.rating.avgStars 
-          ? `<span style="color: #facc15; font-weight: 700;">${p.rating.avgStars}</span> <span class="text-muted" style="font-size: 0.75rem;">(${p.rating.totalReviews})</span>` 
-          : `<span class="text-muted" style="font-size: 0.75rem;">Sin reseñas</span>`;
-
-        const headAvatar = `https://mc-heads.net/avatar/${encodeURIComponent(p.username)}/32`;
-
-        return `
-          <tr>
-            <td>
-              <div style="display: flex; align-items: center; gap: 0.65rem;">
-                <img src="${headAvatar}" onError="this.src='/uploads/default_qr.svg'" alt="${escapeHtml(p.username)}" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border-color); background: #000; object-fit: contain;">
-                <div>
-                  <strong style="color: var(--text-primary, #0f172a); font-size: 0.95rem;">${escapeHtml(p.username)}</strong>
-                </div>
-              </div>
-            </td>
-            <td>
-              <span class="status-badge ${p.linked ? 'status-approved' : 'status-pending'}" style="font-size: 0.75rem;">
-                ${p.linked ? 'Vinculado' : 'Sin Vincular'}
-              </span>
-            </td>
-            <td>${starsText}</td>
-            <td class="mono text-purple" style="font-weight: 700;">${p.wallet.toLocaleString()} NC</td>
-            <td class="mono text-emerald" style="font-weight: 700;">${p.bank.toLocaleString()} NC</td>
-            <td class="mono" style="font-weight: 900; color: var(--accent-purple);">${p.totalFortune.toLocaleString()} NC</td>
-            <td>
-              <button class="cat-btn" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3);" onclick="openPlayerReviewsModal('${escapeHtml(p.username)}')">
-                <span class="icon-slot" data-icon="star"></span> Reseñas / Reportar
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join("");
-
-      renderIcons(tbody);
+  const res = await apiRequest(`/api/players/public?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`);
+  if (res.ok && res.players) {
+    if (res.players.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-muted" style="text-align:center; padding: 2rem;">No se encontraron jugadores.</td></tr>`;
+      return;
     }
-  } catch (e) {
-    console.error("Error al cargar directorio de jugadores:", e);
-  }
-}
 
-// ── Modal de Reseñas y Reportes para Jugadores/OPs ─────────────
-async function openPlayerReviewsModal(username) {
-  const modal = document.getElementById("modal-player-reviews");
-  const title = document.getElementById("modal-player-title");
-  const body = document.getElementById("modal-player-body");
+    tbody.innerHTML = res.players.map(p => {
+      const starsText = p.rating?.avgStars 
+        ? `⭐ <strong style="color:var(--accent-gold);">${p.rating.avgStars}</strong> <span class="text-muted">(${p.rating.totalReviews})</span>` 
+        : `<span class="text-muted" style="font-size:0.8rem;">Sin reseñas</span>`;
 
-  if (!modal || !body) return;
-
-  title.textContent = `Reputación de ${username}`;
-  body.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">Cargando reseñas...</div>`;
-  modal.classList.add("active");
-
-  try {
-    const res = await fetch(`/api/ratings/user/${encodeURIComponent(username)}`);
-    const data = await res.json();
-
-    const reviews = data.reviews || [];
-    const avgStars = data.avgStars ? `★ ${data.avgStars} / 5` : 'Sin calificaciones aun';
-
-    const myName = currentUser ? (currentUser.displayName || currentUser.username) : '';
-    const myExistingReview = reviews.find(r => myName && r.author && r.author.trim().toLowerCase() === myName.trim().toLowerCase());
-
-    body.innerHTML = `
-      <div style="text-align: center; margin-bottom: 1.5rem; background: var(--bg-surface); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-        <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-gold);">${avgStars}</div>
-        <div class="text-muted" style="font-size: 0.8rem;">Basado en ${data.totalReviews || 0} reseñas de la comunidad</div>
-      </div>
-
-      <!-- Formulario para agregar o editar Reseña -->
-      <div style="background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
-        <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem;">${myExistingReview ? `Editar tu Reseña para ${escapeHtml(username)}` : `Dejar Reseña o Reporte a ${escapeHtml(username)}`}</h4>
-        <form id="form-player-rating">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" style="font-size: 0.75rem;">Tipo de Entrada</label>
-              <select id="rating-type" class="form-input" style="font-size: 0.85rem;" onchange="toggleRatingStars(this.value)">
-                <option value="REVIEW">Reseña Publica</option>
-                <option value="REPORT">Reportar a la Admin</option>
-              </select>
-            </div>
-            <div class="form-group" id="group-rating-stars" style="margin-bottom: 0;">
-              <label class="form-label" style="font-size: 0.75rem;">Calificacion (Estrellas)</label>
-              <select id="rating-stars" class="form-input" style="font-size: 0.85rem;">
-                <option value="5" ${myExistingReview && myExistingReview.stars == 5 ? 'selected' : ''}>5 Estrellas (5/5)</option>
-                <option value="4" ${myExistingReview && myExistingReview.stars == 4 ? 'selected' : ''}>4 Estrellas (4/5)</option>
-                <option value="3" ${myExistingReview && myExistingReview.stars == 3 ? 'selected' : ''}>3 Estrellas (3/5)</option>
-                <option value="2" ${myExistingReview && myExistingReview.stars == 2 ? 'selected' : ''}>2 Estrellas (2/5)</option>
-                <option value="1" ${myExistingReview && myExistingReview.stars == 1 ? 'selected' : ''}>1 Estrella (1/5)</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom: 0.75rem;">
-            <label class="form-label" style="font-size: 0.75rem;">Tu Gamertag (Firma de Autor)</label>
-            <input type="text" id="rating-author" class="form-input" style="font-size: 0.85rem;" placeholder="Tu Gamertag de Minecraft" value="${escapeHtml(myName)}" required>
-          </div>
-          <div class="form-group" style="margin-bottom: 0.75rem;">
-            <label class="form-label" style="font-size: 0.75rem;">Comentario / Motivo del Reporte</label>
-            <textarea id="rating-comment" class="form-input" rows="2" style="font-size: 0.85rem;" placeholder="Escribe tu opinion sobre este jugador u OP..." required>${myExistingReview ? escapeHtml(myExistingReview.comment) : ''}</textarea>
-          </div>
-          <button type="submit" class="btn-primary" style="width: 100%; font-size: 0.85rem; padding: 0.5rem;">
-            ${myExistingReview ? "Actualizar mi Reseña" : "Publicar Reseña / Enviar"}
-          </button>
-        </form>
-      </div>
-
-      <!-- Lista de Reseñas -->
-      <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem;">Reseñas de Jugadores:</h4>
-      ${reviews.length === 0 ? `<p class="text-muted" style="font-size: 0.85rem;">No hay reseñas publicadas aun.</p>` : `
-        <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto;">
-          ${reviews.map(r => {
-            const isMine = myName && r.author && r.author.trim().toLowerCase() === myName.trim().toLowerCase();
-            return `
-              <div style="background: var(--bg-surface); padding: 0.75rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                  <div>
-                    <span class="text-muted" style="font-size: 0.75rem;">Por:</span>
-                    <strong style="color: var(--text-primary); font-size: 0.85rem; margin-left: 0.25rem;">${escapeHtml(r.author)}</strong>
-                    ${isMine ? `<span class="badge" style="font-size: 0.65rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; margin-left: 0.35rem;">[TÚ]</span>` : ''}
-                  </div>
-                  <span style="color: var(--accent-gold); font-size: 0.8rem; font-weight: 700;">★ ${r.stars}/5</span>
-                </div>
-                <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0.25rem 0;">${escapeHtml(r.comment)}</p>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.35rem;">
-                  <span class="text-muted mono" style="font-size: 0.7rem;">${new Date(r.createdAt).toLocaleDateString()}</span>
-                  ${isMine ? `
-                    <button class="cat-btn" style="padding: 0.15rem 0.45rem; font-size: 0.7rem; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);" onclick="deleteMyRating('${r.id}', '${escapeHtml(r.author)}', '${escapeHtml(username)}')">
-                      Borrar
-                    </button>
-                  ` : ''}
-                </div>
-              </div>
-            `;
-          }).join("")}
-        </div>
-      `}
-    `;
-
-    // Event handler para guardar/editar reseña
-    document.getElementById("form-player-rating")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const type = document.getElementById("rating-type").value;
-      const stars = document.getElementById("rating-stars").value;
-      const author = document.getElementById("rating-author").value.trim();
-      const comment = document.getElementById("rating-comment").value.trim();
-
-      if (!author || !comment) return showToast("Por favor completa todos los campos.", "error");
-
-      // Bloqueo frontend anti auto-reseña
-      if (author.toLowerCase() === username.toLowerCase()) {
-        return showToast("No puedes escribirte una reseña o reporte a ti mismo.", "error");
-      }
-
-      try {
-        const postRes = await fetch("/api/ratings/submit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ targetUser: username, author, stars, comment, type })
-        });
-        const postData = await postRes.json();
-        if (postData.ok) {
-          showToast(postData.message || "Publicado correctamente.", "success");
-          openPlayerReviewsModal(username);
-          loadPlayersRegistry();
-        } else {
-          showToast(postData.error || "No se pudo enviar.", "error");
-        }
-      } catch (err) {
-        showToast("Error de conexión.", "error");
-      }
-    });
-
-  } catch (err) {
-    body.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--accent-rose);">Error al obtener datos.</div>`;
-  }
-}
-
-async function deleteMyRating(ratingId, author, targetUser) {
-  if (!confirm("¿Estás seguro de que deseas borrar tu reseña?")) return;
-
-  try {
-    const res = await fetch("/api/ratings/delete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ratingId, author })
-    });
-    const data = await res.json();
-    if (data.ok) {
-      showToast("Reseña eliminada correctamente.", "success");
-      openPlayerReviewsModal(targetUser);
-      loadPlayersRegistry();
-    } else {
-      showToast(data.error || "No se pudo borrar la reseña.", "error");
-    }
-  } catch (err) {
-    showToast("Error de conexión.", "error");
-  }
-}
-
-function toggleRatingStars(type) {
-  const starsGroup = document.getElementById("group-rating-stars");
-  if (starsGroup) {
-    starsGroup.style.display = type === "REPORT" ? "none" : "block";
-  }
-}
-
-function closePlayerReviewsModal() {
-  document.getElementById("modal-player-reviews")?.classList.remove("active");
-}
-
-// ── Buzón de Entregas ───────────────────────────────────────────
-async function loadDeliveries() {
-  const tbody = document.getElementById("deliveries-table-body");
-  if (!tbody) return;
-
-  if (!currentUser) {
-    tbody.innerHTML = `<tr><td colspan="4" class="text-muted" style="text-align: center; padding: 2.5rem;">Inicia sesión para ver tus compras y entregas pendientes.</td></tr>`;
-    return;
-  }
-
-  try {
-    const res = await fetch(`/api/deliveries?username=${encodeURIComponent(currentUser.username)}`);
-    const data = await res.json();
-    if (data.ok) {
-      if (!data.deliveries || data.deliveries.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-muted" style="text-align: center; padding: 2.5rem;">Tu buzón está vacío. ¡Compra artículos en la tienda para recibirlos en el juego!</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = data.deliveries.map(d => `
+      return `
         <tr>
-          <td class="text-muted mono" style="font-size: 0.825rem;">${new Date(d.createdAt).toLocaleDateString()}</td>
-          <td><strong>${d.itemTitle}</strong></td>
-          <td class="mono text-muted" style="font-size: 0.8rem;">${d.command || (d.giveCoins ? `+${d.giveCoins.toLocaleString()} Nodocoins` : 'Entrega manual')}</td>
           <td>
-            <span class="status-badge ${d.status === 'DELIVERED' ? 'status-approved' : 'status-pending'}">
-              ${d.status === 'DELIVERED' ? 'Entregado en Minecraft' : 'Pendiente de Reclamo'}
+            <div style="display:flex; align-items:center; gap:0.65rem;">
+              <img src="https://mc-heads.net/avatar/${encodeURIComponent(p.username)}/28" style="width:28px; height:28px; border-radius:6px; background:#f1f5f9;">
+              <strong>${escapeHtml(p.username)}</strong>
+            </div>
+          </td>
+          <td>
+            <span class="status-badge ${p.linked ? 'status-approved' : 'status-pending'}" style="font-size:0.75rem;">
+              ${p.linked ? 'Vinculado' : 'Sin Vincular'}
             </span>
           </td>
+          <td>${starsText}</td>
+          <td class="mono text-purple" style="font-weight:700;">${formatCoins(p.wallet)}</td>
+          <td class="mono text-emerald" style="font-weight:700;">${formatCoins(p.bank)}</td>
+          <td class="mono" style="font-weight:800;">${formatCoins(p.totalFortune)}</td>
+          <td>
+            <button class="cat-btn" style="padding:0.3rem 0.6rem; font-size:0.75rem;" onclick="openPlayerReviewsModal('${escapeHtml(p.username)}')">
+              Reseñas / Reportar
+            </button>
+          </td>
         </tr>
-      `).join("");
-    }
-  } catch (e) {}
+      `;
+    }).join("");
+    renderIcons(tbody);
+  }
 }
 
-// ── Leaderboard (Top Ricos) ─────────────────────────────────────
 async function loadLeaderboard() {
   const tbody = document.getElementById("leaderboard-table-body");
   if (!tbody) return;
 
-  try {
-    const res = await fetch("/api/leaderboard");
-    const data = await res.json();
-    if (data.ok && data.leaderboard) {
-      let totalCirculating = 0;
-      tbody.innerHTML = data.leaderboard.map((player, idx) => {
-        totalCirculating += player.total;
-        return `
-          <tr>
-            <td class="mono" style="font-weight: 900; color: ${idx === 0 ? 'var(--accent-gold-dark)' : idx === 1 ? 'var(--accent-purple)' : 'var(--text-muted)'}; font-size: 1.1rem;">
-              #${idx + 1}
-            </td>
-            <td>
-              <div style="display: flex; align-items: center; gap: 0.6rem;">
-                <div class="user-avatar" style="width: 30px; height: 30px; font-size: 0.8rem;">${player.username.slice(0, 2).toUpperCase()}</div>
-                <strong>${player.username}</strong>
-              </div>
-            </td>
-            <td class="mono text-purple" style="font-weight: 700;">${player.wallet.toLocaleString()} NC</td>
-            <td class="mono text-emerald" style="font-weight: 700;">${player.bank.toLocaleString()} NC</td>
-            <td class="mono" style="font-weight: 900; color: var(--accent-purple);">${player.total.toLocaleString()} NC</td>
-          </tr>
-        `;
-      }).join("");
-
-      const heroCoins = document.getElementById("hero-coins-circulating");
-      if (heroCoins) heroCoins.innerText = `${totalCirculating.toLocaleString()} NC`;
-    }
-  } catch (e) {}
-}
-
-// ── Perfiles de Jugadores & Edición ────────────────────────────
-let currentProfileTarget = null;
-
-async function openUserProfileModal(username) {
-  try {
-    const res = await fetch(`/api/user/profile/${encodeURIComponent(username)}`);
-    const data = await res.json();
-    if (!data.ok || !data.user) {
-      showToast("No se pudo cargar el perfil del jugador", "error");
-      return;
-    }
-
-    const u = data.user;
-    currentProfileTarget = u;
-
-    document.getElementById("profile-modal-gamertag").innerText = u.username;
-    document.getElementById("profile-modal-avatar").src = u.avatar || `https://mc-heads.net/avatar/${encodeURIComponent(u.username)}/100`;
-    document.getElementById("profile-modal-bio").innerText = u.bio ? `"${u.bio}"` : "Sin biografía escrita.";
-    document.getElementById("profile-modal-linked").innerText = u.linked ? "Vinculado a Minecraft" : "Sin Vincular";
-    document.getElementById("profile-modal-wallet").innerText = `${u.wallet.toLocaleString()} NC`;
-    document.getElementById("profile-modal-bank").innerText = `${u.bank.toLocaleString()} NC`;
-    document.getElementById("profile-modal-total").innerText = `${u.total.toLocaleString()} NC`;
-    document.getElementById("profile-modal-created").innerText = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "--";
-    document.getElementById("profile-modal-last-active").innerText = u.lastActive ? new Date(u.lastActive).toLocaleDateString() : "--";
-
-    const contactContainer = document.getElementById("profile-modal-contact-btns");
-    if (contactContainer) {
-      const cleanWa = u.whatsapp ? u.whatsapp.replace(/[^0-9]/g, '') : null;
-      contactContainer.innerHTML = `
-        ${cleanWa ? `
-          <a href="https://wa.me/${cleanWa}?text=${encodeURIComponent('Hola ' + u.username + ', te vi en la web de Nodowa Network.')}" target="_blank" class="btn-whatsapp" style="flex: 1; justify-content: center;">
-            📱 WhatsApp
-          </a>
-        ` : ''}
-        ${u.discord ? `
-          <button type="button" class="btn-discord" style="flex: 1; justify-content: center;" onclick="copyText('${u.discord}'); showToast('Discord: ${u.discord}', 'info');">
-            🎮 Discord: ${u.discord}
-          </button>
-        ` : ''}
+  const res = await apiRequest("/api/leaderboard");
+  if (res.ok && res.leaderboard) {
+    tbody.innerHTML = res.leaderboard.map((u, i) => {
+      const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
+      return `
+        <tr>
+          <td style="font-size:1.15rem; text-align:center; font-weight:800;">${medal}</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:0.65rem;">
+              <img src="https://mc-heads.net/avatar/${encodeURIComponent(u.username)}/28" style="width:28px; height:28px; border-radius:6px;">
+              <strong>${escapeHtml(u.username)}</strong>
+            </div>
+          </td>
+          <td class="mono text-purple" style="font-weight:700;">${formatCoins(u.wallet)}</td>
+          <td class="mono text-emerald" style="font-weight:700;">${formatCoins(u.bank)}</td>
+          <td class="mono" style="font-weight:900; font-size:1rem;">${formatCoins(u.total)}</td>
+        </tr>
       `;
-    }
-
-    document.getElementById("modal-user-profile").classList.add("active");
-    renderIcons(document.getElementById("modal-user-profile"));
-  } catch (_) {
-    showToast("Error al cargar perfil", "error");
+    }).join("");
   }
 }
 
-function closeProfileModal() {
-  document.getElementById("modal-user-profile").classList.remove("active");
+window.openPlayerReviewsModal = async function(targetUser) {
+  const modal = document.getElementById("modal-player-reviews");
+  const body = document.getElementById("modal-player-body");
+  if (!modal || !body) return;
+
+  document.getElementById("modal-player-title").textContent = `Reputación de ${targetUser}`;
+  body.innerHTML = `<div class="text-muted" style="text-align:center; padding:1.5rem;">Cargando opiniones...</div>`;
+  openModal("modal-player-reviews");
+
+  const res = await apiRequest(`/api/players/reviews/${encodeURIComponent(targetUser)}`);
+  if (res.ok) {
+    const listHtml = (res.reviews || []).map(r => `
+      <div style="padding:0.75rem; border-bottom:1px solid var(--border-subtle);">
+        <div class="flex-between">
+          <strong>${escapeHtml(r.author)}</strong>
+          <span style="color:var(--accent-gold);">${'★'.repeat(r.stars)}</span>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.3rem;">${escapeHtml(r.comment || 'Sin comentario')}</p>
+      </div>
+    `).join("") || `<div class="text-muted" style="text-align:center; padding:1rem;">Este jugador no tiene reseñas aún.</div>`;
+
+    body.innerHTML = `
+      <div style="margin-bottom:1.5rem; max-height:220px; overflow-y:auto;">${listHtml}</div>
+      <form id="form-add-review" style="border-top:1px solid var(--border-subtle); padding-top:1rem;">
+        <h4 style="font-size:0.95rem; margin-bottom:0.6rem;">Deja tu Calificación</h4>
+        <div style="display:grid; grid-template-columns: 120px 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+          <select id="review-stars" class="form-input">
+            <option value="5">★★★★★ (5)</option>
+            <option value="4">★★★★☆ (4)</option>
+            <option value="3">★★★☆☆ (3)</option>
+            <option value="2">★★☆☆☆ (2)</option>
+            <option value="1">★☆☆☆☆ (1)</option>
+          </select>
+          <input type="text" id="review-comment" class="form-input" placeholder="Comentario sobre el jugador..." required>
+        </div>
+        <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+          <button type="button" class="cat-btn" onclick="submitPlayerReview('${targetUser}', 'REPORT')" style="color:#ef4444;">Reportar</button>
+          <button type="submit" class="btn-primary" style="padding:0.4rem 1rem;">Publicar Reseña</button>
+        </div>
+      </form>
+    `;
+
+    document.getElementById("form-add-review").onsubmit = (e) => {
+      e.preventDefault();
+      submitPlayerReview(targetUser, "REVIEW");
+    };
+  }
+};
+
+async function submitPlayerReview(targetUser, type) {
+  if (!currentUser) return openModal("modal-login");
+  const stars = document.getElementById("review-stars")?.value || 5;
+  const comment = document.getElementById("review-comment")?.value.trim() || "";
+
+  const res = await apiRequest("/api/players/reviews/submit", {
+    method: "POST",
+    body: JSON.stringify({ author: currentUser.username, targetUser, stars, comment, type })
+  });
+
+  if (res.ok) {
+    showToast(res.message, "success");
+    closeModal("modal-player-reviews");
+    loadPlayersRegistry();
+  } else {
+    showToast(res.error || "No se pudo registrar.", "error");
+  }
 }
 
-function openTransferFromProfile() {
-  if (!currentProfileTarget) return;
-  closeProfileModal();
-  openTransferWithTarget(currentProfileTarget.username, "");
-}
-
-function openReportFromProfile() {
-  if (!currentProfileTarget) return;
-  closeProfileModal();
-  openReportModal(currentProfileTarget.username);
-}
-
-function openEditProfileModal() {
-  if (!currentUser) return;
-  document.getElementById("edit-profile-avatar-preview").src = currentUser.avatar || `https://mc-heads.net/avatar/${encodeURIComponent(currentUser.username)}/100`;
-  document.getElementById("edit-profile-bio").value = currentUser.bio || "";
-  document.getElementById("edit-profile-whatsapp").value = currentUser.whatsapp || "";
-  document.getElementById("edit-profile-discord").value = currentUser.discord || "";
-  document.getElementById("modal-edit-profile").classList.add("active");
-}
-
-function closeEditProfileModal() {
-  document.getElementById("modal-edit-profile").classList.remove("active");
-}
-
-function setupEditProfileEvents() {
-  document.getElementById("edit-profile-avatar-file")?.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        document.getElementById("edit-profile-avatar-preview").src = evt.target.result;
-      };
-      reader.readAsDataURL(file);
+// ── 8. EVENTOS DE TIEMPO REAL (WEBSOCKET) ──────────────────────
+function setupWebSocket() {
+  socket.on("BALANCE_UPDATE", (data) => {
+    if (currentUser && data.username?.toLowerCase() === currentUser.username.toLowerCase()) {
+      if (data.wallet !== undefined) currentUser.wallet = data.wallet;
+      if (data.bank !== undefined) currentUser.bank = data.bank;
+      localStorage.setItem("nodowa_user", JSON.stringify(currentUser));
+      updateUserUI();
+      if (currentTab === "bank") loadBankData();
     }
   });
 
-  document.getElementById("form-edit-profile")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!currentUser) return;
+  socket.on("NEW_DELIVERY", () => {
+    if (currentTab === "deliveries") loadDeliveries();
+  });
 
-    const bio = document.getElementById("edit-profile-bio").value.trim();
-    const whatsapp = document.getElementById("edit-profile-whatsapp").value.trim();
-    const discord = document.getElementById("edit-profile-discord").value.trim();
-    const avatarFile = document.getElementById("edit-profile-avatar-file")?.files[0];
+  socket.on("DELIVERY_UPDATED", () => {
+    if (currentTab === "deliveries") loadDeliveries();
+  });
+
+  socket.on("STORE_UPDATED", () => {
+    if (currentTab === "store") loadStoreCatalog();
+  });
+
+  socket.on("P2P_NEW_LISTING", () => {
+    if (currentTab === "market") loadMarketListings();
+  });
+
+  socket.on("P2P_BOUGHT", () => {
+    if (currentTab === "market") loadMarketListings();
+  });
+}
+
+// ── 9. MODALES Y EVENT LISTENERS ───────────────────────────────
+function setupEventListeners() {
+  // Filtros de tienda
+  document.querySelectorAll(".cat-btn[data-category]").forEach(b => {
+    b.addEventListener("click", () => {
+      document.querySelectorAll(".cat-btn[data-category]").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      renderStoreCatalog(b.getAttribute("data-category"));
+    });
+  });
+
+  // Depósito Bancario
+  document.getElementById("form-deposit-bank")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser) return openModal("modal-login");
+    const amount = document.getElementById("input-deposit-amount")?.value;
+    const res = await apiRequest("/api/wallet/deposit-bank", {
+      method: "POST",
+      body: JSON.stringify({ username: currentUser.username, amount })
+    });
+    if (res.ok) {
+      showToast(res.message, "success");
+      loadBankData();
+      e.target.reset();
+    } else {
+      showToast(res.error || "Error en el depósito.", "error");
+    }
+  });
+
+  // Retiro Bancario
+  document.getElementById("form-withdraw-bank")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser) return openModal("modal-login");
+    const amount = document.getElementById("input-withdraw-amount")?.value;
+    const res = await apiRequest("/api/wallet/withdraw-bank", {
+      method: "POST",
+      body: JSON.stringify({ username: currentUser.username, amount })
+    });
+    if (res.ok) {
+      showToast(res.message, "success");
+      loadBankData();
+      e.target.reset();
+    } else {
+      showToast(res.error || "Error en el retiro.", "error");
+    }
+  });
+
+  // Transferencia a otro jugador
+  document.getElementById("form-transfer-wallet")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser) return openModal("modal-login");
+    const toUser = document.getElementById("input-transfer-to")?.value.trim();
+    const amount = document.getElementById("input-transfer-amount")?.value;
+    const note = document.getElementById("input-transfer-note")?.value.trim();
+
+    const res = await apiRequest("/api/wallet/transfer", {
+      method: "POST",
+      body: JSON.stringify({ fromUser: currentUser.username, toUser, amount, note })
+    });
+
+    if (res.ok) {
+      showToast(res.message, "success");
+      loadBankData();
+      e.target.reset();
+    } else {
+      showToast(res.error || "Error en la transferencia.", "error");
+    }
+  });
+
+  // Solicitud de código de vinculación Minecraft
+  document.getElementById("btn-request-link-code")?.addEventListener("click", async () => {
+    if (!currentUser) return openModal("modal-login");
+    const res = await apiRequest("/api/auth/request-link", {
+      method: "POST",
+      body: JSON.stringify({ username: currentUser.username })
+    });
+    if (res.ok && res.code) {
+      document.getElementById("link-code-display").textContent = res.code;
+      document.getElementById("link-command-display").textContent = res.command;
+      openModal("modal-link-account");
+    } else {
+      showToast(res.error || "No se pudo generar código.", "error");
+    }
+  });
+
+  // Publicar ítem en mercado P2P
+  document.getElementById("form-publish-market")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser) return openModal("modal-login");
+
+    const title = document.getElementById("market-item-title")?.value.trim();
+    const itemType = document.getElementById("market-item-type")?.value.trim();
+    const quantity = document.getElementById("market-item-qty")?.value;
+    const price = document.getElementById("market-item-price")?.value;
+    const description = document.getElementById("market-item-desc")?.value.trim();
+
+    const res = await apiRequest("/api/market/publish", {
+      method: "POST",
+      body: JSON.stringify({ seller: currentUser.username, title, itemType, quantity, price, description })
+    });
+
+    if (res.ok) {
+      showToast("¡Artículo publicado en el mercado P2P!", "success");
+      closeModal("modal-publish-market");
+      loadMarketListings();
+      e.target.reset();
+    } else {
+      showToast(res.error || "No se pudo publicar.", "error");
+    }
+  });
+
+  // Subir orden de Binance
+  document.getElementById("form-submit-binance-order")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const itemId = document.getElementById("binance-order-item-id")?.value;
+    const txid = document.getElementById("binance-txid")?.value.trim();
+    const fileInput = document.getElementById("binance-receipt-file");
+
+    if (!currentUser) return openModal("modal-login");
+    if (!fileInput?.files[0] && !txid) {
+      return showToast("Ingresa el TXID o sube la captura del comprobante", "error");
+    }
 
     const formData = new FormData();
     formData.append("username", currentUser.username);
-    formData.append("bio", bio);
-    formData.append("whatsapp", whatsapp);
-    formData.append("discord", discord);
-    if (avatarFile) formData.append("avatar", avatarFile);
+    formData.append("itemId", itemId);
+    if (txid) formData.append("txid", txid);
+    if (fileInput.files[0]) formData.append("receiptImage", fileInput.files[0]);
 
-    try {
-      const res = await fetch("/api/user/update-profile", {
-        method: "POST",
-        body: formData
-      });
-      const data = await res.json();
-      if (data.ok && data.user) {
-        currentUser.avatar = data.user.avatar;
-        currentUser.bio = data.user.bio;
-        currentUser.whatsapp = data.user.whatsapp;
-        currentUser.discord = data.user.discord;
-        updateUserWidget();
-        showToast("¡Perfil actualizado con éxito!", "success");
-        closeEditProfileModal();
-        if (currentTab === "players") loadPlayersRegistry();
-      } else {
-        showToast(data.error || "No se pudo actualizar el perfil", "error");
-      }
-    } catch (_) {
-      showToast("Error de conexión", "error");
+    const res = await apiRequest("/api/orders/create", {
+      method: "POST",
+      body: formData,
+      isFormData: true
+    });
+
+    if (res.ok) {
+      showToast("¡Comprobante enviado! El administrador verificará tu pago.", "success");
+      closeModal("modal-binance-payment");
+      e.target.reset();
+    } else {
+      showToast(res.error || "Error al enviar orden.", "error");
     }
   });
 }
 
-// ── Helpers ────────────────────────────────────────────────────
-function copyText(text) {
-  navigator.clipboard.writeText(text).then(() => {
-    showToast("Copiado al portapapeles", "info");
-  }).catch(() => {
-    showToast("No se pudo copiar", "error");
-  });
+// Helpers de Modales
+export function openModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) {
+    modal.classList.add("active");
+    modal.style.display = "flex";
+    renderIcons(modal);
+  }
 }
 
-function showToast(message, type = "info") {
-  const container = document.getElementById("toast-container");
-  if (!container) return;
-
-  const toast = document.createElement("div");
-  toast.className = `toast toast-${type}`;
-  toast.innerText = message;
-  container.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = "0";
-    setTimeout(() => toast.remove(), 200);
-  }, 3500);
+export function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) {
+    modal.classList.remove("active");
+    modal.style.display = "none";
+  }
 }
+
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.logout = logout;

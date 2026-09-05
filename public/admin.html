@@ -156,6 +156,10 @@
           <button class="admin-nav-btn" data-admin-tab="players">
             <span class="icon-slot" data-icon="user"></span> Balances de Jugadores
           </button>
+          <button class="admin-nav-btn" data-admin-tab="delivery-issues">
+            <span class="icon-slot text-rose" data-icon="alert"></span> Reclamos de Entregas
+            <span id="badge-delivery-issues" class="badge" style="display:none; background:#ef4444; color:#fff; font-size:0.75rem; margin-left:auto; padding: 2px 7px; border-radius: 999px;">0</span>
+          </button>
           <button class="admin-nav-btn" data-admin-tab="reports">
             <span class="icon-slot" data-icon="shield"></span> Reportes Anti-Estafas
           </button>
@@ -353,6 +357,39 @@
           </div>
 
 
+          <!-- ── SUBTAB: RECLAMOS DE ENTREGAS ("NO RECIBÍ MI PRODUCTO") ── -->
+          <div class="admin-tab-view" id="admin-view-delivery-issues" style="display: none;">
+            <div class="section-header">
+              <div class="section-title">
+                <span class="icon-slot text-rose" data-icon="alert"></span>
+                <h2>Reclamos de Entregas No Recibidas</h2>
+              </div>
+              <button class="cat-btn" onclick="loadAdminDeliveryIssues()">
+                <span class="icon-slot" data-icon="refresh"></span> Recargar Reclamos
+              </button>
+            </div>
+            <p class="text-muted" style="margin-bottom: 1.25rem;">Jugadores que reportaron que no recibieron su producto en Minecraft (por inventario lleno, desconexión o fallo). Puedes re-encolar la entrega inmediatamente.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Jugador</th>
+                    <th>Producto</th>
+                    <th>Comando</th>
+                    <th>Mensaje del Jugador</th>
+                    <th>Estado</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-delivery-issues-table">
+                  <!-- Llenado dinámicamente -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- ── SUBTAB: REPORTES ANTI-ESTAFAS ────────────────────── -->
           <div class="admin-tab-view" id="admin-view-reports" style="display: none;">
             <div class="section-header">
@@ -532,7 +569,7 @@
     </div>
   </div>
 
-  <script src="/js/icons.js?v=2.7.0"></script>
-  <script src="/js/admin.js?v=2.7.0"></script>
+  <script src="/js/icons.js"></script>
+  <script type="module" src="/js/admin.js"></script>
 </body>
 </html>

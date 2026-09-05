@@ -299,6 +299,7 @@
               <th>Artículo</th>
               <th>Comando / Acción</th>
               <th>Estado</th>
+              <th>Ayuda / Reclamo</th>
             </tr>
           </thead>
           <tbody id="deliveries-table-body">
@@ -834,11 +835,50 @@
     </div>
   </div>
 
+  <!-- Modal: Reportar Entrega No Recibida -->
+  <div class="modal-backdrop" id="modal-report-delivery">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span class="icon-slot text-rose" data-icon="alert"></span>
+          <h3 style="font-size: 1.2rem;">Reportar Problema de Entrega</h3>
+        </div>
+        <button class="modal-close" onclick="closeReportDeliveryModal()">
+          <span class="icon-slot" data-icon="x"></span>
+        </button>
+      </div>
+
+      <div style="padding: 0.5rem 0 0.5rem 0;">
+        <p class="text-muted" style="font-size: 0.875rem; line-height: 1.5; margin-bottom: 1rem;">
+          Si compraste este producto y no lo recibiste en el servidor (por inventario lleno, desconexión o fallo), envía este reporte directamente al Administrador para que revise y te lo entregue.
+        </p>
+
+        <div style="background: var(--purple-50); padding: 0.85rem 1rem; border-radius: var(--radius-md); border: 1.5px solid var(--purple-100); margin-bottom: 1rem;">
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.2rem;">Artículo comprado:</div>
+          <strong id="report-delivery-item-name" style="font-size: 1rem; color: var(--accent-purple);">—</strong>
+          <input type="hidden" id="report-delivery-id">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" style="font-size: 0.85rem; font-weight: 700;">Mensaje / Explicación para el Administrador (opcional)</label>
+          <textarea id="report-delivery-note" class="form-input" rows="3" placeholder="Ej: Tenía el inventario lleno cuando entré al servidor / Estaba AFK / No me llegó el mensaje en el juego..."></textarea>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem;">
+          <button class="cat-btn" style="flex: 1; justify-content: center;" onclick="closeReportDeliveryModal()">Cancelar</button>
+          <button class="btn-primary" id="btn-submit-delivery-report" style="flex: 1.5; justify-content: center; background: #ef4444; border-color: #ef4444;" onclick="submitDeliveryReport()">
+            <span class="icon-slot" data-icon="send"></span> Enviar Reporte al Admin
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Scripts -->
   <script src="/js/icons.js"></script>
-  <script src="/js/app.js"></script>
+  <script type="module" src="/js/app.js"></script>
 </body>
 </html>
