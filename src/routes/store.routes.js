@@ -6,7 +6,7 @@ import { broadcastWs } from "../services/websocket.js";
 const router = Router();
 
 // Obtener catálogo público de artículos
-router.get("/items", (req, res) => {
+router.get(["/", "/items"], (req, res) => {
   res.json({ ok: true, items: db.storeItems || [] });
 });
 

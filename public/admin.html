@@ -4,572 +4,204 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nodowa Network - Panel de Administración</title>
-  <link rel="stylesheet" href="/css/style.css?v=2.5.0">
-  <style>
-    .admin-grid {
-      display: grid;
-      grid-template-columns: 260px 1fr;
-      gap: 2rem;
-    }
-    .admin-sidebar {
-      background: #ffffff;
-      border: 1.5px solid var(--purple-100);
-      border-radius: var(--radius-xl);
-      padding: 1.25rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-      height: fit-content;
-      box-shadow: var(--shadow-sm);
-    }
-    .admin-nav-btn {
-      display: flex;
-      align-items: center;
-      gap: 0.85rem;
-      padding: 0.75rem 1.15rem;
-      border-radius: var(--radius-md);
-      color: var(--text-secondary);
-      background: transparent;
-      border: none;
-      font-weight: 700;
-      font-size: 0.925rem;
-      cursor: pointer;
-      text-align: left;
-      transition: all var(--transition-fast);
-    }
-    .admin-nav-btn:hover {
-      color: var(--accent-purple);
-      background: var(--purple-50);
-    }
-    .admin-nav-btn.active {
-      background: var(--accent-purple-gradient);
-      color: #ffffff;
-      box-shadow: 0 4px 14px var(--accent-purple-glow);
-    }
-    .admin-nav-btn.active svg {
-      stroke: #ffffff;
-    }
-    .receipt-thumb {
-      width: 52px;
-      height: 52px;
-      border-radius: var(--radius-sm);
-      object-fit: cover;
-      cursor: pointer;
-      border: 1.5px solid var(--purple-200);
-      transition: transform var(--transition-fast);
-      box-shadow: var(--shadow-xs);
-    }
-    .receipt-thumb:hover {
-      transform: scale(1.15);
-      border-color: var(--accent-purple);
-    }
-    @media (max-width: 900px) {
-      .admin-grid { grid-template-columns: 1fr; }
-    }
-  </style>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
-  <!-- ── Admin Header ─────────────────────────────────────────── -->
+  <!-- Admin Header -->
   <header class="header">
     <div class="header-inner">
-      <a href="/admin" class="brand">
-        <div class="brand-icon" style="background: linear-gradient(135deg, var(--accent-rose), #e11d48); color: #fff;">
-          <span class="icon-slot" data-icon="shield"></span>
-        </div>
-        <div>Nodowa <span class="domain" style="color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3); background: rgba(244, 63, 94, 0.1);">PANEL ADMIN</span></div>
-      </a>
-
-      <div style="display: flex; align-items: center; gap: 1rem;">
-        <a href="/" class="cat-btn">
-          <span class="icon-slot" data-icon="store"></span> Ir a la Tienda Web
-        </a>
-        <button class="cat-btn" id="btn-admin-logout" style="display: none;" onclick="adminLogout()">
-          <span class="icon-slot" data-icon="power"></span> Cerrar Sesión
-        </button>
+      <div class="brand">
+        <span>👑 Panel Admin</span>
+        <span class="brand-badge">Nodowa</span>
+      </div>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <a href="/" class="btn btn-secondary btn-sm">Ir a la Web</a>
+        <button id="btn-admin-logout" class="btn btn-secondary btn-sm" style="display:none;">Cerrar Sesión</button>
       </div>
     </div>
   </header>
 
-  <!-- ── Admin Main ───────────────────────────────────────────── -->
-  <main class="main-container">
-
-    <!-- Pantalla de Login de Administrador -->
-    <div id="admin-login-view" style="max-width: 420px; margin: 4rem auto;">
-      <div class="table-container" style="padding: 2rem;">
-        <div style="text-align: center; margin-bottom: 1.5rem;">
-          <div class="brand-icon" style="margin: 0 auto 1rem auto; width: 48px; height: 48px; background: linear-gradient(135deg, var(--accent-rose), #e11d48); color: #fff;">
-            <span class="icon-slot" data-icon="lock"></span>
-          </div>
-          <h2>Acceso Administrativo</h2>
-          <p class="text-muted" style="font-size: 0.85rem; margin-top: 0.25rem;">Ingresa la clave de administrador para gestionar pagos y catálogo.</p>
+  <!-- Login Overlay -->
+  <div id="admin-login-view" style="max-width:400px; margin:4rem auto; padding:0 1rem;">
+    <div class="card">
+      <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:1rem; text-align:center;">Acceso Administrativo</h2>
+      <form id="admin-login-form">
+        <div class="form-group">
+          <label class="form-label">Contraseña Maestra</label>
+          <input type="password" id="admin-pass" class="input" placeholder="Ingresa la contraseña de admin" required autofocus>
         </div>
+        <button type="submit" class="btn btn-primary btn-block">Acceder al Panel</button>
+      </form>
+    </div>
+  </div>
 
-        <form id="form-admin-login">
+  <!-- Admin Main Dashboard -->
+  <main class="main-container" id="admin-dashboard-view" style="display:none;">
+
+    <!-- Stat Counters -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+      <div class="card">
+        <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">JUGADORES REGISTRADOS</span>
+        <div style="font-size:1.6rem; font-weight:800; color:var(--primary); margin-top:0.25rem;" id="stat-users">0</div>
+      </div>
+      <div class="card">
+        <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">ÓRDENES BINANCE PENDIENTES</span>
+        <div style="font-size:1.6rem; font-weight:800; color:var(--amber);" id="stat-orders">0</div>
+      </div>
+      <div class="card">
+        <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">RECLAMOS DE ENTREGA</span>
+        <div style="font-size:1.6rem; font-weight:800; color:var(--red);" id="stat-issues">0</div>
+      </div>
+      <div class="card">
+        <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">TOTAL VENTAS USDT</span>
+        <div style="font-size:1.6rem; font-weight:800; color:var(--emerald);" id="stat-usdt">$0.00</div>
+      </div>
+    </div>
+
+    <!-- Admin Navigation Tabs -->
+    <div class="nav-tabs" style="margin-bottom:1.25rem;">
+      <button class="tab-btn active" data-atab="orders">📋 Órdenes Binance</button>
+      <button class="tab-btn" data-atab="issues">⚠️ Reclamos de Entrega</button>
+      <button class="tab-btn" data-atab="catalog">🛍️ Catálogo Tienda</button>
+      <button class="tab-btn" data-atab="config">⚙️ Configuración Binance</button>
+    </div>
+
+    <!-- TAB 1: Órdenes Binance -->
+    <section class="admin-tab active" id="atab-orders">
+      <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:0.75rem;">📋 Comprobantes de Pago Binance</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Jugador</th>
+              <th>Artículo</th>
+              <th>Monto</th>
+              <th>TXID</th>
+              <th>Comprobante</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="admin-orders-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 2: Reclamos de Entregas -->
+    <section class="admin-tab" id="atab-issues" style="display:none;">
+      <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:0.75rem;">⚠️ Reportes: "No recibí mi producto"</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Jugador</th>
+              <th>Artículo</th>
+              <th>Comando MC</th>
+              <th>Nota / Problema</th>
+              <th>Estado</th>
+              <th>Acción Inmediata</th>
+            </tr>
+          </thead>
+          <tbody id="admin-issues-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 3: Catálogo Tienda -->
+    <section class="admin-tab" id="atab-catalog" style="display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h2 style="font-size:1.2rem; font-weight:700;">🛍️ Artículos de la Tienda</h2>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-item')">+ Nuevo Artículo</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Categoría</th>
+              <th>Precio NC</th>
+              <th>Precio USDT</th>
+              <th>Comando Minecraft</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="admin-catalog-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 4: Configuración -->
+    <section class="admin-tab" id="atab-config" style="display:none;">
+      <div class="card" style="max-width:550px;">
+        <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:1rem;">⚙️ Parámetros de Binance Pay</h2>
+        <form id="admin-config-form">
           <div class="form-group">
-            <label class="form-label">Contraseña de Administrador</label>
-            <input type="password" id="admin-pass-input" class="form-input" placeholder="Clave de seguridad..." required>
+            <label class="form-label">Binance Pay ID</label>
+            <input type="text" id="cfg-payid" class="input" required>
           </div>
-          <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem; background: var(--accent-rose); color: #fff;">
-            <span class="icon-slot" data-icon="shield"></span> Entrar al Panel
-          </button>
+          <div class="form-group">
+            <label class="form-label">Dirección Wallet USDT (TRC20 / BEP20)</label>
+            <input type="text" id="cfg-wallet" class="input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Instrucción para el jugador</label>
+            <input type="text" id="cfg-instruction" class="input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nuevo Código QR (Opcional)</label>
+            <input type="file" id="cfg-qr-file" class="input" accept="image/*">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Guardar Configuración</button>
         </form>
       </div>
-    </div>
-
-    <!-- Pantalla de Panel de Control (Autenticado) -->
-    <div id="admin-panel-view" style="display: none;">
-
-      <!-- Métricas Rápidas -->
-      <div class="hero-stats" style="margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-        <div class="stat-box">
-          <div class="val text-gold mono" id="stat-pending-orders">0</div>
-          <div class="lbl">Comprobantes Pendientes</div>
-        </div>
-        <div class="stat-box">
-          <div class="val text-emerald mono" id="stat-total-sales">$0.00</div>
-          <div class="lbl">Ventas Totales USDT</div>
-        </div>
-        <div class="stat-box">
-          <div class="val text-cyan mono" id="stat-total-users">0</div>
-          <div class="lbl">Jugadores Registrados</div>
-        </div>
-        <div class="stat-box">
-          <div class="val text-purple mono" id="stat-total-coins">0 NC</div>
-          <div class="lbl">Nodocoins en Circulación</div>
-        </div>
-      </div>
-
-      <!-- Layout Grid Sidebar + Content -->
-      <div class="admin-grid">
-        <!-- Sidebar -->
-        <aside class="admin-sidebar">
-          <button class="admin-nav-btn active" data-admin-tab="orders">
-            <span class="icon-slot" data-icon="qr"></span> Comprobantes Binance
-          </button>
-          <button class="admin-nav-btn" data-admin-tab="qr">
-            <span class="icon-slot" data-icon="settings"></span> Ajustes & QR Binance
-          </button>
-          <button class="admin-nav-btn" data-admin-tab="catalog">
-            <span class="icon-slot" data-icon="box"></span> Catálogo de Tienda
-          </button>
-          <button class="admin-nav-btn" data-admin-tab="players">
-            <span class="icon-slot" data-icon="user"></span> Balances de Jugadores
-          </button>
-          <button class="admin-nav-btn" data-admin-tab="delivery-issues">
-            <span class="icon-slot text-rose" data-icon="alert"></span> Reclamos de Entregas
-            <span id="badge-delivery-issues" class="badge" style="display:none; background:#ef4444; color:#fff; font-size:0.75rem; margin-left:auto; padding: 2px 7px; border-radius: 999px;">0</span>
-          </button>
-          <button class="admin-nav-btn" data-admin-tab="reports">
-            <span class="icon-slot" data-icon="shield"></span> Reportes Anti-Estafas
-          </button>
-        </aside>
-
-        <!-- Contenido Central -->
-        <div class="admin-content">
-
-          <!-- ── SUBTAB: COMPROBANTES BINANCE ────────────────────── -->
-          <div class="admin-tab-view active" id="admin-view-orders">
-            <div class="section-header">
-              <div class="section-title">
-                <span class="icon-slot text-gold" data-icon="qr"></span>
-                <h2>Comprobantes y Ventas de Binance</h2>
-              </div>
-              <button class="cat-btn" onclick="loadAdminOrders()">
-                <span class="icon-slot" data-icon="refresh"></span> Recargar
-              </button>
-            </div>
-
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Jugador</th>
-                    <th>Producto / Paquete</th>
-                    <th>Monto USDT</th>
-                    <th>TXID</th>
-                    <th>Comprobante</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody id="admin-orders-table">
-                  <!-- Llenado dinámicamente -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- ── SUBTAB: AJUSTES & QR BINANCE ────────────────────── -->
-          <div class="admin-tab-view" id="admin-view-qr" style="display: none;">
-            <div class="section-title" style="margin-bottom: 1.25rem;">
-              <span class="icon-slot text-cyan" data-icon="settings"></span>
-              <h2>Configurar QR y Datos de Binance Pay</h2>
-            </div>
-
-            <div class="table-container" style="padding: 1.75rem; max-width: 650px;">
-              <div style="display: flex; gap: 2rem; align-items: flex-start; margin-bottom: 1.5rem;">
-                <div>
-                  <div class="form-label">QR Actual</div>
-                  <img id="admin-preview-qr" src="/uploads/default_qr.svg" style="width: 140px; height: 140px; border-radius: var(--radius-md); background: #fff; padding: 6px; border: 1px solid var(--border-color);">
-                </div>
-                <div style="flex: 1;">
-                  <form id="form-update-qr">
-                    <div class="form-group">
-                      <label class="form-label">Subir Nueva Imagen de QR</label>
-                      <input type="file" id="admin-qr-file" class="form-input" accept="image/*">
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Binance Pay ID</label>
-                      <input type="text" id="admin-pay-id" class="form-input" placeholder="Ej. 847291039" required>
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Dirección Wallet USDT (TRC20 / BEP20)</label>
-                      <input type="text" id="admin-wallet-address" class="form-input" placeholder="Ej. 0x71C...b84F" required>
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Instrucciones para el Comprador</label>
-                      <textarea id="admin-instruction" class="form-input" rows="3"></textarea>
-                    </div>
-                    <button type="submit" class="btn-primary" style="margin-top: 1rem;">
-                      <span class="icon-slot" data-icon="check"></span> Guardar Cambios de Binance
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ── SUBTAB: CATÁLOGO DE TIENDA ──────────────────────── -->
-          <div class="admin-tab-view" id="admin-view-catalog" style="display: none;">
-            <div class="section-header">
-              <div class="section-title">
-                <span class="icon-slot text-gold" data-icon="box"></span>
-                <h2>Gestión de Artículos de la Tienda</h2>
-              </div>
-              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                <button class="cat-btn" onclick="openExportCatalogModal()" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);">
-                  <span class="icon-slot" data-icon="terminal"></span> 📋 Ver / Exportar JSON Actual
-                </button>
-                <button class="cat-btn" onclick="openBulkImportModal()" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3);">
-                  <span class="icon-slot" data-icon="terminal"></span> ⚡ Carga Masiva (Importar JSON)
-                </button>
-                <button class="btn-primary" onclick="openCreateItemModal()">
-                  <span class="icon-slot" data-icon="plus"></span> Nuevo Artículo
-                </button>
-              </div>
-            </div>
-
-            <!-- Buscador de Catálogo en vivo -->
-            <div style="margin-bottom: 1.25rem; display: flex; gap: 1rem; align-items: center;">
-              <div style="position: relative; flex: 1; max-width: 500px;">
-                <input type="text" id="admin-catalog-search" class="form-input" placeholder="🔍 Buscar producto por nombre, ID, categoría o comando..." oninput="filterAdminCatalog(this.value)">
-              </div>
-              <span id="admin-catalog-count" class="mono text-muted" style="font-size: 0.85rem;"></span>
-            </div>
-
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Categoría</th>
-                    <th>Precio Coins</th>
-                    <th>Precio USDT</th>
-                    <th>Comando / Recompensa</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody id="admin-catalog-table">
-                  <!-- Llenado dinámicamente -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- ── SUBTAB: BALANCES DE JUGADORES ───────────────────── -->
-          <div class="admin-tab-view" id="admin-view-players" style="display: none;">
-            <div class="section-header">
-              <div class="section-title">
-                <span class="icon-slot text-cyan" data-icon="user"></span>
-                <h2>Balances de Jugadores</h2>
-              </div>
-              <button class="cat-btn" onclick="loadAdminPlayers()">
-                <span class="icon-slot" data-icon="refresh"></span> Recargar
-              </button>
-            </div>
-
-            <!-- Ajuste rápido de saldo -->
-            <div class="table-container" style="padding: 1.5rem; margin-bottom: 1.5rem;">
-              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">⚡ Ajustar saldo manualmente:</p>
-              <form id="form-adjust-player-balance" style="display: grid; grid-template-columns: 1fr 120px 140px auto; gap: 1rem; align-items: flex-end;">
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label">Gamertag del Jugador</label>
-                  <input type="text" id="admin-player-name" class="form-input" placeholder="Ej. Steve" required>
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label">Acción</label>
-                  <select id="admin-player-action" class="form-input">
-                    <option value="add">Dar (+)</option>
-                    <option value="sub">Quitar (-)</option>
-                    <option value="set">Fijar (=)</option>
-                  </select>
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label">Cantidad (NC)</label>
-                  <input type="number" id="admin-player-amount" class="form-input" placeholder="Monto..." required>
-                </div>
-                <button type="submit" class="btn-primary" style="height: 42px;">
-                  <span class="icon-slot" data-icon="check"></span> Aplicar
-                </button>
-              </form>
-            </div>
-
-            <!-- Buscador de Jugadores en vivo -->
-            <div style="margin-bottom: 1.25rem; display: flex; gap: 1rem; align-items: center;">
-              <div style="position: relative; flex: 1; max-width: 450px;">
-                <input type="text" id="admin-players-search" class="form-input" placeholder="🔍 Buscar jugador por nombre o gamertag..." oninput="filterAdminPlayers(this.value)">
-              </div>
-              <span id="admin-players-count" class="mono text-muted" style="font-size: 0.85rem;"></span>
-            </div>
-
-            <!-- Tabla completa de jugadores -->
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Jugador</th>
-                    <th>💰 Billetera (Mano)</th>
-                    <th>🏦 Banco</th>
-                    <th>Total NC</th>
-                    <th>Vinculado</th>
-                    <th>Registro</th>
-                    <th>Acción Rápida</th>
-                  </tr>
-                </thead>
-                <tbody id="admin-players-table-body">
-                  <tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2rem;">Cargando jugadores...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-
-          <!-- ── SUBTAB: RECLAMOS DE ENTREGAS ("NO RECIBÍ MI PRODUCTO") ── -->
-          <div class="admin-tab-view" id="admin-view-delivery-issues" style="display: none;">
-            <div class="section-header">
-              <div class="section-title">
-                <span class="icon-slot text-rose" data-icon="alert"></span>
-                <h2>Reclamos de Entregas No Recibidas</h2>
-              </div>
-              <button class="cat-btn" onclick="loadAdminDeliveryIssues()">
-                <span class="icon-slot" data-icon="refresh"></span> Recargar Reclamos
-              </button>
-            </div>
-            <p class="text-muted" style="margin-bottom: 1.25rem;">Jugadores que reportaron que no recibieron su producto en Minecraft (por inventario lleno, desconexión o fallo). Puedes re-encolar la entrega inmediatamente.</p>
-
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Jugador</th>
-                    <th>Producto</th>
-                    <th>Comando</th>
-                    <th>Mensaje del Jugador</th>
-                    <th>Estado</th>
-                    <th>Acción</th>
-                  </tr>
-                </thead>
-                <tbody id="admin-delivery-issues-table">
-                  <!-- Llenado dinámicamente -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- ── SUBTAB: REPORTES ANTI-ESTAFAS ────────────────────── -->
-          <div class="admin-tab-view" id="admin-view-reports" style="display: none;">
-            <div class="section-header">
-              <div class="section-title">
-                <span class="icon-slot text-rose" data-icon="shield"></span>
-                <h2>Reportes de Usuarios & Estafas</h2>
-              </div>
-              <button class="cat-btn" onclick="loadAdminReports()">
-                <span class="icon-slot" data-icon="refresh"></span> Recargar Reportes
-              </button>
-            </div>
-
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Denunciante</th>
-                    <th>Acusado</th>
-                    <th>Motivo</th>
-                    <th>Detalles & Pruebas</th>
-                    <th>Estado</th>
-                    <th>Acción Admin</th>
-                  </tr>
-                </thead>
-                <tbody id="admin-reports-table-body">
-                  <!-- Llenado dinámicamente -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
+    </section>
 
   </main>
 
-  <!-- ── MODAL: VER COMPROBANTE GRANDE ─────────────────────────── -->
-  <div class="modal-backdrop" id="modal-view-receipt">
-    <div class="modal-card" style="max-width: 600px; text-align: center;">
+  <!-- Modal: Agregar Artículo -->
+  <div class="modal-backdrop" id="modal-add-item">
+    <div class="modal-box">
       <div class="modal-header">
-        <h3>Comprobante de Pago</h3>
-        <button class="modal-close" onclick="closeReceiptModal()">
-          <span class="icon-slot" data-icon="x"></span>
-        </button>
+        <h3 class="modal-title">🛍️ Crear Artículo en Tienda</h3>
+        <button class="btn-close" onclick="closeModal('modal-add-item')">&times;</button>
       </div>
-      <img id="receipt-full-img" src="" style="width: 100%; max-height: 450px; object-fit: contain; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: #000; margin-bottom: 1rem;">
-      <div id="receipt-modal-details" class="mono text-muted" style="font-size: 0.85rem; margin-bottom: 1.25rem;"></div>
-      <div style="display: flex; gap: 0.75rem; justify-content: center;">
-        <button class="btn-primary" id="btn-approve-from-modal" style="background: var(--accent-emerald); color: #fff;">
-          <span class="icon-slot" data-icon="check"></span> Aprobar Venta
-        </button>
-        <button class="btn-primary" id="btn-reject-from-modal" style="background: var(--accent-rose); color: #fff;">
-          <span class="icon-slot" data-icon="x"></span> Rechazar Venta
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── MODAL: CREAR / EDITAR ARTÍCULO TIENDA ──────────────────── -->
-  <div class="modal-backdrop" id="modal-edit-item">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3 id="item-modal-title">Nuevo Artículo</h3>
-        <button class="modal-close" onclick="closeEditItemModal()">
-          <span class="icon-slot" data-icon="x"></span>
-        </button>
-      </div>
-      <form id="form-save-store-item">
-        <input type="hidden" id="item-input-id">
+      <form id="add-item-form">
         <div class="form-group">
-          <label class="form-label">Nombre del Artículo</label>
-          <input type="text" id="item-input-name" class="form-input" placeholder="Ej. Rango VIP+" required>
+          <label class="form-label">Nombre del Producto</label>
+          <input type="text" id="item-name" class="input" placeholder="Ej: Rango VIP o Llave Mítica" required>
         </div>
-        <div class="form-group">
-          <label class="form-label">Categoría</label>
-          <select id="item-input-category" class="form-input">
-            <option value="ranks">Rangos</option>
-            <option value="coins">Monedas</option>
-            <option value="kits">Kits</option>
-            <option value="items">Ítems</option>
-            <option value="keys">Llaves</option>
-          </select>
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
           <div class="form-group">
-            <label class="form-label">Precio en Nodocoins (0 = solo USDT)</label>
-            <input type="number" id="item-input-price-coins" class="form-input" value="0">
+            <label class="form-label">Precio en NC (Monedas)</label>
+            <input type="number" id="item-price-coins" class="input" value="0">
           </div>
           <div class="form-group">
-            <label class="form-label">Precio en USDT ($)</label>
-            <input type="number" step="0.01" id="item-input-price-usdt" class="form-input" value="0.00">
+            <label class="form-label">Precio en USDT (Dólares)</label>
+            <input type="number" step="0.01" id="item-price-usdt" class="input" value="0">
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Comando a ejecutar en Bedrock (Usa {player})</label>
-          <input type="text" id="item-input-command" class="form-input" placeholder="Ej. tag {player} add vip">
+          <label class="form-label">Comando Minecraft ({player} = Gamertag)</label>
+          <input type="text" id="item-command" class="input" placeholder="Ej: tag {player} add vip">
         </div>
         <div class="form-group">
-          <label class="form-label">Monedas a entregar (si es paquete de monedas)</label>
-          <input type="number" id="item-input-give-coins" class="form-input" value="0">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Imagen del Producto (opcional)</label>
-          <input type="file" id="item-input-image-file" class="form-input" accept="image/*">
-          <input type="text" id="item-input-image-url" class="form-input" placeholder="O pega una URL de imagen (https://...)" style="margin-top: 0.5rem;">
+          <label class="form-label">Monedas que otorga (Opcional)</label>
+          <input type="number" id="item-give-coins" class="input" value="0">
         </div>
         <div class="form-group">
           <label class="form-label">Descripción</label>
-          <input type="text" id="item-input-desc" class="form-input" placeholder="Beneficios del artículo...">
+          <textarea id="item-desc" class="input" rows="2" placeholder="Beneficios del producto..."></textarea>
         </div>
-        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">
-          <span class="icon-slot" data-icon="check"></span> Guardar Artículo
-        </button>
+        <button type="submit" class="btn btn-primary btn-block">Guardar en Catálogo</button>
       </form>
     </div>
   </div>
 
-  <!-- Modal Carga Masiva y Editor JSON de Productos -->
-  <div class="modal-backdrop" id="modal-bulk-import">
-    <div class="modal-card" style="max-width: 820px; width: 95vw; max-height: 90vh; overflow-y: auto;">
-      <div class="modal-header">
-        <h3 class="modal-title" id="bulk-modal-title">Carga Masiva y Editor JSON de Productos</h3>
-        <button class="modal-close" onclick="closeBulkImportModal()">
-          <span class="icon-slot" data-icon="x"></span>
-        </button>
-      </div>
+  <div id="toast"></div>
 
-      <!-- Barra de Herramientas de Carga y Exportación Rápida -->
-      <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; justify-content: space-between; background: var(--bg-surface); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-          <button type="button" class="cat-btn" onclick="loadCurrentExistingCatalog()" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4);">
-            📋 Cargar Productos Actuales al Editor
-          </button>
-          <button type="button" class="cat-btn" onclick="loadOfficialPresetCatalog()" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(236, 72, 153, 0.3)); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4);">
-            ⚡ Cargar Preset Oficial (57 Ítems)
-          </button>
-        </div>
-        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-          <button type="button" class="cat-btn" onclick="copyBulkJsonToClipboard()" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);" title="Copiar todo el JSON actual al portapapeles">
-            📄 Copiar JSON
-          </button>
-          <button type="button" class="cat-btn" onclick="downloadCatalogJsonFile()" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);" title="Descargar como archivo .json">
-            💾 Descargar .json
-          </button>
-          <button type="button" class="cat-btn" onclick="clearBulkEditor()" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);" title="Limpiar contenido del editor">
-            🧹 Limpiar
-          </button>
-        </div>
-      </div>
-
-      <form id="form-bulk-import">
-        <div class="form-group">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-            <label class="form-label" style="margin: 0;">Lista de Productos (Formato JSON Array)</label>
-            <span id="bulk-items-stats" class="mono text-muted" style="font-size: 0.75rem;"></span>
-          </div>
-          <textarea id="bulk-items-json" class="form-input mono" rows="14" placeholder='[\n  {\n    "id": "item_ejemplo",\n    "name": "Rango VIP",\n    "category": "ranks",\n    "priceCoins": 5000,\n    "priceUsdt": 2.99,\n    "description": "Beneficios de VIP",\n    "command": "tag {player} add vip",\n    "giveCoins": 0,\n    "badge": "Popular"\n  }\n]' style="font-size: 0.82rem; line-height: 1.45; font-family: monospace; tab-size: 2; min-height: 250px; max-height: 48vh;" required oninput="updateBulkItemsStats()"></textarea>
-        </div>
-
-        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap;">
-          <label class="form-label" style="margin: 0; min-width: 120px;">Modo de Guardado:</label>
-          <select id="bulk-import-mode" class="form-input" style="flex: 1; min-width: 240px;">
-            <option value="replace">⚠️ Reemplazar Todo el Catálogo Actual (Sobrescribir)</option>
-            <option value="append" selected>➕ Añadir / Actualizar Productos (Conserva los existentes)</option>
-          </select>
-        </div>
-
-        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
-          <button type="button" class="cat-btn" onclick="closeBulkImportModal()">Cerrar</button>
-          <button type="submit" class="btn-primary" style="background: var(--accent-rose);">
-            <span class="icon-slot" data-icon="check"></span> Importar / Guardar en el Catálogo
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <script src="/js/icons.js"></script>
-  <script type="module" src="/js/admin.js"></script>
+  <script src="/js/admin.js"></script>
 </body>
 </html>

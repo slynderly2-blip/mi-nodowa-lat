@@ -29,7 +29,7 @@
       "name": "Paquete de 1,000 Nodocoins",
       "category": "coins",
       "priceCoins": 0,
-      "priceUsdt": 1.0,
+      "priceUsdt": 1,
       "giveCoins": 1000,
       "command": null,
       "description": "Acredita 1,000 Nodocoins directamente a tu saldo web y de Minecraft.",
@@ -52,7 +52,9 @@
   "p2pMarket": [],
   "orders": [],
   "deliveries": [],
+  "deliveryIssues": [],
   "transactions": [],
   "linkTokens": {},
+  "ratings": [],
   "usedTxids": {}
 }
