@@ -112,4 +112,55 @@ router.post("/reviews/submit", (req, res) => {
   res.json({ ok: true, message: reviewType === "REPORT" ? "Reporte registrado para revisión." : "¡Gracias por tu reseña!", review });
 });
 
+// Obtener perfil completo con estadísticas y títulos RPG
+router.get("/profile/:username", (req, res) => {
+  const uname = req.params.username.trim().toLowerCase();
+  const user = db.users[uname];
+  if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+  const defaultStats = {
+    killsPvp: 0,
+    killsTotalMobs: 0,
+    minedDiamond: 0,
+    minedDebris: 0,
+    minedTotal: 0,
+    activeTitle: "Novato",
+    unlockedCount: 0,
+    tier: "NOVICIO"
+  };
+
+  const stats = user.stats || defaultStats;
+  const avatarUrl = user.avatarUrl || `https://mc-heads.net/avatar/${encodeURIComponent(user.displayName || user.username)}/100`;
+
+  res.json({
+    ok: true,
+    user: {
+      username: user.username,
+      displayName: user.displayName || user.username,
+      wallet: Math.floor(user.wallet || 0),
+      bank: Math.floor(user.bank || 0),
+      totalFortune: Math.floor((user.wallet || 0) + (user.bank || 0)),
+      linked: !!(user.linked || user.linkedAt),
+      avatarUrl,
+      stats
+    }
+  });
+});
+
+// Actualizar avatar de perfil
+router.post("/avatar", (req, res) => {
+  const { username, avatarUrl } = req.body;
+  if (!username || !avatarUrl) return res.status(400).json({ ok: false, error: "Datos incompletos" });
+
+  const uname = username.trim().toLowerCase();
+  const user = db.users[uname];
+  if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+  user.avatarUrl = avatarUrl;
+  user.updatedAt = new Date().toISOString();
+  saveDb();
+
+  res.json({ ok: true, avatarUrl: user.avatarUrl, message: "Foto de perfil actualizada con éxito." });
+});
+
 export default router;

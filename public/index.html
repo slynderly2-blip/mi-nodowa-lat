@@ -296,6 +296,133 @@
     </div>
   </div>
 
+  <!-- Modal: Perfil del Jugador (Estilo Facebook / TikTok) -->
+  <div class="modal-backdrop" id="modal-profile">
+    <div class="profile-modal-box">
+      <div class="profile-cover">
+        <button class="profile-close-btn" onclick="closeModal('modal-profile')">&times;</button>
+      </div>
+
+      <div class="profile-avatar-wrap">
+        <img id="profile-avatar-img" class="profile-avatar-img" src="https://mc-heads.net/avatar/Steve/100" alt="Avatar">
+        <button class="avatar-edit-badge" id="btn-open-avatar-modal" title="Cambiar foto de perfil">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+      </div>
+
+      <div class="profile-body">
+        <h2 class="profile-name" id="profile-gamertag">Steve</h2>
+        <div class="profile-badges-row">
+          <span class="chip chip-linked">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Vinculado</span>
+          </span>
+          <span class="chip chip-tier" id="profile-tier-badge">NOVICIO</span>
+          <span class="chip chip-title" id="profile-active-title">Título: [Novato]</span>
+        </div>
+
+        <!-- Balances Financieros -->
+        <div class="profile-balances">
+          <div class="profile-balance-card">
+            <div class="profile-balance-label">Billetera</div>
+            <div class="profile-balance-val" id="profile-wallet-val">0 NC</div>
+          </div>
+          <div class="profile-balance-card">
+            <div class="profile-balance-label">Banco Protegido</div>
+            <div class="profile-balance-val" id="profile-bank-val" style="color:var(--emerald);">0 NC</div>
+          </div>
+        </div>
+
+        <!-- Estadísticas Conectadas con Addon de Títulos de Minecraft -->
+        <div class="stats-header-title">
+          <span>Estadísticas de Aventura</span>
+          <span id="profile-titles-count" style="font-size:0.75rem; color:var(--tiktok-red); font-weight:700;">0 Títulos</span>
+        </div>
+
+        <div class="stats-grid-profile">
+          <div class="stat-box">
+            <div class="stat-box-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/></svg>
+            </div>
+            <div>
+              <div class="stat-box-num" id="profile-stat-pvp">0</div>
+              <div class="stat-box-label">Bajas PvP</div>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-box-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>
+            </div>
+            <div>
+              <div class="stat-box-num" id="profile-stat-mobs">0</div>
+              <div class="stat-box-label">Mobs Cazados</div>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-box-icon" style="color:#0ea5e9;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 18 3 22 9 12 22 2 9"/></svg>
+            </div>
+            <div>
+              <div class="stat-box-num" id="profile-stat-diamond">0</div>
+              <div class="stat-box-label">Diamantes</div>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-box-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 12-8.5 8.5a2.12 2.12 0 1 1-3-3L11 9"/><path d="M15 13 9 7l4-4 6 6h3l3 3"/></svg>
+            </div>
+            <div>
+              <div class="stat-box-num" id="profile-stat-mined">0</div>
+              <div class="stat-box-label">Bloques Picados</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-actions-list">
+          <button type="button" class="btn btn-secondary btn-block" id="btn-profile-wallet">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
+            <span>Ir a Billetera & Transferencias</span>
+          </button>
+          <button type="button" class="btn btn-danger btn-block" id="btn-profile-logout">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Modificar Foto de Perfil -->
+  <div class="modal-backdrop" id="modal-avatar">
+    <div class="modal-box" style="max-width:420px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Modificar Foto</span>
+        </h3>
+        <button class="btn-close" onclick="closeModal('modal-avatar')">&times;</button>
+      </div>
+      <form id="avatar-form">
+        <div class="form-group">
+          <label class="form-label">Subir Imagen desde el Dispositivo</label>
+          <input type="file" id="avatar-file-input" class="input" accept="image/*">
+        </div>
+        <div class="form-group">
+          <label class="form-label">O Ingresar URL de Imagen</label>
+          <input type="url" id="avatar-url-input" class="input" placeholder="https://ejemplo.com/mifoto.png">
+        </div>
+        <div style="display:flex; gap:0.5rem; margin-top:1.25rem;">
+          <button type="button" class="btn btn-secondary btn-block" id="btn-avatar-minecraft">Usar Skin MC</button>
+          <button type="submit" class="btn btn-tiktok btn-block">Guardar Foto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal: Comprar Artículo -->
   <div class="modal-backdrop" id="modal-checkout">
     <div class="modal-box" style="max-width:500px;">

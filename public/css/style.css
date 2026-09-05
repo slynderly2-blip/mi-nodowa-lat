@@ -221,34 +221,279 @@ body {
   transform: translateY(-1px);
 }
 
-/* User Widget */
+/* User Widget & Header Avatar Button */
 .user-widget {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.user-pill {
+.profile-header-btn {
   background: var(--tiktok-gray);
   border: 1px solid var(--border-hover);
-  padding: 0.35rem 0.85rem;
   border-radius: var(--radius-full);
-  font-size: 0.84rem;
-  font-weight: 700;
-  color: var(--text);
+  padding: 3px 10px 3px 4px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: inherit;
+}
+.profile-header-btn:hover {
+  background: #e8e8ed;
+  border-color: var(--border-strong);
+}
+.profile-header-btn:active {
+  transform: scale(0.96);
 }
 
-.coins-badge {
-  background: #ffffff;
-  color: var(--emerald);
-  padding: 2px 7px;
-  border-radius: var(--radius-full);
+.avatar-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  background: var(--border);
+  flex-shrink: 0;
+}
+.avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.online-indicator {
+  width: 9px;
+  height: 9px;
+  background: var(--emerald);
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+.profile-header-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  line-height: 1.15;
+}
+.profile-header-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  max-width: 90px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.profile-header-coins {
+  font-size: 0.72rem;
   font-weight: 800;
-  font-size: 0.78rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  color: var(--emerald);
+}
+
+/* Modal Perfil (Estilo Facebook / TikTok) */
+.profile-modal-box {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 520px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+}
+
+.profile-cover {
+  height: 110px;
+  background: linear-gradient(135deg, #161823 0%, #2f344a 50%, #fe2c55 100%);
+  position: relative;
+}
+.profile-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.profile-close-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.profile-avatar-wrap {
+  margin-top: -50px;
+  text-align: center;
+  position: relative;
+  display: inline-block;
+}
+.profile-avatar-img {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 4px solid var(--surface);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  object-fit: cover;
+  background: #eee;
+}
+.avatar-edit-badge {
+  position: absolute;
+  bottom: 6px;
+  right: 4px;
+  background: var(--tiktok-black);
+  color: #ffffff;
+  border: 2px solid var(--surface);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.avatar-edit-badge:hover {
+  background: var(--tiktok-red);
+}
+
+.profile-body {
+  padding: 0.75rem 1.5rem 1.75rem;
+  text-align: center;
+}
+
+.profile-name {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--tiktok-black);
+  margin-bottom: 0.25rem;
+}
+
+.profile-badges-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.chip {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.chip-linked {
+  background: var(--emerald-light);
+  color: var(--emerald);
+}
+.chip-tier {
+  background: var(--amber-light);
+  color: var(--amber);
+}
+.chip-title {
+  background: var(--tiktok-gray);
+  color: var(--tiktok-black);
+}
+
+/* Tarjetas de Saldo en Perfil */
+.profile-balances {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.profile-balance-card {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+}
+.profile-balance-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.profile-balance-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--tiktok-black);
+  margin-top: 2px;
+}
+
+/* Estadísticas RPG conectadas con Addon de Títulos */
+.stats-header-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  text-align: left;
+  margin-bottom: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.stats-grid-profile {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+.stat-box {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+}
+.stat-box-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--tiktok-gray);
+  color: var(--tiktok-black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.stat-box-num {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--tiktok-black);
+  line-height: 1.1;
+}
+.stat-box-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.profile-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
 
 /* Main Container */

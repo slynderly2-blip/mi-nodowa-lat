@@ -191,4 +191,28 @@ router.post("/sync-players", (req, res) => {
   res.json({ ok: true, synced: count });
 });
 
+// 9. Sincronizar estadísticas y títulos desde nodowa_titles_addon
+router.post("/sync-stats", (req, res) => {
+  const { player, stats } = req.body;
+  if (!player || !stats) return res.status(400).json({ ok: false, error: "Parámetros incompletos" });
+
+  const user = getOrCreateUser(player);
+  user.stats = {
+    killsPvp: Number(stats.killsPvp || 0),
+    killsTotalMobs: Number(stats.killsTotalMobs || 0),
+    minedDiamond: Number(stats.minedDiamond || 0),
+    minedDebris: Number(stats.minedDebris || 0),
+    minedTotal: Number(stats.minedTotal || 0),
+    activeTitle: stats.activeTitle || user.stats?.activeTitle || "Novato",
+    unlockedCount: Number(stats.unlockedCount || 0),
+    tier: stats.tier || user.stats?.tier || "NOVICIO",
+    lastSyncedAt: new Date().toISOString()
+  };
+  user.updatedAt = new Date().toISOString();
+  saveDb();
+
+  broadcastWs("STATS_UPDATED", { username: user.username, stats: user.stats });
+  res.json({ ok: true, stats: user.stats });
+});
+
 export default router;

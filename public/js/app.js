@@ -69,37 +69,27 @@ function getItemSvg(category, iconType) {
   return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>`;
 }
 
-// Auth UI
+let currentUserAvatar = localStorage.getItem("nodowa_avatar") || null;
+let userProfileData = null;
+
+// Auth UI (Avatar Interactivo en Cabecera)
 function updateAuthUI() {
   const container = document.getElementById("user-widget");
   if (currentUser) {
+    const avatar = currentUserAvatar || `https://mc-heads.net/avatar/${encodeURIComponent(currentUser)}/64`;
     container.innerHTML = `
-      <div class="user-pill">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span>${currentUser}</span>
-        <span class="coins-badge" id="pill-coins">${userData.wallet.toLocaleString()} NC</span>
-      </div>
-      <button class="btn btn-secondary btn-sm" id="btn-logout">Salir</button>
+      <button class="profile-header-btn" id="btn-open-profile" title="Ver mi perfil">
+        <div class="avatar-circle">
+          <img id="header-avatar-img" src="${avatar}" alt="Avatar">
+          <span class="online-indicator"></span>
+        </div>
+        <div class="profile-header-info">
+          <span class="profile-header-name">${currentUser}</span>
+          <span class="profile-header-coins" id="header-coins-pill">${userData.wallet.toLocaleString()} NC</span>
+        </div>
+      </button>
     `;
-    document.getElementById("btn-logout").onclick = async () => {
-      const sessionToken = localStorage.getItem("nodowa_session_token");
-      if (sessionToken) {
-        try {
-          await fetch("/api/auth/logout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sessionToken })
-          });
-        } catch (_) {}
-      }
-      localStorage.removeItem("nodowa_user");
-      localStorage.removeItem("nodowa_session_token");
-      currentUser = null;
-      pendingSessionToken = null;
-      userData = { wallet: 0, bank: 0 };
-      updateAuthUI();
-      showToast("Sesión cerrada.");
-    };
+    document.getElementById("btn-open-profile").onclick = openProfileModal;
     loadBalance();
   } else {
     container.innerHTML = `
@@ -112,6 +102,139 @@ function updateAuthUI() {
       resetAuthModal();
       openModal("modal-login");
     };
+  }
+}
+
+// Modal Perfil de Jugador (Estadísticas RPG conectadas al addon de títulos)
+async function openProfileModal() {
+  if (!currentUser) return;
+  
+  const avatar = currentUserAvatar || `https://mc-heads.net/avatar/${encodeURIComponent(currentUser)}/100`;
+  const avatarImg = document.getElementById("profile-avatar-img");
+  if (avatarImg) avatarImg.src = avatar;
+  
+  document.getElementById("profile-gamertag").textContent = currentUser;
+  document.getElementById("profile-wallet-val").textContent = `${userData.wallet.toLocaleString()} NC`;
+  document.getElementById("profile-bank-val").textContent = `${userData.bank.toLocaleString()} NC`;
+
+  openModal("modal-profile");
+
+  try {
+    const res = await fetch(`/api/players/profile/${encodeURIComponent(currentUser)}`);
+    const data = await res.json();
+    if (data.ok && data.user) {
+      userProfileData = data.user;
+      if (data.user.avatarUrl) {
+        currentUserAvatar = data.user.avatarUrl;
+        localStorage.setItem("nodowa_avatar", currentUserAvatar);
+        if (avatarImg) avatarImg.src = currentUserAvatar;
+        const hImg = document.getElementById("header-avatar-img");
+        if (hImg) hImg.src = currentUserAvatar;
+      }
+      
+      const stats = data.user.stats || {};
+      const tierBadge = document.getElementById("profile-tier-badge");
+      if (tierBadge) tierBadge.textContent = stats.tier || "NOVICIO";
+      
+      const activeTitle = document.getElementById("profile-active-title");
+      if (activeTitle) activeTitle.textContent = `Título: [${stats.activeTitle || "Novato"}]`;
+      
+      const titlesCount = document.getElementById("profile-titles-count");
+      if (titlesCount) titlesCount.textContent = `${stats.unlockedCount || 0} / 34 Títulos`;
+      
+      document.getElementById("profile-stat-pvp").textContent = (stats.killsPvp || 0).toLocaleString();
+      document.getElementById("profile-stat-mobs").textContent = (stats.killsTotalMobs || 0).toLocaleString();
+      document.getElementById("profile-stat-diamond").textContent = (stats.minedDiamond || 0).toLocaleString();
+      document.getElementById("profile-stat-mined").textContent = (stats.minedTotal || 0).toLocaleString();
+    }
+  } catch (err) {}
+}
+
+async function logoutUser() {
+  const sessionToken = localStorage.getItem("nodowa_session_token");
+  if (sessionToken) {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionToken })
+      });
+    } catch (_) {}
+  }
+  localStorage.removeItem("nodowa_user");
+  localStorage.removeItem("nodowa_session_token");
+  localStorage.removeItem("nodowa_avatar");
+  currentUser = null;
+  currentUserAvatar = null;
+  pendingSessionToken = null;
+  userData = { wallet: 0, bank: 0 };
+  closeModal("modal-profile");
+  updateAuthUI();
+  showToast("Sesión cerrada.");
+}
+
+document.getElementById("btn-profile-logout")?.addEventListener("click", logoutUser);
+
+document.getElementById("btn-profile-wallet")?.addEventListener("click", () => {
+  closeModal("modal-profile");
+  const walletTab = document.querySelector(`.tab-btn[data-tab="wallet"]`);
+  if (walletTab) walletTab.click();
+});
+
+document.getElementById("btn-open-avatar-modal")?.addEventListener("click", () => {
+  openModal("modal-avatar");
+});
+
+document.getElementById("btn-avatar-minecraft")?.addEventListener("click", async () => {
+  if (!currentUser) return;
+  const mcAvatar = `https://mc-heads.net/avatar/${encodeURIComponent(currentUser)}/128`;
+  await saveAvatar(mcAvatar);
+});
+
+document.getElementById("avatar-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!currentUser) return;
+
+  const fileInput = document.getElementById("avatar-file-input");
+  const urlInput = document.getElementById("avatar-url-input");
+
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      await saveAvatar(ev.target.result);
+    };
+    reader.readAsDataURL(fileInput.files[0]);
+  } else if (urlInput && urlInput.value.trim()) {
+    await saveAvatar(urlInput.value.trim());
+  } else {
+    showToast("Selecciona una imagen o ingresa una URL");
+  }
+});
+
+async function saveAvatar(avatarUrl) {
+  try {
+    const res = await fetch("/api/players/avatar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: currentUser, avatarUrl })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      currentUserAvatar = data.avatarUrl;
+      localStorage.setItem("nodowa_avatar", currentUserAvatar);
+      
+      const hImg = document.getElementById("header-avatar-img");
+      if (hImg) hImg.src = currentUserAvatar;
+      const pImg = document.getElementById("profile-avatar-img");
+      if (pImg) pImg.src = currentUserAvatar;
+
+      closeModal("modal-avatar");
+      showToast("Foto de perfil actualizada con éxito.");
+    } else {
+      showToast(data.error || "No se pudo actualizar la foto");
+    }
+  } catch (err) {
+    showToast("Error de conexión al guardar foto");
   }
 }
 
@@ -264,6 +387,12 @@ async function loadBalance() {
       userData.bank = data.user.bank || 0;
       const pill = document.getElementById("pill-coins");
       if (pill) pill.textContent = `${userData.wallet.toLocaleString()} NC`;
+      const headerCoins = document.getElementById("header-coins-pill");
+      if (headerCoins) headerCoins.textContent = `${userData.wallet.toLocaleString()} NC`;
+      const pW = document.getElementById("profile-wallet-val");
+      if (pW) pW.textContent = `${userData.wallet.toLocaleString()} NC`;
+      const pB = document.getElementById("profile-bank-val");
+      if (pB) pB.textContent = `${userData.bank.toLocaleString()} NC`;
       const wBal = document.getElementById("wallet-balance");
       if (wBal) wBal.textContent = `${userData.wallet.toLocaleString()} NC`;
       const bBal = document.getElementById("bank-balance");
@@ -743,6 +872,23 @@ function initWS() {
         }
       }
       else if (eventType === "STORE_UPDATED") loadStore();
+      else if (eventType === "STATS_UPDATED" && currentUser && msg.username?.toLowerCase() === currentUser.toLowerCase()) {
+        const stats = msg.stats || {};
+        const pPvp = document.getElementById("profile-stat-pvp");
+        if (pPvp) pPvp.textContent = (stats.killsPvp || 0).toLocaleString();
+        const pMobs = document.getElementById("profile-stat-mobs");
+        if (pMobs) pMobs.textContent = (stats.killsTotalMobs || 0).toLocaleString();
+        const pDia = document.getElementById("profile-stat-diamond");
+        if (pDia) pDia.textContent = (stats.minedDiamond || 0).toLocaleString();
+        const pMin = document.getElementById("profile-stat-mined");
+        if (pMin) pMin.textContent = (stats.minedTotal || 0).toLocaleString();
+        const pTier = document.getElementById("profile-tier-badge");
+        if (pTier) pTier.textContent = stats.tier || "NOVICIO";
+        const pTitle = document.getElementById("profile-active-title");
+        if (pTitle) pTitle.textContent = `Título: [${stats.activeTitle || "Novato"}]`;
+        const pCount = document.getElementById("profile-titles-count");
+        if (pCount) pCount.textContent = `${stats.unlockedCount || 0} / 34 Títulos`;
+      }
       else if (eventType === "BALANCE_UPDATE" && currentUser && msg.data?.username?.toLowerCase() === currentUser.toLowerCase()) {
         loadBalance();
       }
