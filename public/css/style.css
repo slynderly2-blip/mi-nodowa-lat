@@ -462,7 +462,46 @@ body {
 @keyframes feedFade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ==========================================================================
-   SEARCH HERO
+   STORE TOPBAR — banner servidor + buscador compacto
+   ========================================================================== */
+.store-topbar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.store-topbar-server {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.store-topbar-name {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.store-topbar-ip {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: ui-monospace, 'Consolas', monospace;
+  background: var(--tiktok-gray);
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+}
+
+.store-topbar .search-box {
+  max-width: 100%;
+}
+
+/* ==========================================================================
+   SEARCH HERO (mantenido para compatibilidad, reducido)
    ========================================================================== */
 .search-hero {
   background: var(--surface);
