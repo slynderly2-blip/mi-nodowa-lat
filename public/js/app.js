@@ -723,36 +723,31 @@ function renderMarket(offers) {
     const isMine = currentUser && o.seller.toLowerCase() === currentUser.toLowerCase();
     const priceVal = o.price || o.priceCoins || 0;
     const sellerAvatar = `https://mc-heads.net/avatar/${encodeURIComponent(o.seller)}/32`;
+    const itemLabel = o.itemType ? `${o.quantity > 1 ? `${o.quantity}x ` : ''}${o.itemType}` : '';
 
     return `
-      <div class="card">
-        <div class="card-top">
-          <div style="display:flex; align-items:center; gap:0.5rem;">
-            <img src="${sellerAvatar}" alt="${o.seller}" style="width:26px; height:26px; border-radius:50%; border:1px solid var(--border);">
-            <span style="font-size:0.85rem; font-weight:700; color:var(--text);">${o.seller}</span>
+      <div class="card" style="padding:0;">
+        <div style="padding:1rem 1rem 0.6rem 1rem;">
+          <div style="font-size:1.45rem; font-weight:800; color:var(--tiktok-black); line-height:1.15; margin-bottom:0.3rem;">
+            ${priceVal.toLocaleString()} <span style="font-size:0.9rem; font-weight:600; color:var(--text-muted);">NC</span>
           </div>
-          ${o.itemType ? `<span class="badge" style="background:var(--tiktok-gray); color:var(--text-muted); font-size:0.72rem;">${o.quantity > 1 ? `${o.quantity}x ` : ''}${o.itemType}</span>` : ''}
+          <div style="font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.2rem;">${o.title}</div>
+          ${itemLabel ? `<div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.25rem;">${itemLabel}</div>` : ''}
+          ${o.description ? `<div style="font-size:0.82rem; color:var(--text-subtle); line-height:1.45; margin-top:0.4rem;">${o.description}</div>` : ''}
         </div>
-        <div class="card-content">
-          <h3 class="card-title">${o.title}</h3>
-          <p class="card-desc">${o.description || "Oferta directa de jugador en Nodowa Network."}</p>
-        </div>
-        <div class="card-footer">
-          <div class="card-prices">
-            <span class="price-coins">${priceVal.toLocaleString()} <small>NC</small></span>
+
+        <div style="border-top:1px solid var(--border); padding:0.65rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+          <div style="display:flex; align-items:center; gap:0.45rem; min-width:0;">
+            <img src="${sellerAvatar}" alt="${o.seller}" style="width:24px; height:24px; border-radius:50%; flex-shrink:0;">
+            <span style="font-size:0.82rem; font-weight:600; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${o.seller}</span>
           </div>
-          <div style="display:flex; gap:0.4rem; width:100%;">
-            ${isMine
-              ? `<button class="btn btn-danger-soft btn-block" onclick="deleteMarketListing('${o.id}')">Retirar Oferta</button>`
-              : `
-                <button class="btn btn-tiktok" style="flex:2;" onclick="buyMarketOffer('${o.id}')">Comprar</button>
-                <button class="btn btn-secondary" style="flex:1; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="openChatWith('${o.seller}')" title="Negociar o Chatear con el vendedor">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  <span style="font-size:0.78rem;">Chat</span>
-                </button>
-              `
-            }
-          </div>
+          ${isMine
+            ? `<button class="btn btn-danger-soft btn-sm" onclick="deleteMarketListing('${o.id}')">Retirar</button>`
+            : `<button class="btn btn-tiktok btn-sm" style="display:flex; align-items:center; gap:5px; flex-shrink:0;" onclick="openChatWith('${o.seller}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Chat</span>
+              </button>`
+          }
         </div>
       </div>
     `;
