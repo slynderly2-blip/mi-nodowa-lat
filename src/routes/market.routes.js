@@ -5,13 +5,35 @@ import { broadcastWs } from "../services/websocket.js";
 
 const router = Router();
 
-// Obtener todas las publicaciones activas del mercado P2P
-router.get("/listings", (req, res) => {
-  res.json({ ok: true, market: db.p2pMarket || [] });
-});
+// Obtener publicaciones activas del mercado P2P (con filtros y búsqueda)
+const getListingsHandler = (req, res) => {
+  const search = (req.query.search || "").trim().toLowerCase();
+  const filter = (req.query.filter || "all").toLowerCase();
+  const username = (req.query.username || "").trim().toLowerCase();
+
+  let market = db.p2pMarket || [];
+
+  if (search) {
+    market = market.filter(item => 
+      (item.title || "").toLowerCase().includes(search) ||
+      (item.description || "").toLowerCase().includes(search) ||
+      (item.itemType || "").toLowerCase().includes(search) ||
+      (item.seller || "").toLowerCase().includes(search)
+    );
+  }
+
+  if (filter === "mine" && username) {
+    market = market.filter(item => (item.seller || "").toLowerCase() === username);
+  }
+
+  res.json({ ok: true, market });
+};
+
+router.get("/", getListingsHandler);
+router.get("/listings", getListingsHandler);
 
 // Publicar un artículo en el mercado P2P
-router.post("/publish", (req, res) => {
+const publishHandler = (req, res) => {
   const { seller, title, itemType, quantity, price, description } = req.body;
   const numPrice = Math.floor(Number(price));
   const numQty = Math.max(1, Math.floor(Number(quantity) || 1));
@@ -42,7 +64,10 @@ router.post("/publish", (req, res) => {
 
   broadcastWs("P2P_NEW_LISTING", listing);
   res.json({ ok: true, message: "Artículo publicado en el mercado P2P", listing });
-});
+};
+
+router.post("/publish", publishHandler);
+router.post("/list", publishHandler);
 
 // Comprar artículo de otro jugador en el mercado P2P
 router.post("/buy", (req, res) => {

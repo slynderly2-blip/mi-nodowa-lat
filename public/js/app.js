@@ -44,6 +44,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
 
     if (tabName === "store") loadStore();
     else if (tabName === "market") loadMarket();
+    else if (tabName === "social") loadSocial();
     else if (tabName === "wallet") loadBalance();
     else if (tabName === "deliveries") loadDeliveries();
     else if (tabName === "leaderboard") loadLeaderboard();
@@ -91,6 +92,8 @@ function updateAuthUI() {
     `;
     document.getElementById("btn-open-profile").onclick = openProfileModal;
     loadBalance();
+    loadConversations();
+    loadFriendRequests();
   } else {
     container.innerHTML = `
       <button class="btn btn-primary btn-sm" id="btn-login">
@@ -642,13 +645,56 @@ document.getElementById("binance-order-form").addEventListener("submit", async (
   }
 });
 
-// P2P Market
+// ============================================================
+// MERCADO P2P ENTRE JUGADORES
+// ============================================================
+let currentMarketFilter = "all";
+let marketSearchTerm = "";
+
+window.setMarketFilter = (filter) => {
+  currentMarketFilter = filter;
+  const btnAll = document.getElementById("btn-market-filter-all");
+  const btnMine = document.getElementById("btn-market-filter-mine");
+  if (btnAll) btnAll.classList.toggle("active", filter === "all");
+  if (btnMine) btnMine.classList.toggle("active", filter === "mine");
+  loadMarket();
+};
+
+window.clearMarketSearch = () => {
+  const el = document.getElementById("market-search");
+  if (el) el.value = "";
+  marketSearchTerm = "";
+  loadMarket();
+};
+
+const marketSearchInput = document.getElementById("market-search");
+if (marketSearchInput) {
+  let timer;
+  marketSearchInput.addEventListener("input", (e) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      marketSearchTerm = e.target.value.trim();
+      loadMarket();
+    }, 250);
+  });
+}
+
 async function loadMarket() {
+  const grid = document.getElementById("market-grid");
+  if (!grid) return;
+
   try {
-    const res = await fetch("/api/market");
+    const params = new URLSearchParams();
+    if (marketSearchTerm) params.append("search", marketSearchTerm);
+    if (currentMarketFilter === "mine" && currentUser) {
+      params.append("filter", "mine");
+      params.append("username", currentUser);
+    }
+
+    const res = await fetch(`/api/market?${params.toString()}`);
     const data = await res.json();
     if (data.ok) {
-      renderMarket(data.offers || []);
+      renderMarket(data.market || data.offers || []);
     }
   } catch (err) {
     console.error("Error cargando mercado:", err);
@@ -657,42 +703,59 @@ async function loadMarket() {
 
 function renderMarket(offers) {
   const grid = document.getElementById("market-grid");
-  if (offers.length === 0) {
+  if (!grid) return;
+
+  if (!offers || offers.length === 0) {
     grid.innerHTML = `
-      <div class="empty-state">
+      <div class="empty-state" style="grid-column: 1 / -1;">
         <div class="empty-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
         </div>
-        <h3>No hay ofertas activas</h3>
-        <p>Sé el primero en publicar una oferta en el mercado de jugadores.</p>
+        <h3>No se encontraron ofertas</h3>
+        <p>Sé el primero en publicar una oferta en el mercado o prueba con otra búsqueda.</p>
       </div>
     `;
     return;
   }
 
-  grid.innerHTML = offers.map(o => `
-    <div class="card">
-      <div class="card-top">
-        <div class="card-icon-pill">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+  grid.innerHTML = offers.map(o => {
+    const isMine = currentUser && o.seller.toLowerCase() === currentUser.toLowerCase();
+    const priceVal = o.price || o.priceCoins || 0;
+    const sellerAvatar = `https://mc-heads.net/avatar/${encodeURIComponent(o.seller)}/32`;
+
+    return `
+      <div class="card">
+        <div class="card-top">
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <img src="${sellerAvatar}" alt="${o.seller}" style="width:26px; height:26px; border-radius:50%; border:1px solid var(--border);">
+            <span style="font-size:0.85rem; font-weight:700; color:var(--text);">${o.seller}</span>
+          </div>
+          ${o.itemType ? `<span class="badge" style="background:var(--tiktok-gray); color:var(--text-muted); font-size:0.72rem;">${o.quantity > 1 ? `${o.quantity}x ` : ''}${o.itemType}</span>` : ''}
         </div>
-        <span class="badge badge-tiktok">Vendedor: ${o.seller}</span>
-      </div>
-      <div class="card-content">
-        <h3 class="card-title">${o.title}</h3>
-        <p class="card-desc">${o.description || "Oferta de jugador en Nodowa Network."}</p>
-      </div>
-      <div class="card-footer">
-        <div class="card-prices">
-          <span class="price-coins">${o.priceCoins.toLocaleString()} <small>NC</small></span>
+        <div class="card-content">
+          <h3 class="card-title">${o.title}</h3>
+          <p class="card-desc">${o.description || "Oferta directa de jugador en Nodowa Network."}</p>
         </div>
-        ${o.seller === currentUser
-          ? `<button class="btn btn-secondary btn-block" disabled>Tu Oferta</button>`
-          : `<button class="btn btn-success btn-block" onclick="buyMarketOffer('${o.id}')">Comprar Oferta</button>`
-        }
+        <div class="card-footer">
+          <div class="card-prices">
+            <span class="price-coins">${priceVal.toLocaleString()} <small>NC</small></span>
+          </div>
+          <div style="display:flex; gap:0.4rem; width:100%;">
+            ${isMine
+              ? `<button class="btn btn-danger-soft btn-block" onclick="deleteMarketListing('${o.id}')">Retirar Oferta</button>`
+              : `
+                <button class="btn btn-tiktok" style="flex:2;" onclick="buyMarketOffer('${o.id}')">Comprar</button>
+                <button class="btn btn-secondary" style="flex:1; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="openChatWith('${o.seller}')" title="Negociar o Chatear con el vendedor">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <span style="font-size:0.78rem;">Chat</span>
+                </button>
+              `
+            }
+          </div>
+        </div>
       </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 }
 
 document.getElementById("btn-create-p2p").onclick = () => {
@@ -705,14 +768,16 @@ document.getElementById("p2p-form").addEventListener("submit", async (e) => {
   if (!currentUser) return;
 
   const title = document.getElementById("p2p-title").value.trim();
-  const priceCoins = parseInt(document.getElementById("p2p-price").value);
+  const itemType = (document.getElementById("p2p-item-type")?.value || "stone").trim();
+  const quantity = parseInt(document.getElementById("p2p-quantity")?.value || "1");
+  const price = parseInt(document.getElementById("p2p-price").value);
   const description = document.getElementById("p2p-desc").value.trim();
 
   try {
-    const res = await fetch("/api/market/list", {
+    const res = await fetch("/api/market/publish", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ seller: currentUser, title, priceCoins, description })
+      body: JSON.stringify({ seller: currentUser, title, itemType, quantity, price, description })
     });
     const data = await res.json();
     if (data.ok) {
@@ -728,7 +793,7 @@ document.getElementById("p2p-form").addEventListener("submit", async (e) => {
   }
 });
 
-window.buyMarketOffer = async (offerId) => {
+window.buyMarketOffer = async (listingId) => {
   if (!currentUser) return openModal("modal-login");
   if (!confirm("¿Deseas comprar esta oferta de mercado?")) return;
 
@@ -736,11 +801,11 @@ window.buyMarketOffer = async (offerId) => {
     const res = await fetch("/api/market/buy", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ buyer: currentUser, offerId })
+      body: JSON.stringify({ buyer: currentUser, listingId })
     });
     const data = await res.json();
     if (data.ok) {
-      showToast("Compra completada exitosamente.");
+      showToast(data.message || "Compra completada exitosamente.");
       loadBalance();
       loadMarket();
     } else {
@@ -748,6 +813,600 @@ window.buyMarketOffer = async (offerId) => {
     }
   } catch (err) {
     showToast("Error de conexión");
+  }
+};
+
+window.deleteMarketListing = async (listingId) => {
+  if (!currentUser) return;
+  if (!confirm("¿Deseas retirar tu publicación del mercado?")) return;
+  try {
+    const res = await fetch("/api/market/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: currentUser, listingId })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast("Publicación retirada.");
+      loadMarket();
+    } else {
+      showToast(data.error || "Error al retirar publicación");
+    }
+  } catch (e) {
+    showToast("Error de conexión");
+  }
+};
+
+// ============================================================
+// COMUNIDAD & MESSENGER EN TIEMPO REAL
+// ============================================================
+let currentSocialSubTab = "players";
+let currentPlayersFilter = "all";
+let playersSearchTerm = "";
+let activeChatPartner = null;
+let activeConversationId = null;
+
+function loadSocial() {
+  if (currentSocialSubTab === "players") {
+    loadPlayers();
+    loadFriendRequests();
+  } else {
+    loadConversations();
+  }
+}
+
+window.switchSocialSubTab = (subTab) => {
+  currentSocialSubTab = subTab;
+  const pBtn = document.getElementById("subtab-players-btn");
+  const cBtn = document.getElementById("subtab-chat-btn");
+  const pPanel = document.getElementById("social-panel-players");
+  const cPanel = document.getElementById("social-panel-chat");
+
+  if (pBtn) pBtn.classList.toggle("active", subTab === "players");
+  if (cBtn) cBtn.classList.toggle("active", subTab === "chat");
+  if (pPanel) pPanel.classList.toggle("active", subTab === "players");
+  if (cPanel) cPanel.classList.toggle("active", subTab === "chat");
+
+  if (subTab === "players") {
+    loadPlayers();
+    loadFriendRequests();
+  } else {
+    loadConversations();
+  }
+};
+
+window.setPlayersFilter = (filter) => {
+  currentPlayersFilter = filter;
+  const btnAll = document.getElementById("filter-players-all");
+  const btnLinked = document.getElementById("filter-players-linked");
+  const btnFriends = document.getElementById("filter-players-friends");
+  if (btnAll) btnAll.classList.toggle("active", filter === "all");
+  if (btnLinked) btnLinked.classList.toggle("active", filter === "linked");
+  if (btnFriends) btnFriends.classList.toggle("active", filter === "friends");
+  loadPlayers();
+};
+
+window.clearPlayersSearch = () => {
+  const el = document.getElementById("players-search-input");
+  if (el) el.value = "";
+  playersSearchTerm = "";
+  loadPlayers();
+};
+
+const playersSearchInput = document.getElementById("players-search-input");
+if (playersSearchInput) {
+  let timer;
+  playersSearchInput.addEventListener("input", (e) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      playersSearchTerm = e.target.value.trim();
+      loadPlayers();
+    }, 250);
+  });
+}
+
+async function loadPlayers() {
+  const grid = document.getElementById("players-grid");
+  if (!grid) return;
+
+  try {
+    const params = new URLSearchParams();
+    if (playersSearchTerm) params.append("search", playersSearchTerm);
+    if (currentPlayersFilter !== "all") params.append("filter", currentPlayersFilter);
+    if (currentUser) params.append("currentUser", currentUser);
+
+    const res = await fetch(`/api/social/players?${params.toString()}`);
+    const data = await res.json();
+    if (data.ok) {
+      renderPlayers(data.players || []);
+    }
+  } catch (err) {
+    console.error("Error al cargar jugadores:", err);
+  }
+}
+
+function renderPlayers(players) {
+  const grid = document.getElementById("players-grid");
+  if (!grid) return;
+
+  if (players.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column: 1 / -1;">
+        <div class="empty-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <h3>No se encontraron jugadores</h3>
+        <p>Intenta con otro Gamertag o cambia de filtro.</p>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = players.map(p => {
+    const stats = p.stats || {};
+    const kills = (stats.killsPvp || 0).toLocaleString();
+    const blocks = (stats.minedTotal || 0).toLocaleString();
+    const isFriend = p.friendship === "friends";
+    const isIncoming = p.friendship === "incoming";
+    const isOutgoing = p.friendship === "outgoing";
+
+    let actionBtnHtml = "";
+    if (!currentUser) {
+      actionBtnHtml = `<button class="btn btn-secondary btn-block" onclick="openModal('modal-login')">Conectar</button>`;
+    } else if (isFriend) {
+      actionBtnHtml = `
+        <button class="btn btn-tiktok" style="flex:2; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="openChatWith('${p.username}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Chat</span>
+        </button>
+        <button class="btn btn-danger-soft" style="flex:1; display:flex; align-items:center; justify-content:center;" onclick="removeFriend('${p.username}')" title="Eliminar Amigo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      `;
+    } else if (isIncoming) {
+      actionBtnHtml = `
+        <button class="btn btn-tiktok btn-block" onclick="loadFriendRequests()">Responder Solicitud</button>
+      `;
+    } else if (isOutgoing) {
+      actionBtnHtml = `
+        <button class="btn btn-secondary btn-block" disabled>Solicitud Enviada</button>
+      `;
+    } else {
+      actionBtnHtml = `
+        <button class="btn btn-tiktok" style="flex:2; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="sendFriendRequest('${p.username}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          <span>Añadir</span>
+        </button>
+        <button class="btn btn-secondary" style="flex:1; display:flex; align-items:center; justify-content:center;" onclick="openChatWith('${p.username}')" title="Enviar Mensaje Directo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </button>
+      `;
+    }
+
+    return `
+      <div class="player-card">
+        <div class="player-card-header">
+          <img src="${p.avatarUrl}" alt="${p.displayName}" class="player-card-avatar">
+          <div class="player-card-info">
+            <div class="player-card-name">${p.displayName}</div>
+            <div class="player-card-title">${p.selectedTitle ? `[${p.selectedTitle}]` : (p.linked ? 'Jugador Bedrock' : 'No Vinculado')}</div>
+          </div>
+        </div>
+        <div class="player-card-stats">
+          <div class="player-card-stat-item">PvP Kills: <strong>${kills}</strong></div>
+          <div class="player-card-stat-item">Bloques: <strong>${blocks}</strong></div>
+        </div>
+        <div class="player-card-actions">
+          ${actionBtnHtml}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function loadFriendRequests() {
+  if (!currentUser) return;
+  try {
+    const res = await fetch(`/api/social/friends/${encodeURIComponent(currentUser)}`);
+    const data = await res.json();
+    const box = document.getElementById("incoming-requests-box");
+    const grid = document.getElementById("incoming-requests-grid");
+
+    if (data.ok && data.incomingRequests && data.incomingRequests.length > 0) {
+      if (box) box.style.display = "block";
+      if (grid) {
+        grid.innerHTML = data.incomingRequests.map(r => `
+          <div class="card" style="padding:0.85rem 1rem;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+              <div style="display:flex; align-items:center; gap:0.6rem;">
+                <img src="https://mc-heads.net/avatar/${encodeURIComponent(r.sender)}/36" alt="${r.sender}" style="width:36px; height:36px; border-radius:50%;">
+                <div>
+                  <strong style="font-size:0.9rem;">${r.sender}</strong>
+                  <div style="font-size:0.75rem; color:var(--text-muted);">Te envió solicitud</div>
+                </div>
+              </div>
+              <div style="display:flex; gap:0.4rem;">
+                <button class="btn btn-tiktok btn-sm" onclick="respondFriendRequest('${r.id}', 'ACCEPT')">Aceptar</button>
+                <button class="btn btn-danger-soft btn-sm" onclick="respondFriendRequest('${r.id}', 'REJECT')">Rechazar</button>
+              </div>
+            </div>
+          </div>
+        `).join("");
+      }
+    } else {
+      if (box) box.style.display = "none";
+    }
+  } catch (e) {
+    console.error("Error al cargar solicitudes:", e);
+  }
+}
+
+window.sendFriendRequest = async (targetUsername) => {
+  if (!currentUser) return openModal("modal-login");
+  try {
+    const res = await fetch("/api/social/friends/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sender: currentUser, target: targetUsername })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(data.message || "Solicitud de amistad enviada.");
+      loadPlayers();
+    } else {
+      showToast(data.error || "No se pudo enviar la solicitud");
+    }
+  } catch (e) {
+    showToast("Error de conexión");
+  }
+};
+
+window.respondFriendRequest = async (requestId, action) => {
+  if (!currentUser) return;
+  try {
+    const res = await fetch("/api/social/friends/respond", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: currentUser, requestId, action })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(data.message);
+      loadFriendRequests();
+      loadPlayers();
+    } else {
+      showToast(data.error || "Error al responder solicitud");
+    }
+  } catch (e) {
+    showToast("Error de conexión");
+  }
+};
+
+window.removeFriend = async (friendUsername) => {
+  if (!currentUser) return;
+  if (!confirm(`¿Eliminar a ${friendUsername} de tus amigos?`)) return;
+  try {
+    const res = await fetch("/api/social/friends/remove", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: currentUser, friendUsername })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(data.message);
+      loadPlayers();
+    } else {
+      showToast(data.error || "Error al eliminar");
+    }
+  } catch (e) {
+    showToast("Error de conexión");
+  }
+};
+
+// ============================================================
+// CHAT MESSENGER EN TIEMPO REAL
+// ============================================================
+async function loadConversations() {
+  if (!currentUser) return;
+  const listEl = document.getElementById("conversations-list");
+  if (!listEl) return;
+
+  try {
+    const res = await fetch(`/api/social/conversations/${encodeURIComponent(currentUser)}`);
+    const data = await res.json();
+    if (data.ok) {
+      const convs = data.conversations || [];
+      let totalUnread = 0;
+
+      if (convs.length === 0) {
+        listEl.innerHTML = `<div class="messenger-empty-threads">No tienes chats activos aún.<br><small style="color:var(--text-subtle);">Haz clic en "Buscar" para hablar con alguien.</small></div>`;
+      } else {
+        listEl.innerHTML = convs.map(c => {
+          totalUnread += (c.unreadCount || 0);
+          const isActive = activeChatPartner && activeChatPartner.toLowerCase() === c.partner.username.toLowerCase();
+          const timeStr = c.lastTimestamp ? formatChatTime(c.lastTimestamp) : "";
+
+          return `
+            <div class="thread-item ${isActive ? 'active' : ''}" onclick="openChatWith('${c.partner.username}')">
+              <img src="${c.partner.avatarUrl}" alt="${c.partner.displayName}" class="thread-avatar">
+              <div class="thread-info">
+                <div class="thread-top">
+                  <span class="thread-name">${c.partner.displayName}</span>
+                  <span class="thread-time">${timeStr}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="thread-preview">${escapeHtml(c.lastMessage || '')}</span>
+                  ${c.unreadCount > 0 ? `<span class="thread-unread-badge">${c.unreadCount}</span>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      updateSocialBadge(totalUnread);
+    }
+  } catch (e) {
+    console.error("Error al cargar conversaciones:", e);
+  }
+}
+
+function updateSocialBadge(count) {
+  const badgeDesktop = document.getElementById("badge-social");
+  const badgeMobile = document.getElementById("badge-social-mobile");
+  const badgeSubtab = document.getElementById("subtab-chat-badge");
+
+  [badgeDesktop, badgeMobile, badgeSubtab].forEach(badge => {
+    if (badge) {
+      if (count > 0) {
+        badge.style.display = "inline-block";
+        badge.textContent = count > 99 ? "99+" : count;
+      } else {
+        badge.style.display = "none";
+      }
+    }
+  });
+}
+
+function formatChatTime(isoStr) {
+  const d = new Date(isoStr);
+  const now = new Date();
+  if (d.toDateString() === now.toDateString()) {
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+window.openChatWith = async (partnerUsername) => {
+  if (!currentUser) return openModal("modal-login");
+  if (currentUser.toLowerCase() === partnerUsername.toLowerCase()) {
+    return showToast("No puedes chatear contigo mismo.");
+  }
+
+  // Activar pestaña Comunidad
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === "social"));
+  document.querySelectorAll(".tab-view").forEach(v => v.classList.remove("active"));
+  const viewSocial = document.getElementById("view-social");
+  if (viewSocial) viewSocial.classList.add("active");
+
+  switchSocialSubTab("chat");
+
+  activeChatPartner = partnerUsername;
+
+  // Adaptabilidad móvil
+  const messengerContainer = document.querySelector(".messenger-container");
+  if (messengerContainer) messengerContainer.classList.add("mobile-chat-open");
+
+  // Mostrar área activa
+  const emptyState = document.getElementById("chat-empty-state");
+  const activeBox = document.getElementById("chat-active-box");
+  if (emptyState) emptyState.style.display = "none";
+  if (activeBox) activeBox.style.display = "flex";
+
+  document.getElementById("chat-active-name").textContent = partnerUsername;
+  document.getElementById("chat-active-avatar").src = `https://mc-heads.net/avatar/${encodeURIComponent(partnerUsername)}/40`;
+  document.getElementById("chat-active-status").textContent = "En línea";
+
+  await fetchChatMessages(partnerUsername);
+  loadConversations();
+};
+
+window.closeChatMobile = () => {
+  const messengerContainer = document.querySelector(".messenger-container");
+  if (messengerContainer) messengerContainer.classList.remove("mobile-chat-open");
+};
+
+async function fetchChatMessages(partnerUsername) {
+  const body = document.getElementById("chat-messages-container");
+  if (!body) return;
+
+  try {
+    const res = await fetch(`/api/social/messages?user1=${encodeURIComponent(currentUser)}&user2=${encodeURIComponent(partnerUsername)}`);
+    const data = await res.json();
+    if (data.ok) {
+      activeConversationId = data.conversationId;
+      renderChatMessages(data.messages || []);
+    }
+  } catch (e) {
+    console.error("Error al cargar mensajes:", e);
+  }
+}
+
+function renderChatMessages(messages) {
+  const body = document.getElementById("chat-messages-container");
+  if (!body) return;
+
+  if (messages.length === 0) {
+    body.innerHTML = `
+      <div style="text-align:center; color:var(--text-muted); margin:auto; font-size:0.85rem;">
+        Inicia la conversación saludando a <strong>${activeChatPartner}</strong>.
+      </div>
+    `;
+    return;
+  }
+
+  body.innerHTML = messages.map(m => {
+    const isMine = m.sender.toLowerCase() === currentUser.toLowerCase();
+    const time = formatChatTime(m.timestamp);
+
+    return `
+      <div class="chat-bubble-row ${isMine ? 'mine' : 'theirs'}" id="msg-${m.id}">
+        <div class="chat-bubble">
+          ${escapeHtml(m.text)}
+        </div>
+        <div class="chat-bubble-meta">
+          <span>${time}</span>
+          ${isMine ? `<button class="chat-del-btn" onclick="deleteMessage('${m.id}')" title="Eliminar mensaje">&times;</button>` : ''}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  body.scrollTop = body.scrollHeight;
+}
+
+// Enviar mensaje
+const chatForm = document.getElementById("chat-send-form");
+if (chatForm) {
+  chatForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser || !activeChatPartner) return;
+
+    const input = document.getElementById("chat-text-input");
+    const text = (input.value || "").trim();
+    if (!text) return;
+
+    input.value = "";
+    input.focus();
+
+    try {
+      const res = await fetch("/api/social/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sender: currentUser, recipient: activeChatPartner, text })
+      });
+      const data = await res.json();
+      if (data.ok && data.message) {
+        appendChatMessage(data.message);
+        loadConversations();
+      } else {
+        showToast(data.error || "No se pudo enviar el mensaje");
+      }
+    } catch (e) {
+      showToast("Error de conexión al enviar mensaje");
+    }
+  });
+}
+
+function appendChatMessage(message) {
+  const body = document.getElementById("chat-messages-container");
+  if (!body) return;
+
+  const isMine = message.sender.toLowerCase() === currentUser.toLowerCase();
+  const time = formatChatTime(message.timestamp);
+
+  const row = document.createElement("div");
+  row.className = `chat-bubble-row ${isMine ? 'mine' : 'theirs'}`;
+  row.id = `msg-${message.id}`;
+  row.innerHTML = `
+    <div class="chat-bubble">
+      ${escapeHtml(message.text)}
+    </div>
+    <div class="chat-bubble-meta">
+      <span>${time}</span>
+      ${isMine ? `<button class="chat-del-btn" onclick="deleteMessage('${message.id}')" title="Eliminar mensaje">&times;</button>` : ''}
+    </div>
+  `;
+  body.appendChild(row);
+  body.scrollTop = body.scrollHeight;
+}
+
+// Borrar chat completo ("borrar chat" estilo Messenger)
+const btnClearChat = document.getElementById("btn-clear-active-chat");
+if (btnClearChat) {
+  btnClearChat.onclick = async () => {
+    if (!currentUser || !activeChatPartner) return;
+    if (!confirm(`¿Estás seguro de que deseas borrar toda la conversación con ${activeChatPartner}? Se eliminarán todos los mensajes.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/social/chat", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: currentUser, partner: activeChatPartner })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showToast("Conversación borrada con éxito.");
+        const body = document.getElementById("chat-messages-container");
+        if (body) body.innerHTML = `<div style="text-align:center; color:var(--text-muted); margin:auto; font-size:0.85rem;">Conversación eliminada.</div>`;
+        loadConversations();
+      } else {
+        showToast(data.error || "Error al borrar chat");
+      }
+    } catch (e) {
+      showToast("Error de conexión");
+    }
+  };
+}
+
+window.deleteMessage = async (messageId) => {
+  if (!currentUser || !activeChatPartner) return;
+  try {
+    const res = await fetch(`/api/social/message/${messageId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: currentUser, partner: activeChatPartner })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const el = document.getElementById(`msg-${messageId}`);
+      if (el) el.remove();
+      loadConversations();
+    }
+  } catch (e) {}
+};
+
+// Ver perfil del jugador con el que se chatea
+const btnViewChatProfile = document.getElementById("btn-view-chat-profile");
+if (btnViewChatProfile) {
+  btnViewChatProfile.onclick = () => {
+    if (!activeChatPartner) return;
+    viewOtherPlayerProfile(activeChatPartner);
+  };
+}
+
+window.viewOtherPlayerProfile = async (targetUsername) => {
+  try {
+    const res = await fetch(`/api/players/profile/${encodeURIComponent(targetUsername)}`);
+    const data = await res.json();
+    if (data.ok && data.user) {
+      const u = data.user;
+      document.getElementById("profile-gamertag").textContent = u.displayName || u.username;
+      document.getElementById("profile-avatar-img").src = u.avatarUrl || `https://mc-heads.net/avatar/${encodeURIComponent(u.username)}/100`;
+      document.getElementById("profile-wallet-val").textContent = `${(u.wallet || 0).toLocaleString()} NC`;
+      document.getElementById("profile-bank-val").textContent = `${(u.bank || 0).toLocaleString()} NC`;
+
+      const stats = u.stats || {};
+      document.getElementById("profile-stat-pvp").textContent = (stats.killsPvp || 0).toLocaleString();
+      document.getElementById("profile-stat-mobs").textContent = (stats.killsTotalMobs || 0).toLocaleString();
+      document.getElementById("profile-stat-diamond").textContent = (stats.minedDiamond || 0).toLocaleString();
+      document.getElementById("profile-stat-mined").textContent = (stats.minedTotal || 0).toLocaleString();
+
+      openModal("modal-profile");
+    }
+  } catch (e) {
+    showToast("No se pudo cargar el perfil");
   }
 };
 
@@ -888,6 +1547,54 @@ function initWS() {
         if (pTitle) pTitle.textContent = `Título: [${stats.activeTitle || "Novato"}]`;
         const pCount = document.getElementById("profile-titles-count");
         if (pCount) pCount.textContent = `${stats.unlockedCount || 0} / 34 Títulos`;
+      }
+      else if (eventType === "CHAT_MESSAGE" && currentUser) {
+        const m = msg.message;
+        if (m) {
+          const isForMe = m.recipient?.toLowerCase() === currentUser.toLowerCase();
+          const isFromMe = m.sender?.toLowerCase() === currentUser.toLowerCase();
+          if (isForMe || isFromMe) {
+            if (activeChatPartner && (activeChatPartner.toLowerCase() === m.sender?.toLowerCase() || activeChatPartner.toLowerCase() === m.recipient?.toLowerCase())) {
+              appendChatMessage(m);
+            } else if (isForMe) {
+              showToast(`Nuevo mensaje de ${m.sender}`);
+            }
+            loadConversations();
+          }
+        }
+      }
+      else if (eventType === "CHAT_CLEARED") {
+        if (activeConversationId === msg.conversationId) {
+          const body = document.getElementById("chat-messages-container");
+          if (body) body.innerHTML = `<div style="text-align:center; color:var(--text-muted); margin:auto; font-size:0.85rem;">Conversación eliminada.</div>`;
+        }
+        loadConversations();
+      }
+      else if (eventType === "CHAT_MESSAGE_DELETED") {
+        const el = document.getElementById(`msg-${msg.messageId}`);
+        if (el) el.remove();
+        loadConversations();
+      }
+      else if (eventType === "FRIEND_REQUEST" && currentUser) {
+        if (msg.target?.toLowerCase() === currentUser.toLowerCase()) {
+          showToast(`¡${msg.sender} te envió una solicitud de amistad!`);
+          loadFriendRequests();
+          loadPlayers();
+        }
+      }
+      else if (eventType === "FRIEND_ACCEPTED" && currentUser) {
+        const u1 = (msg.user1 || "").toLowerCase();
+        const u2 = (msg.user2 || "").toLowerCase();
+        const cLow = currentUser.toLowerCase();
+        if (u1 === cLow || u2 === cLow) {
+          const other = u1 === cLow ? msg.user2 : msg.user1;
+          showToast(`¡Ahora eres amigo de ${other}!`);
+          loadPlayers();
+          loadFriendRequests();
+        }
+      }
+      else if (eventType === "P2P_NEW_LISTING" || eventType === "P2P_BOUGHT" || eventType === "P2P_DELETED") {
+        loadMarket();
       }
       else if (eventType === "BALANCE_UPDATE" && currentUser && msg.data?.username?.toLowerCase() === currentUser.toLowerCase()) {
         loadBalance();

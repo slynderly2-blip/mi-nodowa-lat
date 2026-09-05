@@ -8,6 +8,7 @@ import marketRoutes from "./market.routes.js";
 import deliveriesRoutes from "./deliveries.routes.js";
 import playersRoutes from "./players.routes.js";
 import adminRoutes from "./admin.routes.js";
+import socialRoutes from "./social.routes.js";
 
 const router = Router();
 
@@ -21,6 +22,7 @@ router.use("/market", marketRoutes);
 router.use("/deliveries", deliveriesRoutes);
 router.use("/players", playersRoutes);
 router.use("/admin", adminRoutes);
+router.use("/social", socialRoutes);
 
 // Configuración pública (moneda, binance)
 router.get("/config", (req, res) => {

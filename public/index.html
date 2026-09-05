@@ -29,6 +29,11 @@
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
           <span>Mercado</span>
         </button>
+        <button class="nav-tab-btn tab-btn" data-tab="social">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Comunidad</span>
+          <span id="badge-social" class="badge danger" style="display:none; font-size:0.7rem; padding:1px 6px;">0</span>
+        </button>
         <button class="nav-tab-btn tab-btn" data-tab="wallet">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
           <span>Billetera</span>
@@ -62,6 +67,11 @@
     <button class="mobile-tab-btn tab-btn" data-tab="market">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
       <span>Mercado</span>
+    </button>
+    <button class="mobile-tab-btn tab-btn" data-tab="social" style="position:relative;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Chat</span>
+      <span id="badge-social-mobile" class="badge danger" style="display:none; position:absolute; top:4px; right:12px; font-size:0.65rem; padding:1px 5px;">0</span>
     </button>
     <button class="mobile-tab-btn tab-btn" data-tab="wallet">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
@@ -127,8 +137,145 @@
           <span>Publicar Oferta</span>
         </button>
       </div>
+
+      <!-- Buscador y Filtros P2P -->
+      <div class="search-box" style="margin-bottom: 1.25rem;">
+        <span class="search-icon-svg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </span>
+        <input type="text" id="market-search" class="search-input" placeholder="Buscar por ítem, vendedor o descripción..." autocomplete="off">
+        <button id="market-clear-btn" class="search-clear-btn" onclick="clearMarketSearch()" title="Limpiar">&times;</button>
+      </div>
+
+      <div class="search-tags" style="margin-bottom: 1.5rem;">
+        <button class="search-tag-pill active" id="btn-market-filter-all" onclick="setMarketFilter('all')">Todas las Ofertas</button>
+        <button class="search-tag-pill" id="btn-market-filter-mine" onclick="setMarketFilter('mine')">Mis Publicaciones</button>
+      </div>
+
       <div class="card-grid" id="market-grid">
         <!-- Renderizado dinámico -->
+      </div>
+    </section>
+
+    <!-- 3. Comunidad & Messenger -->
+    <section class="tab-view" id="view-social">
+      <div class="section-header" style="margin-bottom: 1.25rem;">
+        <div>
+          <h1 class="section-title">Comunidad & Jugadores</h1>
+          <p class="section-subtitle">Conecta con jugadores de Nodowa, gestiona amistades y chatea en tiempo real.</p>
+        </div>
+        <div class="subtabs-nav">
+          <button class="subtab-btn active" id="subtab-players-btn" onclick="switchSocialSubTab('players')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Jugadores</span>
+          </button>
+          <button class="subtab-btn" id="subtab-chat-btn" onclick="switchSocialSubTab('chat')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>Messenger</span>
+            <span id="subtab-chat-badge" class="badge danger" style="display:none; font-size:0.65rem; padding:1px 5px;">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sub-pestaña 1: Directorio de Jugadores & Amistades -->
+      <div class="social-panel active" id="social-panel-players">
+        <!-- Buscador de Jugadores -->
+        <div class="search-box" style="margin-bottom: 1.25rem;">
+          <span class="search-icon-svg">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </span>
+          <input type="text" id="players-search-input" class="search-input" placeholder="Buscar jugador por Gamertag..." autocomplete="off">
+          <button id="players-clear-btn" class="search-clear-btn" onclick="clearPlayersSearch()" title="Limpiar">&times;</button>
+        </div>
+
+        <div class="search-tags" style="margin-bottom: 1.5rem;">
+          <button class="search-tag-pill active" id="filter-players-all" onclick="setPlayersFilter('all')">Todos los Jugadores</button>
+          <button class="search-tag-pill" id="filter-players-linked" onclick="setPlayersFilter('linked')">Vinculados</button>
+          <button class="search-tag-pill" id="filter-players-friends" onclick="setPlayersFilter('friends')">Mis Amigos</button>
+        </div>
+
+        <!-- Solicitudes Recibidas (se muestra si hay) -->
+        <div id="incoming-requests-box" style="display:none; margin-bottom: 1.75rem;">
+          <h3 style="font-size:0.95rem; font-weight:800; color:var(--text); margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            <span>Solicitudes de Amistad Recibidas</span>
+          </h3>
+          <div class="card-grid" id="incoming-requests-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"></div>
+        </div>
+
+        <div class="card-grid" id="players-grid">
+          <!-- Renderizado dinámico de jugadores -->
+        </div>
+      </div>
+
+      <!-- Sub-pestaña 2: Messenger Chat -->
+      <div class="social-panel" id="social-panel-chat">
+        <div class="messenger-container">
+          <!-- Lista de conversaciones (Sidebar) -->
+          <div class="messenger-sidebar" id="messenger-sidebar">
+            <div class="messenger-sidebar-header">
+              <span class="messenger-title">Conversaciones</span>
+              <button class="btn btn-secondary btn-sm" onclick="switchSocialSubTab('players')" title="Nuevo chat">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Buscar</span>
+              </button>
+            </div>
+            <div class="conversations-list" id="conversations-list">
+              <div class="messenger-empty-threads">Cargando chats...</div>
+            </div>
+          </div>
+
+          <!-- Área de Chat Activo -->
+          <div class="messenger-chat-area" id="messenger-chat-area">
+            <!-- Estado vacío sin conversación abierta -->
+            <div class="messenger-empty-state" id="chat-empty-state">
+              <div class="messenger-empty-icon">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <h3 style="font-size:1.15rem; font-weight:800; color:var(--text); margin-bottom:0.4rem;">Tus Mensajes en Nodowa</h3>
+              <p style="font-size:0.88rem; color:var(--text-muted); max-width:340px; line-height:1.5;">Selecciona un chat o busca un jugador para coordinar partidas, negociar ítems o hablar en tiempo real.</p>
+            </div>
+
+            <!-- Caja de chat activa -->
+            <div class="messenger-active-chat" id="chat-active-box" style="display:none;">
+              <div class="messenger-chat-header">
+                <div class="messenger-header-user">
+                  <button class="chat-back-btn" id="chat-mobile-back" onclick="closeChatMobile()" title="Volver">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
+                  <img id="chat-active-avatar" class="chat-header-avatar" src="https://mc-heads.net/avatar/Steve/40" alt="Avatar">
+                  <div>
+                    <div class="chat-header-name" id="chat-active-name">Steve</div>
+                    <div class="chat-header-status" id="chat-active-status">Jugador de Nodowa</div>
+                  </div>
+                </div>
+                <div class="messenger-header-actions">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-view-chat-profile" title="Ver Perfil">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span>Perfil</span>
+                  </button>
+                  <button type="button" class="btn btn-danger-soft btn-sm" id="btn-clear-active-chat" title="Borrar conversación completa">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    <span>Borrar Chat</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Historial de mensajes -->
+              <div class="messenger-messages-body" id="chat-messages-container">
+                <!-- Burbujas renderizadas dinámicamente -->
+              </div>
+
+              <!-- Input y envío -->
+              <form class="messenger-input-form" id="chat-send-form">
+                <input type="text" id="chat-text-input" class="messenger-input" placeholder="Escribe un mensaje..." autocomplete="off" maxlength="1000" required>
+                <button type="submit" class="messenger-send-btn" id="btn-submit-message" title="Enviar mensaje">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -476,6 +623,16 @@
         <div class="form-group">
           <label class="form-label">Título del Artículo o Lote</label>
           <input type="text" id="p2p-title" class="input" placeholder="Ej: 64 Bloques de Diamante" required>
+        </div>
+        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:0.75rem;">
+          <div class="form-group">
+            <label class="form-label">Identificador Minecraft</label>
+            <input type="text" id="p2p-item-type" class="input" placeholder="diamond_block, elytra, etc." required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cantidad</label>
+            <input type="number" id="p2p-quantity" class="input" min="1" value="1" placeholder="1" required>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Precio en Nodocoins (NC)</label>
