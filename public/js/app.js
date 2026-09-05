@@ -8,7 +8,16 @@ let storeCatalog = [];
 let storeConfig = null;
 let ws = null;
 let pendingAuthUsername = null;
-let authCountdownInterval = null;
+// ── Helper de escape HTML ──────────────────────────────────────
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 // ── Inicialización ──────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
