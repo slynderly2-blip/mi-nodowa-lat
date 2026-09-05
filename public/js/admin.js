@@ -756,16 +756,45 @@ const OFFICIAL_PRESET_CATALOG = [
 function openBulkImportModal() {
   const modal = document.getElementById("modal-bulk-import");
   if (modal) {
-    modal.style.display = "flex";
     modal.classList.add("active");
+    renderAdminIcons(modal);
+    updateBulkItemsStats();
   }
 }
 
 function closeBulkImportModal() {
   const modal = document.getElementById("modal-bulk-import");
   if (modal) {
-    modal.style.display = "none";
     modal.classList.remove("active");
+  }
+}
+
+async function openExportCatalogModal() {
+  openBulkImportModal();
+  const title = document.getElementById("bulk-modal-title");
+  if (title) title.innerText = "Catálogo Actual en Formato JSON";
+  await loadCurrentExistingCatalog();
+  const modeSelect = document.getElementById("bulk-import-mode");
+  if (modeSelect) modeSelect.value = "append";
+}
+
+async function loadCurrentExistingCatalog() {
+  try {
+    let items = cachedCatalog;
+    if (!items || items.length === 0) {
+      const res = await fetch("/api/store/items");
+      const data = await res.json();
+      if (data.ok) items = data.items || [];
+      cachedCatalog = items;
+    }
+    const textarea = document.getElementById("bulk-items-json");
+    if (textarea) {
+      textarea.value = JSON.stringify(items || [], null, 2);
+      updateBulkItemsStats();
+      showAdminToast(`¡Cargados ${(items || []).length} productos existentes en el editor!`, "success");
+    }
+  } catch (err) {
+    showAdminToast("Error al cargar productos actuales", "error");
   }
 }
 
@@ -773,11 +802,99 @@ function loadOfficialPresetCatalog() {
   const textarea = document.getElementById("bulk-items-json");
   if (textarea) {
     textarea.value = JSON.stringify(OFFICIAL_PRESET_CATALOG, null, 2);
-    showAdminToast("¡Catálogo Oficial Equilibrado cargado en el editor!", "info");
+    updateBulkItemsStats();
+    showAdminToast("¡Catálogo Oficial Equilibrado (57 productos) cargado en el editor!", "info");
+  }
+}
+
+function copyBulkJsonToClipboard() {
+  const textarea = document.getElementById("bulk-items-json");
+  const val = textarea ? textarea.value.trim() : "";
+  if (!val) {
+    return showAdminToast("No hay JSON en el editor para copiar", "error");
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(val).then(() => {
+      showAdminToast("¡JSON copiado al portapapeles!", "success");
+    }).catch(() => {
+      fallbackCopy(val);
+    });
+  } else {
+    fallbackCopy(val);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  showAdminToast("¡JSON copiado al portapapeles!", "success");
+}
+
+function downloadCatalogJsonFile() {
+  const textarea = document.getElementById("bulk-items-json");
+  let content = textarea ? textarea.value.trim() : "";
+  if (!content) {
+    content = JSON.stringify(cachedCatalog || [], null, 2);
+  }
+  const blob = new Blob([content], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.download = `catalogo_nodowa_${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showAdminToast("¡Archivo catalogo_nodowa.json descargado!", "success");
+}
+
+function clearBulkEditor() {
+  const textarea = document.getElementById("bulk-items-json");
+  if (textarea) {
+    textarea.value = "";
+    updateBulkItemsStats();
+    showAdminToast("Editor limpiado", "info");
+  }
+}
+
+function updateBulkItemsStats() {
+  const statsSpan = document.getElementById("bulk-items-stats");
+  const textarea = document.getElementById("bulk-items-json");
+  if (!statsSpan || !textarea) return;
+  const val = textarea.value.trim();
+  if (!val) {
+    statsSpan.textContent = "Editor vacío";
+    statsSpan.style.color = "var(--text-muted)";
+    return;
+  }
+  try {
+    const parsed = JSON.parse(val);
+    if (Array.isArray(parsed)) {
+      statsSpan.textContent = `✓ ${parsed.length} productos detectados (JSON Válido)`;
+      statsSpan.style.color = "var(--accent-emerald)";
+    } else {
+      statsSpan.textContent = "⚠ Debe ser un Array [...]";
+      statsSpan.style.color = "var(--accent-amber)";
+    }
+  } catch (e) {
+    statsSpan.textContent = "⚠ Sintaxis JSON incompleta o errónea";
+    statsSpan.style.color = "var(--accent-rose)";
   }
 }
 
 function setupBulkImportForm() {
+  // Cerrar modal al hacer click en el backdrop
+  document.getElementById("modal-bulk-import")?.addEventListener("click", (e) => {
+    if (e.target.id === "modal-bulk-import") {
+      closeBulkImportModal();
+    }
+  });
+
   document.getElementById("form-bulk-import")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const rawJson = document.getElementById("bulk-items-json").value.trim();

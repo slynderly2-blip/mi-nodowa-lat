@@ -1,4 +1,4 @@
-import { Client } from "ssh2";
+﻿import { Client } from "ssh2";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -13,8 +13,17 @@ const SFTP_CONFIG = {
   readyTimeout: 20000,
 };
 
-const LOCAL_ADDON_DIR = path.join(__dirname, "addon", "nodowa_economy_addon");
-const REMOTE_DEST = "/development_behavior_packs/nodowa_economy_addon";
+const ADDONS = [
+  {
+    localDir:   path.join(__dirname, "addon", "nodowa_economy_addon"),
+    remoteDest: "/development_behavior_packs/nodowa_economy_addon"
+  },
+  {
+    localDir:   path.join(__dirname, "addon", "nodowa_worldedit_addon"),
+    remoteDest: "/development_behavior_packs/nodowa_worldedit_addon"
+  }
+];
+
 const WORLD_BP = "/worlds/level/world_behavior_packs.json";
 
 function connectSFTP() {
@@ -50,7 +59,7 @@ async function sftp_uploadDir(sftp, localDir, remoteDir) {
     if (entry.isDirectory()) {
       await sftp_uploadDir(sftp, lp, rp);
     } else {
-      console.log(`Subiendo archivo: ${entry.name} -> ${rp}`);
+      console.log(`Subiendo: ${entry.name} -> ${rp}`);
       await sftp_uploadFile(sftp, lp, rp);
     }
   }
@@ -76,21 +85,17 @@ function sftp_writeFile(sftp, remotePath, content) {
 }
 
 async function main() {
-  console.log("Conectando a SFTP para subir el addon nodowa_economy_addon...");
+  console.log("Conectando a SFTP...");
   const { conn, sftp } = await connectSFTP();
 
   try {
-    // 1. Subir carpeta del addon
-    await sftp_uploadDir(sftp, LOCAL_ADDON_DIR, REMOTE_DEST);
-    console.log("✓ Archivos del addon subidos exitosamente a " + REMOTE_DEST);
+    for (const addon of ADDONS) {
+      console.log(`\n--- Subiendo: ${path.basename(addon.localDir)} ---`);
+      await sftp_uploadDir(sftp, addon.localDir, addon.remoteDest);
+      console.log(`exito ${path.basename(addon.localDir)} subido a ${addon.remoteDest}`);
+    }
 
-    // 2. Leer manifest para extraer uuid y version
-    const manifest = JSON.parse(fs.readFileSync(path.join(LOCAL_ADDON_DIR, "manifest.json"), "utf8"));
-    const uuid = manifest.header.uuid;
-    const version = manifest.header.version || [1, 0, 0];
-
-    // 3. Registrar en world_behavior_packs.json
-    console.log("Registrando en world_behavior_packs.json...");
+    console.log("\nActualizando world_behavior_packs.json...");
     let worldPacks = [];
     try {
       const buf = await sftp_readFile(sftp, WORLD_BP);
@@ -99,25 +104,32 @@ async function main() {
       worldPacks = [];
     }
 
-    const idx = worldPacks.findIndex(p => p.pack_id === uuid);
-    if (idx >= 0) {
-      worldPacks[idx].version = version;
-      console.log("Versión actualizada en world_behavior_packs.json");
-    } else {
-      worldPacks.push({ pack_id: uuid, version });
-      console.log("Pack añadido a world_behavior_packs.json");
+    for (const addon of ADDONS) {
+      const manifest = JSON.parse(fs.readFileSync(path.join(addon.localDir, "manifest.json"), "utf8"));
+      const uuid    = manifest.header.uuid;
+      const version = manifest.header.version || [1, 0, 0];
+      const name    = manifest.header.name;
+
+      const idx = worldPacks.findIndex(p => p.pack_id === uuid);
+      if (idx >= 0) {
+        worldPacks[idx].version = version;
+        console.log(`  Version actualizada: ${name}`);
+      } else {
+        worldPacks.push({ pack_id: uuid, version });
+        console.log(`  Pack anadido: ${name}`);
+      }
     }
 
     await sftp_writeFile(sftp, WORLD_BP, JSON.stringify(worldPacks, null, 2));
-    console.log("✓ world_behavior_packs.json guardado y activado en el mundo.");
+    console.log("exito world_behavior_packs.json guardado.");
 
   } finally {
     conn.end();
-    console.log("Conexión SFTP finalizada.");
+    console.log("\nConexion SFTP finalizada.");
   }
 }
 
 main().catch(err => {
-  console.error("Error al subir addon:", err);
+  console.error("Error al subir addons:", err);
   process.exit(1);
 });
