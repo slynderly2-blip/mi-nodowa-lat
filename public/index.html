@@ -3,24 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nodowa Network - Tienda & Economía</title>
+  <title>Nodowa Network - Tienda Oficial & Economía</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
-  <!-- Header -->
+  <!-- Header TikTok Style -->
   <header class="header">
     <div class="header-inner">
       <a href="/" class="brand">
-        <span>⚡ Nodowa</span>
-        <span class="brand-badge">MC Bedrock</span>
+        <span class="brand-logo-glow">⚡</span>
+        <span>Nodowa</span>
+        <span class="brand-badge">Bedrock</span>
       </a>
 
       <nav class="nav-tabs">
-        <button class="tab-btn active" data-tab="store">🛍️ Tienda</button>
+        <button class="tab-btn active" data-tab="store">🪙 Monedas</button>
         <button class="tab-btn" data-tab="market">🔄 Mercado P2P</button>
         <button class="tab-btn" data-tab="wallet">💳 Billetera</button>
-        <button class="tab-btn" data-tab="deliveries">📦 Buzón <span id="badge-deliveries" class="badge danger" style="display:none; font-size:0.7rem; padding:1px 5px;">0</span></button>
+        <button class="tab-btn" data-tab="deliveries">📦 Buzón <span id="badge-deliveries" class="badge danger" style="display:none; font-size:0.7rem; padding:1px 6px;">0</span></button>
         <button class="tab-btn" data-tab="leaderboard">🏆 Top Ricos</button>
       </nav>
 
@@ -33,53 +34,82 @@
   <!-- Main Container -->
   <main class="main-container">
 
-    <!-- 1. Tienda Oficial -->
+    <!-- 1. Tienda / Monedas (Estilo TikTok: Monedas por defecto, productos por buscador) -->
     <section class="tab-view active" id="view-store">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:1rem;">
-        <div>
-          <h1 style="font-size:1.5rem; font-weight:700;">🛍️ Tienda Oficial de Nodowa</h1>
-          <p style="color:var(--text-muted); font-size:0.9rem;">Rangos, llaves, kits y paquetes de monedas sincronizados con Minecraft.</p>
+      
+      <!-- TikTok Search Hero -->
+      <div class="tiktok-search-hero">
+        <h1 class="hero-title">Explora la Tienda de Nodowa</h1>
+        <p class="hero-subtitle">Recarga monedas oficiales o escribe en el buscador para encontrar rangos, llaves y kits.</p>
+        
+        <div class="search-wrapper">
+          <span class="search-icon-left">🔍</span>
+          <input type="text" id="store-search" class="search-input" placeholder="Buscar producto, rango, llave, kit..." autocomplete="off">
+          <button id="search-clear-btn" class="search-clear-btn" onclick="clearSearch()" title="Limpiar búsqueda">&times;</button>
         </div>
-        <input type="text" id="store-search" class="input" placeholder="🔍 Buscar artículo..." style="max-width:260px;">
+
+        <div class="search-tags">
+          <span style="font-size:0.8rem; color:var(--text-subtle); align-self:center;">Sugerencias:</span>
+          <button class="search-tag-pill" onclick="setSearchTag('vip')">👑 Rango VIP</button>
+          <button class="search-tag-pill" onclick="setSearchTag('mvp')">🌟 Rango MVP+</button>
+          <button class="search-tag-pill" onclick="setSearchTag('llave')">🗝️ Llaves</button>
+          <button class="search-tag-pill" onclick="setSearchTag('kit')">⚔️ Kits</button>
+        </div>
       </div>
+
+      <!-- Feed Header -->
+      <div class="section-header">
+        <div>
+          <h2 class="section-title" id="store-title">🪙 Paquetes de Nodocoins</h2>
+          <p class="section-subtitle" id="store-subtitle">Acreditación instantánea en tu cuenta de Minecraft Bedrock.</p>
+        </div>
+      </div>
+
+      <!-- Feed Grid -->
       <div class="card-grid" id="store-grid">
-        <!-- Generado dinámicamente -->
+        <!-- Renderizado dinámicamente con JavaScript -->
       </div>
     </section>
 
     <!-- 2. Mercado P2P -->
     <section class="tab-view" id="view-market">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:1rem;">
+      <div class="section-header">
         <div>
-          <h1 style="font-size:1.5rem; font-weight:700;">🔄 Mercado P2P de Jugadores</h1>
-          <p style="color:var(--text-muted); font-size:0.9rem;">Comercia ítems y monedas con otros jugadores en tiempo real.</p>
+          <h1 class="section-title">🔄 Mercado P2P de Jugadores</h1>
+          <p class="section-subtitle">Compra y vende ítems o monedas de forma segura y directa con otros jugadores.</p>
         </div>
-        <button class="btn btn-primary btn-sm" id="btn-create-p2p">+ Publicar Oferta</button>
+        <button class="btn btn-tiktok btn-sm" id="btn-create-p2p">+ Publicar Oferta</button>
       </div>
       <div class="card-grid" id="market-grid">
-        <!-- Generado dinámicamente -->
+        <!-- Renderizado dinámico -->
       </div>
     </section>
 
     <!-- 3. Billetera -->
     <section class="tab-view" id="view-wallet">
-      <div style="max-width:700px; margin:0 auto;">
-        <h1 style="font-size:1.5rem; font-weight:700; margin-bottom:1rem;">💳 Mi Billetera & Banco</h1>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
-          <div class="card">
-            <span style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">Saldo en Billetera</span>
-            <div style="font-size:1.75rem; font-weight:800; color:var(--primary); margin:0.5rem 0;" id="wallet-balance">0 NC</div>
-            <span style="font-size:0.8rem; color:var(--text-muted);">Disponible para compras y envíos directos</span>
-          </div>
-          <div class="card">
-            <span style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">Saldo en Banco</span>
-            <div style="font-size:1.75rem; font-weight:800; color:var(--emerald); margin:0.5rem 0;" id="bank-balance">0 NC</div>
-            <span style="font-size:0.8rem; color:var(--text-muted);">A salvo contra muertes en el juego</span>
+      <div style="max-width:680px; margin:0 auto;">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">💳 Mi Billetera & Banco</h1>
+            <p class="section-subtitle">Gestiona tu fortuna y realiza transferencias a otros jugadores.</p>
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:1.5rem;">
-          <h2 style="font-size:1.1rem; font-weight:600; margin-bottom:1rem;">💸 Transferir Nodocoins a otro jugador</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.75rem;">
+          <div class="card" style="text-align:center;">
+            <span style="font-size:0.82rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Saldo en Billetera</span>
+            <div style="font-size:2rem; font-weight:800; color:var(--tiktok-black); margin:0.4rem 0;" id="wallet-balance">0 NC</div>
+            <span style="font-size:0.78rem; color:var(--text-subtle);">Disponible para compras y mercado</span>
+          </div>
+          <div class="card" style="text-align:center;">
+            <span style="font-size:0.82rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Saldo en Banco</span>
+            <div style="font-size:2rem; font-weight:800; color:var(--emerald); margin:0.4rem 0;" id="bank-balance">0 NC</div>
+            <span style="font-size:0.78rem; color:var(--text-subtle);">A salvo contra muertes en el juego</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 style="font-size:1.15rem; font-weight:800; margin-bottom:1.25rem; color:var(--tiktok-black);">💸 Enviar Nodocoins a otro jugador</h2>
           <form id="transfer-form">
             <div class="form-group">
               <label class="form-label">Gamertag del Destinatario</label>
@@ -91,9 +121,9 @@
             </div>
             <div class="form-group">
               <label class="form-label">Nota o Concepto (opcional)</label>
-              <input type="text" id="transfer-note" class="input" placeholder="Pago de armadura o regalo">
+              <input type="text" id="transfer-note" class="input" placeholder="Ej: Pago de armadura o regalo">
             </div>
-            <button type="submit" class="btn btn-primary btn-block">🚀 Enviar Transferencia</button>
+            <button type="submit" class="btn btn-tiktok btn-block">🚀 Realizar Transferencia</button>
           </form>
         </div>
       </div>
@@ -101,12 +131,12 @@
 
     <!-- 4. Buzón / Entregas -->
     <section class="tab-view" id="view-deliveries">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
+      <div class="section-header">
         <div>
-          <h1 style="font-size:1.5rem; font-weight:700;">📦 Buzón de Entregas</h1>
-          <p style="color:var(--text-muted); font-size:0.9rem;">Historial de productos y comandos despachados a tu cuenta en Minecraft Bedrock.</p>
+          <h1 class="section-title">📦 Buzón de Entregas</h1>
+          <p class="section-subtitle">Historial de productos y comandos despachados a tu Gamertag en Minecraft Bedrock.</p>
         </div>
-        <button class="btn btn-secondary btn-sm" id="btn-refresh-deliveries">🔄 Actualizar</button>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh-deliveries">🔄 Actualizar Buzón</button>
       </div>
 
       <div class="table-wrap">
@@ -116,7 +146,7 @@
               <th>Artículo</th>
               <th>Fecha</th>
               <th>Estado</th>
-              <th>Acción / Reclamo</th>
+              <th>Acción / Soporte</th>
             </tr>
           </thead>
           <tbody id="deliveries-tbody">
@@ -128,8 +158,12 @@
 
     <!-- 5. Top Ricos -->
     <section class="tab-view" id="view-leaderboard">
-      <h1 style="font-size:1.5rem; font-weight:700; margin-bottom:0.5rem;">🏆 Top Jugadores Más Ricos</h1>
-      <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.25rem;">Clasificación general por fortuna total (Billetera + Banco).</p>
+      <div class="section-header">
+        <div>
+          <h1 class="section-title">🏆 Clasificación de Jugadores Más Ricos</h1>
+          <p class="section-subtitle">Top general por fortuna total (Billetera + Banco).</p>
+        </div>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -162,43 +196,44 @@
           <label class="form-label">Tu Gamertag de Minecraft Bedrock</label>
           <input type="text" id="login-username" class="input" placeholder="Ej: Steve" required autofocus>
         </div>
-        <button type="submit" class="btn btn-primary btn-block">Ingresar</button>
+        <button type="submit" class="btn btn-tiktok btn-block">Ingresar a Nodowa</button>
       </form>
     </div>
   </div>
 
-  <!-- Modal: Comprar Artículo (Monedas o Binance USDT) -->
+  <!-- Modal: Comprar Artículo -->
   <div class="modal-backdrop" id="modal-checkout">
-    <div class="modal-box" style="max-width:520px;">
+    <div class="modal-box" style="max-width:500px;">
       <div class="modal-header">
         <h3 class="modal-title" id="checkout-item-title">Comprar Artículo</h3>
         <button class="btn-close" onclick="closeModal('modal-checkout')">&times;</button>
       </div>
       <div id="checkout-body">
-        <p id="checkout-item-desc" style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1rem;"></p>
+        <p id="checkout-item-desc" style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1.25rem;"></p>
+        
         <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem;">
-          <button class="btn btn-primary btn-block" id="btn-pay-coins">Pagar con Monedas</button>
-          <button class="btn btn-secondary btn-block" id="btn-pay-binance">Pagar con USDT / Binance</button>
+          <button class="btn btn-tiktok btn-block" id="btn-pay-coins">Pagar con Monedas</button>
+          <button class="btn btn-secondary btn-block" id="btn-pay-binance">Pagar con USDT</button>
         </div>
 
         <!-- Sección Pago Binance -->
-        <div id="binance-pay-section" style="display:none; border-top:1px solid var(--border); padding-top:1rem;">
-          <div style="text-align:center; margin-bottom:1rem;">
-            <img id="binance-qr" src="/uploads/default_qr.svg" alt="QR Binance" style="width:140px; height:140px; border-radius:8px; border:1px solid var(--border);">
-            <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.4rem;">
-              <strong>Pay ID:</strong> <span id="binance-payid">847291039</span>
+        <div id="binance-pay-section" style="display:none; border-top:1px solid var(--border); padding-top:1.25rem;">
+          <div style="text-align:center; margin-bottom:1.25rem;">
+            <img id="binance-qr" src="/uploads/default_qr.svg" alt="QR Binance" style="width:140px; height:140px; border-radius:12px; border:1px solid var(--border);">
+            <div style="font-size:0.9rem; color:var(--text); margin-top:0.5rem; font-weight:700;">
+              Binance Pay ID: <span id="binance-payid" style="color:var(--tiktok-red);">847291039</span>
             </div>
-            <div style="font-size:0.8rem; color:var(--text-muted); word-break:break-all;">
+            <div style="font-size:0.8rem; color:var(--text-muted); word-break:break-all; margin-top:2px;">
               <span id="binance-wallet">0x71C...b84F (USDT TRC20)</span>
             </div>
           </div>
           <form id="binance-order-form">
             <div class="form-group">
-              <label class="form-label">ID de Transacción (TXID) / Código</label>
+              <label class="form-label">ID de Transacción (TXID) / Comprobante</label>
               <input type="text" id="order-txid" class="input" placeholder="Ej: 9482710394..." required>
             </div>
             <div class="form-group">
-              <label class="form-label">Comprobante de Pago (Captura)</label>
+              <label class="form-label">Captura del Comprobante de Pago</label>
               <input type="file" id="order-receipt" class="input" accept="image/*" required>
             </div>
             <button type="submit" class="btn btn-success btn-block">📤 Enviar Comprobante</button>
@@ -212,7 +247,7 @@
   <div class="modal-backdrop" id="modal-p2p">
     <div class="modal-box">
       <div class="modal-header">
-        <h3 class="modal-title">🔄 Nueva Oferta en Mercado P2P</h3>
+        <h3 class="modal-title">🔄 Publicar Oferta en Mercado P2P</h3>
         <button class="btn-close" onclick="closeModal('modal-p2p')">&times;</button>
       </div>
       <form id="p2p-form">
@@ -225,10 +260,10 @@
           <input type="number" id="p2p-price" class="input" min="1" placeholder="Ej: 1500" required>
         </div>
         <div class="form-group">
-          <label class="form-label">Descripción o Punto de Encuentro</label>
-          <textarea id="p2p-desc" class="input" rows="2" placeholder="Entrega en spawn o cofre seguro"></textarea>
+          <label class="form-label">Descripción o Lugar de Entrega</label>
+          <textarea id="p2p-desc" class="input" rows="2" placeholder="Ej: Entrega en el Spawn de Minecraft"></textarea>
         </div>
-        <button type="submit" class="btn btn-primary btn-block">Publicar en el Mercado</button>
+        <button type="submit" class="btn btn-tiktok btn-block">Publicar Oferta</button>
       </form>
     </div>
   </div>

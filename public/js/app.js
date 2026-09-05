@@ -160,35 +160,99 @@ async function loadStore() {
 
 function renderStore() {
   const grid = document.getElementById("store-grid");
-  const query = (document.getElementById("store-search").value || "").toLowerCase();
-  const filtered = storeItems.filter(i => i.name.toLowerCase().includes(query) || (i.description || "").toLowerCase().includes(query));
+  const storeTitle = document.getElementById("store-title");
+  const storeSubtitle = document.getElementById("store-subtitle");
+  const clearBtn = document.getElementById("search-clear-btn");
+  const searchInput = document.getElementById("store-search");
+  
+  const query = (searchInput ? searchInput.value : "").trim().toLowerCase();
+  
+  if (clearBtn) {
+    clearBtn.style.display = query ? "flex" : "none";
+  }
 
-  if (filtered.length === 0) {
-    grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--text-muted);">No se encontraron artículos en la tienda.</div>`;
+  let itemsToDisplay = [];
+
+  if (!query) {
+    // POR DEFECTO: EN VEZ DE CATALOGO SOLO HABRA MONEDAS
+    itemsToDisplay = storeItems.filter(i => i.category === "coins" || (i.giveCoins && i.giveCoins > 0));
+    if (storeTitle) storeTitle.innerHTML = `🪙 Paquetes de Nodocoins`;
+    if (storeSubtitle) storeSubtitle.textContent = `Acreditación instantánea en tu cuenta. Escribe en el buscador para ver otros productos 🔍`;
+  } else {
+    // SI QUEREMOS UN PRODUCTO: BUSCAR EN TODO EL CATALOGO
+    itemsToDisplay = storeItems.filter(i => {
+      const matchName = (i.name || "").toLowerCase().includes(query);
+      const matchDesc = (i.description || "").toLowerCase().includes(query);
+      const matchCategory = (i.category || "").toLowerCase().includes(query);
+      const matchBadge = (i.badge || "").toLowerCase().includes(query);
+      return matchName || matchDesc || matchCategory || matchBadge;
+    });
+    if (storeTitle) storeTitle.innerHTML = `🔍 Resultados para: <span style="color:var(--tiktok-red)">"${query}"</span>`;
+    if (storeSubtitle) storeSubtitle.innerHTML = `Mostrando productos coincidentes. <button class="link-btn" onclick="clearSearch()">Ver solo monedas</button>`;
+  }
+
+  if (itemsToDisplay.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔎</div>
+        <h3>No encontramos productos para "${query}"</h3>
+        <p>Prueba buscando "vip", "mvp", "llave", "kit" o vuelve a la sección de monedas.</p>
+        <button class="btn btn-secondary btn-sm" onclick="clearSearch()">Ver Monedas</button>
+      </div>
+    `;
     return;
   }
 
-  grid.innerHTML = filtered.map(item => `
-    <div class="card">
-      <div>
-        <div class="card-header">
-          <span class="card-title">${item.name}</span>
-          ${item.badge ? `<span class="badge">${item.badge}</span>` : ""}
+  grid.innerHTML = itemsToDisplay.map(item => {
+    const isCoin = item.category === "coins" || (item.giveCoins && item.giveCoins > 0);
+    const iconEmoji = isCoin ? "🪙" : (item.category === "ranks" ? "👑" : (item.category === "crates" ? "🗝️" : "⚔️"));
+
+    return `
+      <div class="card tiktok-card ${isCoin ? 'coin-card' : ''}">
+        <div class="card-top">
+          <div class="card-icon-pill">${iconEmoji}</div>
+          ${item.badge ? `<span class="badge ${isCoin ? 'badge-coins' : 'badge-tiktok'}">${item.badge}</span>` : ""}
         </div>
-        <p class="card-desc">${item.description || "Artículo oficial para tu aventura en Nodowa Network."}</p>
-      </div>
-      <div>
-        <div class="card-prices">
-          ${item.priceCoins > 0 ? `<span class="price-coins">🪙 ${item.priceCoins.toLocaleString()} NC</span>` : ""}
-          ${item.priceUsdt > 0 ? `<span class="price-usdt">💵 $${item.priceUsdt.toFixed(2)} USDT</span>` : ""}
+        <div class="card-content">
+          <h3 class="card-title">${item.name}</h3>
+          <p class="card-desc">${item.description || "Artículo oficial para tu aventura en Nodowa Network."}</p>
         </div>
-        <button class="btn btn-primary btn-block" onclick="startCheckout('${item.id}')">Comprar Ahora</button>
+        <div class="card-footer">
+          <div class="card-prices">
+            ${item.priceCoins > 0 ? `<span class="price-coins">🪙 ${item.priceCoins.toLocaleString()} <small>NC</small></span>` : ""}
+            ${item.priceUsdt > 0 ? `<span class="price-usdt">💵 $${item.priceUsdt.toFixed(2)} <small>USDT</small></span>` : ""}
+          </div>
+          <button class="btn btn-tiktok btn-block" onclick="startCheckout('${item.id}')">
+            ${isCoin ? '⚡ Recargar Monedas' : '🛒 Comprar Producto'}
+          </button>
+        </div>
       </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 }
 
-document.getElementById("store-search").addEventListener("input", renderStore);
+window.clearSearch = () => {
+  const searchInput = document.getElementById("store-search");
+  if (searchInput) {
+    searchInput.value = "";
+    renderStore();
+    searchInput.focus();
+  }
+};
+
+window.setSearchTag = (tag) => {
+  const searchInput = document.getElementById("store-search");
+  if (searchInput) {
+    searchInput.value = tag;
+    renderStore();
+    searchInput.focus();
+  }
+};
+
+const storeSearchEl = document.getElementById("store-search");
+if (storeSearchEl) {
+  storeSearchEl.addEventListener("input", renderStore);
+}
 
 // Checkout Modal
 window.startCheckout = (itemId) => {
@@ -304,22 +368,29 @@ async function loadMarket() {
 function renderMarket(offers) {
   const grid = document.getElementById("market-grid");
   if (offers.length === 0) {
-    grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--text-muted);">No hay ofertas en el mercado P2P. ¡Sé el primero en publicar una!</div>`;
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔄</div>
+        <h3>No hay ofertas activas</h3>
+        <p>¡Sé el primero en publicar una oferta en el mercado P2P!</p>
+      </div>
+    `;
     return;
   }
 
   grid.innerHTML = offers.map(o => `
-    <div class="card">
-      <div>
-        <div class="card-header">
-          <span class="card-title">${o.title}</span>
-          <span class="badge">Vendedor: ${o.seller}</span>
-        </div>
+    <div class="card tiktok-card">
+      <div class="card-top">
+        <div class="card-icon-pill">📦</div>
+        <span class="badge badge-tiktok">Vendedor: ${o.seller}</span>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">${o.title}</h3>
         <p class="card-desc">${o.description || "Oferta de jugador en Nodowa Network."}</p>
       </div>
-      <div>
+      <div class="card-footer">
         <div class="card-prices">
-          <span class="price-coins">🪙 ${o.priceCoins.toLocaleString()} NC</span>
+          <span class="price-coins">🪙 ${o.priceCoins.toLocaleString()} <small>NC</small></span>
         </div>
         ${o.seller === currentUser
           ? `<button class="btn btn-secondary btn-block" disabled>Tu Oferta</button>`
