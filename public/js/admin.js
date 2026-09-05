@@ -1023,8 +1023,11 @@ async function loadAdminStaff() {
   }
 }
 
-function openAddStaffModal() {
-  console.log("[Staff Modal] Abriendo modal...");
+function openAddStaffModal(e) {
+  if (e && typeof e.preventDefault === "function") {
+    e.preventDefault();
+    e.stopPropagation();
+  }
   const modal = document.getElementById("modal-manage-staff");
   const title = document.getElementById("staff-modal-title");
   const inputGt = document.getElementById("staff-input-gamertag");
@@ -1033,9 +1036,7 @@ function openAddStaffModal() {
   const inputLabel = document.getElementById("staff-input-label");
 
   if (!modal) { console.error("[Staff Modal] ERROR: #modal-manage-staff no existe en el DOM"); return; }
-  if (!title) { console.error("[Staff Modal] ERROR: #staff-modal-title no existe"); return; }
-
-  title.textContent = "Asignar Rol / Rentar OP";
+  if (title) title.textContent = "Asignar Rol / Rentar OP";
   if (inputGt) inputGt.value = "";
   if (inputRole) inputRole.value = "op_rented";
   if (inputDays) inputDays.value = "30";
@@ -1043,26 +1044,38 @@ function openAddStaffModal() {
   toggleStaffDaysInput();
 
   modal.style.display = "flex";
-  console.log("[Staff Modal] Modal abierto, display:", modal.style.display, "z-index:", getComputedStyle(modal).zIndex);
 }
 
-function openEditStaffModal(username, role, daysLeft, label) {
-  document.getElementById("staff-modal-title").textContent = `Editar Staff: ${username}`;
+function openEditStaffModal(username, role, daysLeft, label, e) {
+  if (e && typeof e.preventDefault === "function") {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  const modal = document.getElementById("modal-manage-staff");
+  if (!modal) return;
+  const title = document.getElementById("staff-modal-title");
+  if (title) title.textContent = `Editar Staff: ${username}`;
   document.getElementById("staff-input-gamertag").value = username;
   document.getElementById("staff-input-role").value = role || "op_rented";
   document.getElementById("staff-input-days").value = daysLeft || "30";
   document.getElementById("staff-input-label").value = label || "";
   toggleStaffDaysInput();
-  document.getElementById("modal-manage-staff").style.display = "flex";
+  modal.style.display = "flex";
 }
 
-function closeManageStaffModal() {
-  document.getElementById("modal-manage-staff").style.display = "none";
+function closeManageStaffModal(e) {
+  if (e && typeof e.preventDefault === "function") {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  const modal = document.getElementById("modal-manage-staff");
+  if (modal) modal.style.display = "none";
 }
 
 function toggleStaffDaysInput() {
-  const role = document.getElementById("staff-input-role").value;
+  const role = document.getElementById("staff-input-role")?.value;
   const daysGroup = document.getElementById("group-staff-days");
+  if (!daysGroup) return;
   if (role === "op_rented") {
     daysGroup.style.display = "block";
   } else {
@@ -1071,9 +1084,12 @@ function toggleStaffDaysInput() {
 }
 
 function setupStaffForm() {
-  document.getElementById("modal-manage-staff")?.addEventListener("click", (e) => {
-    if (e.target.id === "modal-manage-staff") closeManageStaffModal();
-  });
+  const modal = document.getElementById("modal-manage-staff");
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeManageStaffModal(e);
+    });
+  }
 
   document.getElementById("form-manage-staff")?.addEventListener("submit", async (e) => {
     e.preventDefault();

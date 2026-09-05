@@ -446,18 +446,52 @@ system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
   console.log("[NodowaEconomy] Comandos nativos registrados: /eco:tienda, /eco:link, /eco:saldo, /eco:pagar, /eco:buzon, /eco:menu");
 });
 
+// ── Sincronización Automática de Admins / Staff con Web (admin:list) ──
+async function syncStaffWithBackend() {
+  try {
+    let localAdmins = [];
+    try {
+      const raw = world.getDynamicProperty("admin:list");
+      if (raw) localAdmins = JSON.parse(raw);
+    } catch (_) {}
+
+    const res = await httpPost(`${BACKEND_URL}/api/addon/staff/sync`, {
+      inGameAdmins: Array.isArray(localAdmins) ? localAdmins : []
+    });
+
+    if (res && res.ok && Array.isArray(res.staff)) {
+      const webAdminNames = res.staff.map(s => s.username);
+      const merged = Array.from(new Set([...localAdmins, ...webAdminNames]));
+      try {
+        world.setDynamicProperty("admin:list", JSON.stringify(merged));
+      } catch (_) {}
+      return res.staff;
+    }
+  } catch (_) {}
+  return null;
+}
+
+// Sincronizar staff al inicio y periódicamente cada 20 segundos
+system.runTimeout(() => {
+  syncStaffWithBackend();
+}, 60);
+
+system.runInterval(() => {
+  syncStaffWithBackend();
+}, 400);
+
 // ── Comandos In-Game de Staff/Admins (/admins, /adminadd, /admindel) ──
 async function handleAdminsListCommand(player) {
   try {
-    const res = await httpGet(`${BACKEND_URL}/api/addon/staff/list`);
-    if (res && res.ok && Array.isArray(res.staff)) {
-      if (res.staff.length === 0) {
+    const staffList = (await syncStaffWithBackend()) || (await httpGet(`${BACKEND_URL}/api/addon/staff/list`))?.staff;
+    if (staffList && Array.isArray(staffList)) {
+      if (staffList.length === 0) {
         player.sendMessage(`§7[ADMINS] No hay miembros de staff o admins registrados.`);
         return;
       }
       player.sendMessage(`§d========================================`);
       player.sendMessage(`§5[STAFF] LISTA DE ADMINISTRADORES Y OPS`);
-      for (const s of res.staff) {
+      for (const s of staffList) {
         const timeStr = s.daysLeft !== null ? `(${s.daysLeft} dias restantes)` : `(Permanente)`;
         player.sendMessage(`§e- §f${s.username} §7- §b${s.label || s.role} §7${timeStr}`);
       }
@@ -486,6 +520,7 @@ async function handleAdminAddCommand(player, targetName, daysStr) {
     });
     if (res && res.ok) {
       player.sendMessage(`§a[ADMIN] ${res.message || `OP/Admin ${targetName} registrado.`}`);
+      await syncStaffWithBackend();
       await checkDeliveriesForPlayer(player, false);
     } else {
       player.sendMessage(`§cError: ${res?.error || "No se pudo registrar admin"}`);
@@ -508,6 +543,7 @@ async function handleAdminDelCommand(player, targetName) {
     });
     if (res && res.ok) {
       player.sendMessage(`§a[ADMIN] Permisos revocados de ${targetName}.`);
+      await syncStaffWithBackend();
       await checkDeliveriesForPlayer(player, false);
     } else {
       player.sendMessage(`§cError: ${res?.error || "No se pudo revocar admin"}`);

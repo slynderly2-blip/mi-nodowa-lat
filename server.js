@@ -1533,6 +1533,48 @@ app.get("/api/addon/staff/list", (req, res) => {
   res.json({ ok: true, staff: list });
 });
 
+app.post("/api/addon/staff/sync", (req, res) => {
+  const { inGameAdmins } = req.body;
+  if (!db.staff) db.staff = {};
+  if (!db.opRentals) db.opRentals = [];
+
+  let changed = false;
+  if (Array.isArray(inGameAdmins)) {
+    for (const name of inGameAdmins) {
+      if (typeof name === "string" && name.trim()) {
+        const cleanName = name.trim();
+        const uname = cleanName.toLowerCase();
+        if (!db.staff[uname]) {
+          db.staff[uname] = {
+            displayName: cleanName,
+            role: "admin",
+            label: "[ADMIN] Administrador Principal",
+            assignedAt: new Date().toISOString()
+          };
+          changed = true;
+        }
+      }
+    }
+  }
+
+  if (changed) {
+    saveDb();
+  }
+
+  const list = Object.keys(db.staff).map(uname => {
+    const s = db.staff[uname];
+    const rental = db.opRentals.find(r => r.active && (r.username || "").toLowerCase() === uname);
+    return {
+      username: s.displayName || uname,
+      role: s.role,
+      label: s.label || s.role.toUpperCase(),
+      daysLeft: rental ? Math.max(0, Math.ceil((rental.expiresAt - Date.now()) / (1000 * 60 * 60 * 24))) : null
+    };
+  });
+
+  res.json({ ok: true, staff: list });
+});
+
 app.post("/api/addon/staff/manage", (req, res) => {
   const { action, username, days, role } = req.body;
   const uname = (username || "").trim().toLowerCase();

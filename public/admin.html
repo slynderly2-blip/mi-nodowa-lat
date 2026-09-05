@@ -363,10 +363,10 @@
                 <h2>Gestión de Staff y Rentas de OP</h2>
               </div>
               <div style="display: flex; gap: 0.5rem;">
-                <button class="cat-btn" onclick="loadAdminStaff()">
+                <button class="cat-btn" type="button" onclick="loadAdminStaff()">
                   <span class="icon-slot" data-icon="refresh"></span> Recargar Staff
                 </button>
-                <button class="btn-primary" onclick="openAddStaffModal()" style="background: linear-gradient(135deg, var(--accent-gold), #d97706); color: #000; font-weight: 700;">
+                <button class="btn-primary" type="button" onclick="openAddStaffModal(event)" style="background: linear-gradient(135deg, var(--accent-gold), #d97706); color: #000; font-weight: 700;">
                   <span class="icon-slot" data-icon="plus"></span> Asignar Rol / Rentar OP
                 </button>
               </div>
@@ -575,7 +575,7 @@
     <div class="modal-card" style="max-width: 500px;">
       <div class="modal-header">
         <h3 id="staff-modal-title">Asignar Rol / Rentar OP</h3>
-        <button class="modal-close" onclick="closeManageStaffModal()">
+        <button type="button" class="modal-close" onclick="closeManageStaffModal(event)">
           <span class="icon-slot" data-icon="x"></span>
         </button>
       </div>
@@ -604,7 +604,7 @@
           <input type="text" id="staff-input-label" class="form-input" placeholder="Ej. OP Renta 30 Días">
         </div>
         <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.25rem;">
-          <button type="button" class="cat-btn" onclick="closeManageStaffModal()">Cancelar</button>
+          <button type="button" class="cat-btn" onclick="closeManageStaffModal(event)">Cancelar</button>
           <button type="submit" class="btn-primary" style="background: var(--accent-gold); color: #000; font-weight: 700;">
             <span class="icon-slot" data-icon="check"></span> Guardar Staff / OP
           </button>
