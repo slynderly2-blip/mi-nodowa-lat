@@ -32,19 +32,8 @@
     <div class="header-inner">
       <a href="/" class="brand">
         <span class="brand-icon">
-          <!-- Espada Minecraft estilo pixel -->
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="9" y="1" width="2" height="2" fill="white"/>
-            <rect x="9" y="3" width="2" height="2" fill="white"/>
-            <rect x="9" y="5" width="2" height="2" fill="white"/>
-            <rect x="9" y="7" width="2" height="2" fill="white"/>
-            <rect x="7" y="5" width="2" height="2" fill="white"/>
-            <rect x="11" y="5" width="2" height="2" fill="white"/>
-            <rect x="9" y="9" width="2" height="2" fill="rgba(255,255,255,0.7)"/>
-            <rect x="9" y="11" width="2" height="2" fill="rgba(255,255,255,0.7)"/>
-            <rect x="8" y="13" width="4" height="2" fill="rgba(255,255,255,0.85)"/>
-            <rect x="9" y="15" width="2" height="2" fill="rgba(255,255,255,0.85)"/>
-            <rect x="9" y="17" width="2" height="2" fill="rgba(255,255,255,0.85)"/>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <text x="2" y="14" font-family="Arial Black, Arial" font-size="15" font-weight="900" fill="white">N</text>
           </svg>
         </span>
         <span>Nodowa</span>
@@ -333,86 +322,110 @@
         <div class="section-header">
           <div>
             <h1 class="section-title">Billetera & Banco</h1>
-            <p class="section-subtitle">Consulta tu patrimonio y envía transferencias a otros jugadores.</p>
+            <p class="section-subtitle">Gestiona tu dinero, guarda en el banco y genera rendimientos automáticos.</p>
           </div>
         </div>
 
-        <!-- Saldos -->
+        <!-- ── Saldos ─────────────────────────────────────── -->
         <div class="wallet-balances-grid">
+
           <!-- Billetera -->
-          <div class="wallet-balance-card wallet-balance-card--purple">
-            <div class="wbc-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
+          <div class="wallet-card">
+            <div class="wallet-card-icon purple">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
             </div>
-            <div class="wbc-body">
-              <span class="wbc-label">Saldo en Mano</span>
-              <div class="wbc-amount" id="wallet-balance">0 NC</div>
-              <span class="wbc-hint">Disponible para compras y P2P</span>
-            </div>
+            <span class="wallet-card-label">
+              Saldo en Mano
+            </span>
+            <div class="wallet-card-amount purple" id="wallet-balance">0 NC</div>
+            <span class="wallet-card-hint">Disponible para la tienda y el mercado P2P</span>
             <button type="button" class="btn btn-tiktok btn-sm" onclick="openBankActionModal('deposit')">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m5 12 7 7 7-7"/></svg>
-              Depositar
+              Depositar al Banco
             </button>
           </div>
 
           <!-- Banco -->
-          <div class="wallet-balance-card wallet-balance-card--green">
-            <div class="wbc-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          <div class="wallet-card">
+            <div class="wallet-card-icon green">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><rect x="5" y="10" width="4" height="12"/><rect x="10" y="6" width="4" height="16"/><rect x="15" y="14" width="4" height="8"/><path d="M3 6 L12 2 L21 6"/></svg>
             </div>
-            <div class="wbc-body">
-              <span class="wbc-label">Banco Seguro</span>
-              <div class="wbc-amount wbc-amount--green" id="bank-balance">0 NC</div>
-              <span class="wbc-hint">Protegido y generando intereses</span>
-            </div>
+            <span class="wallet-card-label">
+              Banco Seguro
+            </span>
+            <div class="wallet-card-amount green" id="bank-balance">0 NC</div>
+            <span class="wallet-card-hint">Protegido y generando +2.0% de interés diario</span>
             <button type="button" class="btn btn-secondary btn-sm" onclick="openBankActionModal('withdraw')">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
-              Retirar
+              Retirar a Billetera
             </button>
           </div>
+
         </div>
 
-        <!-- Rendimiento Bancario -->
+        <!-- ── Banco: Rendimiento e Intereses ────────────── -->
         <div class="bank-yield-card">
-          <div class="byc-header">
-            <div class="byc-title-row">
-              <div class="byc-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-              </div>
-              <span class="byc-title">Rendimiento Bancario</span>
-              <span class="byc-rate-badge">+2.0% / día</span>
+          <div class="byc-title-row">
+            <div class="byc-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
             </div>
-            <p class="byc-desc">Tus Nodocoins en el banco generan rendimientos pasivos automáticos cada día.</p>
+            <span class="byc-title">Rendimiento del Banco</span>
+            <span class="byc-rate-badge">+2.0% diario</span>
+          </div>
+          <p class="byc-desc">Cada día, tus Nodocoins guardados en el banco generan intereses automáticos. Cuanto más deposites, más ganas sin hacer nada.</p>
+
+          <!-- Beneficios explicados -->
+          <div class="byc-benefits">
+            <div class="byc-benefit-item">
+              <div class="byc-benefit-label">Ganancia estimada / día</div>
+              <div class="byc-benefit-val green" id="interest-estimated-daily">+0 NC</div>
+            </div>
+            <div class="byc-benefit-item">
+              <div class="byc-benefit-label">Intereses por cobrar</div>
+              <div class="byc-benefit-val amber" id="interest-pending-val">+0 NC</div>
+            </div>
+            <div class="byc-benefit-item">
+              <div class="byc-benefit-label">Total histórico ganado</div>
+              <div class="byc-benefit-val purple" id="interest-total-earned">0 NC</div>
+            </div>
           </div>
 
-          <div class="byc-stats">
-            <div class="byc-stat">
-              <span class="byc-stat-label">Estimado diario</span>
-              <div class="byc-stat-val byc-val--green" id="interest-estimated-daily">+0 NC</div>
+          <!-- Info de beneficios -->
+          <div class="byc-info-list">
+            <div class="byc-info-row">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Protección total</strong> — tu saldo en banco no puede perderse por muerte o robo en el servidor.</span>
             </div>
-            <div class="byc-stat">
-              <span class="byc-stat-label">Por cobrar</span>
-              <div class="byc-stat-val byc-val--amber" id="interest-pending-val">+0 NC</div>
+            <div class="byc-info-row">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>+2% diario automático</strong> — el interés se acumula solo, sin necesidad de estar conectado.</span>
             </div>
-            <div class="byc-stat">
-              <span class="byc-stat-label">Total ganado</span>
-              <div class="byc-stat-val" id="interest-total-earned">0 NC</div>
+            <div class="byc-info-row">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Retira cuando quieras</strong> — mueve tus monedas del banco a la billetera en cualquier momento.</span>
+            </div>
+            <div class="byc-info-row">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Reclamar rendimiento</strong> — presiona el botón de abajo para cobrar tus intereses acumulados.</span>
             </div>
           </div>
 
-          <button type="button" id="btn-claim-interest" class="btn btn-success btn-block" onclick="claimBankInterest()" style="font-weight:800;">
+          <button type="button" id="btn-claim-interest" class="btn btn-success btn-block" onclick="claimBankInterest()">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
             Reclamar Rendimiento Ganado
           </button>
         </div>
 
-        <!-- Transferencias -->
+        <!-- ── Transferir Monedas ─────────────────────────── -->
         <div class="card">
-          <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:1.25rem;">
-            <div style="width:36px; height:36px; border-radius:var(--radius-sm); background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <div style="display:flex; align-items:center; gap:0.65rem; margin-bottom:1.25rem;">
+            <div style="width:34px; height:34px; border-radius:var(--radius-sm); background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             </div>
-            <h2 style="font-size:1.1rem; font-weight:800; color:var(--text); margin:0;">Transferir Monedas</h2>
+            <div>
+              <div style="font-size:1rem; font-weight:800; color:var(--text);">Transferir Monedas</div>
+              <div style="font-size:0.78rem; color:var(--text-muted);">Envía NC directamente a otro jugador de Nodowa.</div>
+            </div>
           </div>
           <form id="transfer-form">
             <div class="form-group">

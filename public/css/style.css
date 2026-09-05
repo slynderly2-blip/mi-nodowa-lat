@@ -665,6 +665,10 @@ tr:hover td { background: var(--surface-hover); }
 .wallet-card-icon.purple { background: var(--primary-light); color: var(--primary); }
 .wallet-card-icon.green  { background: var(--emerald-light); color: var(--emerald); }
 
+/* Espaciado entre secciones de billetera */
+.wallet-balances-grid { margin-bottom: 1rem; }
+.bank-yield-card + .card { margin-top: 0; }
+
 /* Tarjeta de rendimiento bancario */
 .bank-yield-card {
   background: var(--surface);

@@ -109,7 +109,7 @@ function updateAuthUI() {
         </div>
       </button>
     `;
-    document.getElementById("btn-open-profile").onclick = openProfileModal;
+    document.getElementById("btn-open-profile").onclick = () => window.openProfile(currentUser);
     loadBalance();
     loadConversations();
     loadFriendRequests();
@@ -1956,7 +1956,9 @@ function initWS() {
 }
 
 // Inicialización
-validateCurrentSession();
-updateAuthUI();
-loadStore();
-initWS();
+document.addEventListener("DOMContentLoaded", () => {
+  validateCurrentSession();
+  updateAuthUI();
+  loadStore();
+  initWS();
+});
