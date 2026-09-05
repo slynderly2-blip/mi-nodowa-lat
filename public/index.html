@@ -3,71 +3,115 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nodowa Network - Tienda Oficial & Economía</title>
+  <title>Nodowa Network - Tienda Oficial</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
-  <!-- Header TikTok Style -->
+  <!-- Header -->
   <header class="header">
     <div class="header-inner">
       <a href="/" class="brand">
-        <span class="brand-logo-glow">⚡</span>
+        <span class="brand-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </span>
         <span>Nodowa</span>
         <span class="brand-badge">Bedrock</span>
       </a>
 
-      <nav class="nav-tabs">
-        <button class="tab-btn active" data-tab="store">🪙 Monedas</button>
-        <button class="tab-btn" data-tab="market">🔄 Mercado P2P</button>
-        <button class="tab-btn" data-tab="wallet">💳 Billetera</button>
-        <button class="tab-btn" data-tab="deliveries">📦 Buzón <span id="badge-deliveries" class="badge danger" style="display:none; font-size:0.7rem; padding:1px 6px;">0</span></button>
-        <button class="tab-btn" data-tab="leaderboard">🏆 Top Ricos</button>
+      <!-- Desktop Navigation Tabs (Solo visible en pantallas medianas y grandes) -->
+      <nav class="desktop-nav">
+        <button class="nav-tab-btn tab-btn active" data-tab="store">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>
+          <span>Monedas</span>
+        </button>
+        <button class="nav-tab-btn tab-btn" data-tab="market">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
+          <span>Mercado</span>
+        </button>
+        <button class="nav-tab-btn tab-btn" data-tab="wallet">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
+          <span>Billetera</span>
+        </button>
+        <button class="nav-tab-btn tab-btn" data-tab="deliveries">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+          <span>Buzón</span>
+          <span id="badge-deliveries" class="badge danger" style="display:none; font-size:0.7rem; padding:1px 6px;">0</span>
+        </button>
+        <button class="nav-tab-btn tab-btn" data-tab="leaderboard">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+          <span>Top Ricos</span>
+        </button>
       </nav>
 
       <div class="user-widget" id="user-widget">
-        <button class="btn btn-primary btn-sm" id="btn-login">👤 Iniciar Sesión</button>
+        <button class="btn btn-primary btn-sm" id="btn-login">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Iniciar Sesión</span>
+        </button>
       </div>
     </div>
   </header>
 
+  <!-- Mobile Bottom Navigation (Estilo TikTok App - Fija en la parte inferior) -->
+  <nav class="mobile-bottom-nav">
+    <button class="mobile-tab-btn tab-btn active" data-tab="store">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>
+      <span>Monedas</span>
+    </button>
+    <button class="mobile-tab-btn tab-btn" data-tab="market">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
+      <span>Mercado</span>
+    </button>
+    <button class="mobile-tab-btn tab-btn" data-tab="wallet">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
+      <span>Billetera</span>
+    </button>
+    <button class="mobile-tab-btn tab-btn" data-tab="deliveries">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+      <span>Buzón</span>
+    </button>
+    <button class="mobile-tab-btn tab-btn" data-tab="leaderboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+      <span>Top</span>
+    </button>
+  </nav>
+
   <!-- Main Container -->
   <main class="main-container">
 
-    <!-- 1. Tienda / Monedas (Estilo TikTok: Monedas por defecto, productos por buscador) -->
+    <!-- 1. Tienda / Monedas -->
     <section class="tab-view active" id="view-store">
-      
-      <!-- TikTok Search Hero -->
-      <div class="tiktok-search-hero">
-        <h1 class="hero-title">Explora la Tienda de Nodowa</h1>
-        <p class="hero-subtitle">Recarga monedas oficiales o escribe en el buscador para encontrar rangos, llaves y kits.</p>
+      <div class="search-hero">
+        <h1 class="hero-title">Tienda Oficial de Nodowa</h1>
+        <p class="hero-subtitle">Paquetes de monedas instantáneos. Escribe en el buscador para ver rangos, llaves o kits.</p>
         
-        <div class="search-wrapper">
-          <span class="search-icon-left">🔍</span>
+        <div class="search-box">
+          <span class="search-icon-svg">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </span>
           <input type="text" id="store-search" class="search-input" placeholder="Buscar producto, rango, llave, kit..." autocomplete="off">
           <button id="search-clear-btn" class="search-clear-btn" onclick="clearSearch()" title="Limpiar búsqueda">&times;</button>
         </div>
 
         <div class="search-tags">
-          <span style="font-size:0.8rem; color:var(--text-subtle); align-self:center;">Sugerencias:</span>
-          <button class="search-tag-pill" onclick="setSearchTag('vip')">👑 Rango VIP</button>
-          <button class="search-tag-pill" onclick="setSearchTag('mvp')">🌟 Rango MVP+</button>
-          <button class="search-tag-pill" onclick="setSearchTag('llave')">🗝️ Llaves</button>
-          <button class="search-tag-pill" onclick="setSearchTag('kit')">⚔️ Kits</button>
+          <span class="search-tags-label">Populares:</span>
+          <button class="search-tag-pill" onclick="setSearchTag('vip')">VIP</button>
+          <button class="search-tag-pill" onclick="setSearchTag('mvp')">MVP+</button>
+          <button class="search-tag-pill" onclick="setSearchTag('llave')">Llaves</button>
+          <button class="search-tag-pill" onclick="setSearchTag('kit')">Kits</button>
         </div>
       </div>
 
-      <!-- Feed Header -->
       <div class="section-header">
         <div>
-          <h2 class="section-title" id="store-title">🪙 Paquetes de Nodocoins</h2>
-          <p class="section-subtitle" id="store-subtitle">Acreditación instantánea en tu cuenta de Minecraft Bedrock.</p>
+          <h2 class="section-title" id="store-title">Paquetes de Nodocoins</h2>
+          <p class="section-subtitle" id="store-subtitle">Sincronizados en tiempo real con tu cuenta de Minecraft Bedrock.</p>
         </div>
       </div>
 
-      <!-- Feed Grid -->
       <div class="card-grid" id="store-grid">
-        <!-- Renderizado dinámicamente con JavaScript -->
+        <!-- Renderizado dinámicamente -->
       </div>
     </section>
 
@@ -75,10 +119,13 @@
     <section class="tab-view" id="view-market">
       <div class="section-header">
         <div>
-          <h1 class="section-title">🔄 Mercado P2P de Jugadores</h1>
-          <p class="section-subtitle">Compra y vende ítems o monedas de forma segura y directa con otros jugadores.</p>
+          <h1 class="section-title">Mercado de Jugadores</h1>
+          <p class="section-subtitle">Intercambia ítems y monedas con otros jugadores de manera segura.</p>
         </div>
-        <button class="btn btn-tiktok btn-sm" id="btn-create-p2p">+ Publicar Oferta</button>
+        <button class="btn btn-tiktok btn-sm" id="btn-create-p2p">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>Publicar Oferta</span>
+        </button>
       </div>
       <div class="card-grid" id="market-grid">
         <!-- Renderizado dinámico -->
@@ -90,40 +137,43 @@
       <div style="max-width:680px; margin:0 auto;">
         <div class="section-header">
           <div>
-            <h1 class="section-title">💳 Mi Billetera & Banco</h1>
-            <p class="section-subtitle">Gestiona tu fortuna y realiza transferencias a otros jugadores.</p>
+            <h1 class="section-title">Billetera & Banco</h1>
+            <p class="section-subtitle">Consulta tu patrimonio y envía transferencias a otros jugadores.</p>
           </div>
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.75rem;">
           <div class="card" style="text-align:center;">
-            <span style="font-size:0.82rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Saldo en Billetera</span>
-            <div style="font-size:2rem; font-weight:800; color:var(--tiktok-black); margin:0.4rem 0;" id="wallet-balance">0 NC</div>
-            <span style="font-size:0.78rem; color:var(--text-subtle);">Disponible para compras y mercado</span>
+            <span style="font-size:0.78rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Saldo en Mano</span>
+            <div style="font-size:2rem; font-weight:800; color:var(--tiktok-black); margin:0.35rem 0;" id="wallet-balance">0 NC</div>
+            <span style="font-size:0.78rem; color:var(--text-subtle);">Disponible para compras y transferencias</span>
           </div>
           <div class="card" style="text-align:center;">
-            <span style="font-size:0.82rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Saldo en Banco</span>
-            <div style="font-size:2rem; font-weight:800; color:var(--emerald); margin:0.4rem 0;" id="bank-balance">0 NC</div>
-            <span style="font-size:0.78rem; color:var(--text-subtle);">A salvo contra muertes en el juego</span>
+            <span style="font-size:0.78rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Saldo en Banco</span>
+            <div style="font-size:2rem; font-weight:800; color:var(--emerald); margin:0.35rem 0;" id="bank-balance">0 NC</div>
+            <span style="font-size:0.78rem; color:var(--text-subtle);">Protegido contra pérdidas o caídas</span>
           </div>
         </div>
 
         <div class="card">
-          <h2 style="font-size:1.15rem; font-weight:800; margin-bottom:1.25rem; color:var(--tiktok-black);">💸 Enviar Nodocoins a otro jugador</h2>
+          <h2 style="font-size:1.15rem; font-weight:800; margin-bottom:1.25rem; color:var(--tiktok-black);">Transferir Monedas</h2>
           <form id="transfer-form">
             <div class="form-group">
               <label class="form-label">Gamertag del Destinatario</label>
-              <input type="text" id="transfer-to" class="input" placeholder="Ej: Steve" required>
+              <input type="text" id="transfer-to" class="input" placeholder="Ej: Steve o Alex" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Cantidad a enviar (NC)</label>
+              <label class="form-label">Monto a Enviar (NC)</label>
               <input type="number" id="transfer-amount" class="input" min="1" placeholder="Ej: 500" required>
             </div>
             <div class="form-group">
               <label class="form-label">Nota o Concepto (opcional)</label>
-              <input type="text" id="transfer-note" class="input" placeholder="Ej: Pago de armadura o regalo">
+              <input type="text" id="transfer-note" class="input" placeholder="Ej: Pago de armadura o recompensa">
             </div>
-            <button type="submit" class="btn btn-tiktok btn-block">🚀 Realizar Transferencia</button>
+            <button type="submit" class="btn btn-tiktok btn-block">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              <span>Enviar Transferencia</span>
+            </button>
           </form>
         </div>
       </div>
@@ -133,10 +183,13 @@
     <section class="tab-view" id="view-deliveries">
       <div class="section-header">
         <div>
-          <h1 class="section-title">📦 Buzón de Entregas</h1>
-          <p class="section-subtitle">Historial de productos y comandos despachados a tu Gamertag en Minecraft Bedrock.</p>
+          <h1 class="section-title">Buzón de Entregas</h1>
+          <p class="section-subtitle">Historial de artículos y comandos despachados a tu cuenta en Minecraft Bedrock.</p>
         </div>
-        <button class="btn btn-secondary btn-sm" id="btn-refresh-deliveries">🔄 Actualizar Buzón</button>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh-deliveries">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+          <span>Actualizar</span>
+        </button>
       </div>
 
       <div class="table-wrap">
@@ -146,11 +199,11 @@
               <th>Artículo</th>
               <th>Fecha</th>
               <th>Estado</th>
-              <th>Acción / Soporte</th>
+              <th>Soporte / Reclamo</th>
             </tr>
           </thead>
           <tbody id="deliveries-tbody">
-            <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Inicia sesión para ver tu buzón.</td></tr>
+            <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:2rem;">Inicia sesión para ver tu buzón.</td></tr>
           </tbody>
         </table>
       </div>
@@ -160,8 +213,8 @@
     <section class="tab-view" id="view-leaderboard">
       <div class="section-header">
         <div>
-          <h1 class="section-title">🏆 Clasificación de Jugadores Más Ricos</h1>
-          <p class="section-subtitle">Top general por fortuna total (Billetera + Banco).</p>
+          <h1 class="section-title">Clasificación General</h1>
+          <p class="section-subtitle">Jugadores con mayor fortuna acumulada en Nodowa Network.</p>
         </div>
       </div>
       <div class="table-wrap">
@@ -176,7 +229,7 @@
             </tr>
           </thead>
           <tbody id="leaderboard-tbody">
-            <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Cargando ranking...</td></tr>
+            <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:2rem;">Cargando clasificación...</td></tr>
           </tbody>
         </table>
       </div>
@@ -184,25 +237,30 @@
 
   </main>
 
-  <!-- Modal: Login con Comando /link (Vía Minecraft) -->
+  <!-- Modal: Login con Comando /link -->
   <div class="modal-backdrop" id="modal-login">
     <div class="modal-box">
       <div class="modal-header">
-        <h3 class="modal-title" id="auth-modal-title">👤 Vincular Cuenta con /link</h3>
+        <h3 class="modal-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Vincular Cuenta</span>
+        </h3>
         <button class="btn-close" onclick="closeModal('modal-login')">&times;</button>
       </div>
 
       <!-- Paso 1: Ingresar Gamertag -->
       <div id="auth-step-1">
         <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:1.25rem;">
-          Inicia sesión de forma 100% segura usando tu cuenta dentro de Minecraft Bedrock.
+          Inicia sesión de forma segura vinculando tu Gamertag dentro de Minecraft Bedrock.
         </p>
         <form id="login-form">
           <div class="form-group">
-            <label class="form-label">Tu Gamertag de Minecraft Bedrock</label>
+            <label class="form-label">Gamertag de Minecraft Bedrock</label>
             <input type="text" id="login-username" class="input" placeholder="Ej: Steve o Alex" required autofocus>
           </div>
-          <button type="submit" class="btn btn-tiktok btn-block" id="btn-request-link">⚡ Generar Código /link</button>
+          <button type="submit" class="btn btn-tiktok btn-block" id="btn-request-link">
+            <span>Generar Código /link</span>
+          </button>
         </form>
       </div>
 
@@ -210,15 +268,18 @@
       <div id="auth-step-2" style="display:none;">
         <div class="auth-steps-list">
           1. Entra a <strong>Nodowa Network</strong> con la cuenta <strong id="auth-target-player" style="color:var(--tiktok-red);">Steve</strong>.<br>
-          2. Abre el chat y escribe el comando que aparece abajo.<br>
-          3. ¡La web detectará tu cuenta y entrará automáticamente!
+          2. Abre el chat y escribe el comando que ves abajo.<br>
+          3. La web detectará la vinculación y entrará automáticamente.
         </div>
 
         <div class="auth-code-box">
-          <div class="auth-code-label">Comando para el Chat de Minecraft</div>
+          <div class="auth-code-label">Comando para el chat de Minecraft</div>
           <div class="auth-command-display">
             <span id="auth-code-text">/link ------</span>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-code" title="Copiar comando">📋 Copiar</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-code" title="Copiar comando">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>Copiar</span>
+            </button>
           </div>
           <div class="auth-waiting-indicator">
             <span class="pulse-dot"></span>
@@ -227,8 +288,8 @@
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem;">
-          <span id="auth-timer-countdown" style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">⏳ Expira en: 15:00</span>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-link">🔄 Cambiar Gamertag</button>
+          <span id="auth-timer-countdown" style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">Expira en: 15:00</span>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-link">Cambiar Gamertag</button>
         </div>
       </div>
 
@@ -263,14 +324,14 @@
           </div>
           <form id="binance-order-form">
             <div class="form-group">
-              <label class="form-label">ID de Transacción (TXID) / Comprobante</label>
+              <label class="form-label">ID de Transacción (TXID) / Código</label>
               <input type="text" id="order-txid" class="input" placeholder="Ej: 9482710394..." required>
             </div>
             <div class="form-group">
-              <label class="form-label">Captura del Comprobante de Pago</label>
+              <label class="form-label">Comprobante de Pago (Captura)</label>
               <input type="file" id="order-receipt" class="input" accept="image/*" required>
             </div>
-            <button type="submit" class="btn btn-success btn-block">📤 Enviar Comprobante</button>
+            <button type="submit" class="btn btn-success btn-block">Enviar Comprobante</button>
           </form>
         </div>
       </div>
@@ -281,7 +342,7 @@
   <div class="modal-backdrop" id="modal-p2p">
     <div class="modal-box">
       <div class="modal-header">
-        <h3 class="modal-title">🔄 Publicar Oferta en Mercado P2P</h3>
+        <h3 class="modal-title">Nueva Oferta en Mercado</h3>
         <button class="btn-close" onclick="closeModal('modal-p2p')">&times;</button>
       </div>
       <form id="p2p-form">
@@ -294,8 +355,8 @@
           <input type="number" id="p2p-price" class="input" min="1" placeholder="Ej: 1500" required>
         </div>
         <div class="form-group">
-          <label class="form-label">Descripción o Lugar de Entrega</label>
-          <textarea id="p2p-desc" class="input" rows="2" placeholder="Ej: Entrega en el Spawn de Minecraft"></textarea>
+          <label class="form-label">Descripción o Punto de Entrega</label>
+          <textarea id="p2p-desc" class="input" rows="2" placeholder="Ej: Entrega en Spawn o cofre seguro"></textarea>
         </div>
         <button type="submit" class="btn btn-tiktok btn-block">Publicar Oferta</button>
       </form>
@@ -306,19 +367,22 @@
   <div class="modal-backdrop" id="modal-report">
     <div class="modal-box">
       <div class="modal-header">
-        <h3 class="modal-title">⚠️ Reportar Problema con Entrega</h3>
+        <h3 class="modal-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>Reportar Entrega</span>
+        </h3>
         <button class="btn-close" onclick="closeModal('modal-report')">&times;</button>
       </div>
       <form id="report-form">
         <input type="hidden" id="report-delivery-id">
         <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1rem;">
-          Si compraste un artículo y no lo recibiste en el servidor de Minecraft, envía este reporte. Le llegará inmediatamente al Administrador con prioridad para revisión o re-envío.
+          Si compraste un artículo y no lo recibiste en el servidor de Minecraft, envía este reporte. Le llegará inmediatamente al Administrador para revisión y despacho prioritario.
         </p>
         <div class="form-group">
           <label class="form-label">Detalles del problema</label>
           <textarea id="report-note" class="input" rows="3" placeholder="Ej: Estaba desconectado cuando compré, o mi inventario estaba lleno." required></textarea>
         </div>
-        <button type="submit" class="btn btn-danger btn-block">🚨 Enviar Reporte al Administrador</button>
+        <button type="submit" class="btn btn-danger btn-block">Enviar Reporte al Administrador</button>
       </form>
     </div>
   </div>

@@ -5,6 +5,13 @@ let storeItems = [];
 let selectedItem = null;
 let binanceConfig = null;
 
+// Auth & User State (Vinculación segura mediante /link)
+let pendingAuthCode = null;
+let pendingAuthUsername = null;
+let pendingSessionToken = localStorage.getItem("nodowa_session_token") || null;
+let authCountdownInterval = null;
+let authPollingInterval = null;
+
 // Helper: Toast Notifications
 function showToast(msg) {
   const t = document.getElementById("toast");
@@ -24,36 +31,52 @@ window.closeModal = (id) => {
   if (el) el.classList.remove("open");
 };
 
-// Tabs Navigation
+// Tabs Navigation (Desktop cabecera y Mobile barra inferior sincronizados)
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    const tabName = btn.dataset.tab;
+    document.querySelectorAll(".tab-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.tab === tabName);
+    });
     document.querySelectorAll(".tab-view").forEach(v => v.classList.remove("active"));
-    btn.classList.add("active");
-    const target = document.getElementById(`view-${btn.dataset.tab}`);
+    const target = document.getElementById(`view-${tabName}`);
     if (target) target.classList.add("active");
 
-    if (btn.dataset.tab === "store") loadStore();
-    else if (btn.dataset.tab === "market") loadMarket();
-    else if (btn.dataset.tab === "wallet") loadBalance();
-    else if (btn.dataset.tab === "deliveries") loadDeliveries();
-    else if (btn.dataset.tab === "leaderboard") loadLeaderboard();
+    if (tabName === "store") loadStore();
+    else if (tabName === "market") loadMarket();
+    else if (tabName === "wallet") loadBalance();
+    else if (tabName === "deliveries") loadDeliveries();
+    else if (tabName === "leaderboard") loadLeaderboard();
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   });
 });
 
-// Auth & User State (Vinculación segura mediante /link)
-let pendingAuthCode = null;
-let pendingAuthUsername = null;
-let pendingSessionToken = localStorage.getItem("nodowa_session_token") || null;
-let authCountdownInterval = null;
-let authPollingInterval = null;
+// Helper de Íconos SVG para Artículos
+function getItemSvg(category, iconType) {
+  if (category === "coins" || iconType === "coins") {
+    return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>`;
+  }
+  if (category === "ranks" || iconType === "shield") {
+    return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`;
+  }
+  if (category === "crates" || iconType === "key") {
+    return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>`;
+  }
+  if (category === "kits" || iconType === "sword") {
+    return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/></svg>`;
+  }
+  return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>`;
+}
 
+// Auth UI
 function updateAuthUI() {
   const container = document.getElementById("user-widget");
   if (currentUser) {
     container.innerHTML = `
       <div class="user-pill">
-        <span>🎮 ${currentUser}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>${currentUser}</span>
         <span class="coins-badge" id="pill-coins">${userData.wallet.toLocaleString()} NC</span>
       </div>
       <button class="btn btn-secondary btn-sm" id="btn-logout">Salir</button>
@@ -79,7 +102,12 @@ function updateAuthUI() {
     };
     loadBalance();
   } else {
-    container.innerHTML = `<button class="btn btn-primary btn-sm" id="btn-login">👤 Iniciar Sesión</button>`;
+    container.innerHTML = `
+      <button class="btn btn-primary btn-sm" id="btn-login">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Iniciar Sesión</span>
+      </button>
+    `;
     document.getElementById("btn-login").onclick = () => {
       resetAuthModal();
       openModal("modal-login");
@@ -126,7 +154,7 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
       document.getElementById("auth-step-2").style.display = "block";
 
       startAuthCountdown(data.expiresAt);
-      showToast("¡Código generado! Escríbelo en el chat de Minecraft.");
+      showToast("Código generado. Escríbelo en Minecraft.");
     } else {
       showToast(data.error || "No se pudo generar el código");
     }
@@ -142,13 +170,13 @@ document.getElementById("btn-copy-code")?.addEventListener("click", () => {
   if (!pendingAuthCode) return;
   const cmd = `/link ${pendingAuthCode}`;
   navigator.clipboard.writeText(cmd).then(() => {
-    showToast(`¡Copiado: "${cmd}"! Pégalo en Minecraft`);
+    showToast(`Comando copiado: "${cmd}"`);
   }).catch(() => {
     showToast(`Comando: ${cmd}`);
   });
 });
 
-// Cambiar Gamertag / Volver al paso 1
+// Volver al paso 1
 document.getElementById("btn-cancel-link")?.addEventListener("click", () => {
   resetAuthModal();
 });
@@ -159,7 +187,6 @@ function startAuthCountdown(expiresAt) {
 
   const timerEl = document.getElementById("auth-timer-countdown");
 
-  // Contador regresivo
   authCountdownInterval = setInterval(() => {
     const remaining = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
     const mins = Math.floor(remaining / 60);
@@ -167,20 +194,18 @@ function startAuthCountdown(expiresAt) {
     const formatted = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 
     if (timerEl) {
-      timerEl.textContent = `⏳ Expira en: ${formatted}`;
+      timerEl.textContent = `Expira en: ${formatted}`;
     }
 
     if (remaining <= 0) {
       clearInterval(authCountdownInterval);
       clearInterval(authPollingInterval);
-      if (timerEl) timerEl.textContent = `⚠️ Código expirado. Genera uno nuevo.`;
+      if (timerEl) timerEl.textContent = "Código expirado. Genera uno nuevo.";
     }
   }, 1000);
 
-  // Sondeo en tiempo real cada 2.5 segundos
   authPollingInterval = setInterval(async () => {
     if (!pendingAuthCode) return;
-
     try {
       const res = await fetch(`/api/auth/check-link-status?code=${pendingAuthCode}&sessionToken=${pendingSessionToken || ''}`);
       const data = await res.json();
@@ -204,10 +229,9 @@ function completeAuth(user) {
   closeModal("modal-login");
   resetAuthModal();
   updateAuthUI();
-  showToast(`🎉 ¡Cuenta vinculada con éxito! Bienvenido, ${currentUser}`);
+  showToast(`Cuenta vinculada con éxito. Bienvenido, ${currentUser}`);
 }
 
-// Validar sesión persistente al abrir la web
 async function validateCurrentSession() {
   const sessionToken = localStorage.getItem("nodowa_session_token");
   if (!sessionToken) return;
@@ -309,12 +333,12 @@ function renderStore() {
   let itemsToDisplay = [];
 
   if (!query) {
-    // POR DEFECTO: EN VEZ DE CATALOGO SOLO HABRA MONEDAS
+    // Por defecto: solo monedas
     itemsToDisplay = storeItems.filter(i => i.category === "coins" || (i.giveCoins && i.giveCoins > 0));
-    if (storeTitle) storeTitle.innerHTML = `🪙 Paquetes de Nodocoins`;
-    if (storeSubtitle) storeSubtitle.textContent = `Acreditación instantánea en tu cuenta. Escribe en el buscador para ver otros productos 🔍`;
+    if (storeTitle) storeTitle.textContent = "Paquetes de Nodocoins";
+    if (storeSubtitle) storeSubtitle.textContent = "Acreditación instantánea en tu cuenta. Escribe en el buscador para ver otros productos.";
   } else {
-    // SI QUEREMOS UN PRODUCTO: BUSCAR EN TODO EL CATALOGO
+    // Si busca: buscar en todo el catálogo
     itemsToDisplay = storeItems.filter(i => {
       const matchName = (i.name || "").toLowerCase().includes(query);
       const matchDesc = (i.description || "").toLowerCase().includes(query);
@@ -322,16 +346,18 @@ function renderStore() {
       const matchBadge = (i.badge || "").toLowerCase().includes(query);
       return matchName || matchDesc || matchCategory || matchBadge;
     });
-    if (storeTitle) storeTitle.innerHTML = `🔍 Resultados para: <span style="color:var(--tiktok-red)">"${query}"</span>`;
+    if (storeTitle) storeTitle.innerHTML = `Resultados para: <span style="color:var(--tiktok-red)">"${query}"</span>`;
     if (storeSubtitle) storeSubtitle.innerHTML = `Mostrando productos coincidentes. <button class="link-btn" onclick="clearSearch()">Ver solo monedas</button>`;
   }
 
   if (itemsToDisplay.length === 0) {
     grid.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">🔎</div>
+        <div class="empty-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </div>
         <h3>No encontramos productos para "${query}"</h3>
-        <p>Prueba buscando "vip", "mvp", "llave", "kit" o vuelve a la sección de monedas.</p>
+        <p>Prueba buscando "vip", "mvp", "llave", "kit" o vuelve al catálogo de monedas.</p>
         <button class="btn btn-secondary btn-sm" onclick="clearSearch()">Ver Monedas</button>
       </div>
     `;
@@ -340,12 +366,12 @@ function renderStore() {
 
   grid.innerHTML = itemsToDisplay.map(item => {
     const isCoin = item.category === "coins" || (item.giveCoins && item.giveCoins > 0);
-    const iconEmoji = isCoin ? "🪙" : (item.category === "ranks" ? "👑" : (item.category === "crates" ? "🗝️" : "⚔️"));
+    const iconSvg = getItemSvg(item.category, item.iconType);
 
     return `
-      <div class="card tiktok-card ${isCoin ? 'coin-card' : ''}">
+      <div class="card ${isCoin ? 'coin-card' : ''}">
         <div class="card-top">
-          <div class="card-icon-pill">${iconEmoji}</div>
+          <div class="card-icon-pill">${iconSvg}</div>
           ${item.badge ? `<span class="badge ${isCoin ? 'badge-coins' : 'badge-tiktok'}">${item.badge}</span>` : ""}
         </div>
         <div class="card-content">
@@ -354,11 +380,11 @@ function renderStore() {
         </div>
         <div class="card-footer">
           <div class="card-prices">
-            ${item.priceCoins > 0 ? `<span class="price-coins">🪙 ${item.priceCoins.toLocaleString()} <small>NC</small></span>` : ""}
-            ${item.priceUsdt > 0 ? `<span class="price-usdt">💵 $${item.priceUsdt.toFixed(2)} <small>USDT</small></span>` : ""}
+            ${item.priceCoins > 0 ? `<span class="price-coins">${item.priceCoins.toLocaleString()} <small>NC</small></span>` : ""}
+            ${item.priceUsdt > 0 ? `<span class="price-usdt">$${item.priceUsdt.toFixed(2)} <small>USDT</small></span>` : ""}
           </div>
           <button class="btn btn-tiktok btn-block" onclick="startCheckout('${item.id}')">
-            ${isCoin ? '⚡ Recargar Monedas' : '🛒 Comprar Producto'}
+            ${isCoin ? 'Recargar Monedas' : 'Comprar Producto'}
           </button>
         </div>
       </div>
@@ -402,7 +428,7 @@ window.startCheckout = (itemId) => {
   const btnCoins = document.getElementById("btn-pay-coins");
   if (selectedItem.priceCoins > 0) {
     btnCoins.style.display = "block";
-    btnCoins.textContent = `🪙 Pagar ${selectedItem.priceCoins.toLocaleString()} NC`;
+    btnCoins.textContent = `Pagar ${selectedItem.priceCoins.toLocaleString()} NC`;
     btnCoins.onclick = () => buyWithCoins(selectedItem.id);
   } else {
     btnCoins.style.display = "none";
@@ -411,7 +437,7 @@ window.startCheckout = (itemId) => {
   const btnBinance = document.getElementById("btn-pay-binance");
   if (selectedItem.priceUsdt > 0) {
     btnBinance.style.display = "block";
-    btnBinance.textContent = `💵 Pagar $${selectedItem.priceUsdt.toFixed(2)} USDT`;
+    btnBinance.textContent = `Pagar $${selectedItem.priceUsdt.toFixed(2)} USDT`;
     btnBinance.onclick = () => showBinanceSection();
   } else {
     btnBinance.style.display = "none";
@@ -478,7 +504,7 @@ document.getElementById("binance-order-form").addEventListener("submit", async (
     if (data.ok) {
       closeModal("modal-checkout");
       document.getElementById("binance-order-form").reset();
-      showToast("¡Comprobante enviado! El administrador lo validará pronto.");
+      showToast("Comprobante enviado. Será validado en breve.");
     } else {
       showToast(data.error || "Error al enviar comprobante");
     }
@@ -505,18 +531,22 @@ function renderMarket(offers) {
   if (offers.length === 0) {
     grid.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">🔄</div>
+        <div class="empty-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
+        </div>
         <h3>No hay ofertas activas</h3>
-        <p>¡Sé el primero en publicar una oferta en el mercado P2P!</p>
+        <p>Sé el primero en publicar una oferta en el mercado de jugadores.</p>
       </div>
     `;
     return;
   }
 
   grid.innerHTML = offers.map(o => `
-    <div class="card tiktok-card">
+    <div class="card">
       <div class="card-top">
-        <div class="card-icon-pill">📦</div>
+        <div class="card-icon-pill">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+        </div>
         <span class="badge badge-tiktok">Vendedor: ${o.seller}</span>
       </div>
       <div class="card-content">
@@ -525,7 +555,7 @@ function renderMarket(offers) {
       </div>
       <div class="card-footer">
         <div class="card-prices">
-          <span class="price-coins">🪙 ${o.priceCoins.toLocaleString()} <small>NC</small></span>
+          <span class="price-coins">${o.priceCoins.toLocaleString()} <small>NC</small></span>
         </div>
         ${o.seller === currentUser
           ? `<button class="btn btn-secondary btn-block" disabled>Tu Oferta</button>`
@@ -559,7 +589,7 @@ document.getElementById("p2p-form").addEventListener("submit", async (e) => {
     if (data.ok) {
       closeModal("modal-p2p");
       document.getElementById("p2p-form").reset();
-      showToast("¡Oferta publicada exitosamente!");
+      showToast("Oferta publicada exitosamente.");
       loadMarket();
     } else {
       showToast(data.error || "Error al publicar");
@@ -581,7 +611,7 @@ window.buyMarketOffer = async (offerId) => {
     });
     const data = await res.json();
     if (data.ok) {
-      showToast("¡Compra completada!");
+      showToast("Compra completada exitosamente.");
       loadBalance();
       loadMarket();
     } else {
@@ -592,11 +622,11 @@ window.buyMarketOffer = async (offerId) => {
   }
 };
 
-// Buzón & Entregas (con Reclamo "No recibí mi producto")
+// Buzón & Entregas
 async function loadDeliveries() {
   if (!currentUser) return;
   const tbody = document.getElementById("deliveries-tbody");
-  tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Cargando entregas...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:2rem;">Cargando entregas...</td></tr>`;
 
   try {
     const res = await fetch(`/api/deliveries?username=${encodeURIComponent(currentUser)}`);
@@ -604,15 +634,15 @@ async function loadDeliveries() {
     const list = data.deliveries || [];
 
     if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:2rem;">No tienes artículos ni comandos pendientes en el buzón.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:2rem;">No tienes entregas pendientes en el buzón.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = list.map(d => {
       const isDelivered = d.status === "DELIVERED";
       const hasIssue = d.reportedIssue;
-      let badgeHtml = isDelivered ? `<span class="badge success">✅ Entregado</span>` : `<span class="badge warning">⏳ En Cola</span>`;
-      if (hasIssue) badgeHtml = `<span class="badge danger">⚠️ Reportado</span>`;
+      let badgeHtml = isDelivered ? `<span class="badge success">Entregado</span>` : `<span class="badge warning">En Cola</span>`;
+      if (hasIssue) badgeHtml = `<span class="badge danger">Reportado</span>`;
 
       return `
         <tr>
@@ -621,8 +651,8 @@ async function loadDeliveries() {
           <td>${badgeHtml}</td>
           <td>
             ${hasIssue
-              ? `<span style="font-size:0.8rem; color:var(--red); font-weight:600;">Reporte en revisión</span>`
-              : `<button class="btn btn-danger btn-sm" onclick="openReportModal('${d.id}')">⚠️ No recibí mi producto</button>`
+              ? `<span style="font-size:0.8rem; color:var(--red); font-weight:600;">En revisión</span>`
+              : `<button class="btn btn-danger btn-sm" onclick="openReportModal('${d.id}')">Reportar Problema</button>`
             }
           </td>
         </tr>
@@ -655,7 +685,7 @@ document.getElementById("report-form").addEventListener("submit", async (e) => {
     if (data.ok) {
       closeModal("modal-report");
       document.getElementById("report-form").reset();
-      showToast("Reporte enviado al Administrador con éxito.");
+      showToast("Reporte enviado al Administrador.");
       loadDeliveries();
     } else {
       showToast(data.error || "Error al enviar reporte");
@@ -665,7 +695,7 @@ document.getElementById("report-form").addEventListener("submit", async (e) => {
   }
 });
 
-// Top Ricos (Leaderboard)
+// Top Ricos
 async function loadLeaderboard() {
   const tbody = document.getElementById("leaderboard-tbody");
   try {
@@ -674,17 +704,17 @@ async function loadLeaderboard() {
     const list = data.leaderboard || [];
 
     if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Sin datos de clasificación.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:2rem;">Sin datos de clasificación.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = list.map((p, idx) => `
       <tr>
-        <td style="font-weight:700; color:${idx < 3 ? 'var(--amber)' : 'var(--text-muted)'};">${idx + 1}</td>
-        <td><strong>🎮 ${p.username}</strong></td>
-        <td>🪙 ${p.wallet.toLocaleString()} NC</td>
-        <td>🏦 ${p.bank.toLocaleString()} NC</td>
-        <td style="font-weight:700; color:var(--emerald);">🪙 ${p.total.toLocaleString()} NC</td>
+        <td style="font-weight:700; color:${idx < 3 ? 'var(--tiktok-red)' : 'var(--text-muted)'};">${idx + 1}</td>
+        <td><strong>${p.username}</strong></td>
+        <td>${p.wallet.toLocaleString()} NC</td>
+        <td>${p.bank.toLocaleString()} NC</td>
+        <td style="font-weight:700; color:var(--emerald);">${p.total.toLocaleString()} NC</td>
       </tr>
     `).join("");
   } catch (err) {
