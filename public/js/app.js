@@ -31,6 +31,25 @@ window.closeModal = (id) => {
   if (el) el.classList.remove("open");
 };
 
+// Search Handlers
+window.clearSearch = () => {
+  const searchInput = document.getElementById("store-search");
+  if (searchInput) {
+    searchInput.value = "";
+    if (typeof renderStore === "function") renderStore();
+    searchInput.focus();
+  }
+};
+
+window.setSearchTag = (tag) => {
+  const searchInput = document.getElementById("store-search");
+  if (searchInput) {
+    searchInput.value = tag;
+    if (typeof renderStore === "function") renderStore();
+    searchInput.focus();
+  }
+};
+
 // Tabs Navigation (Desktop cabecera y Mobile barra inferior sincronizados)
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -109,9 +128,6 @@ function updateAuthUI() {
 }
 
 // Modal Perfil de Jugador (Estadísticas RPG conectadas al addon de títulos)
-async function openProfileModal() {
-  if (!currentUser) return;
-  
 window.openProfile = async (targetUser) => {
   const userToLoad = targetUser || currentUser;
   if (!userToLoad) return openModal("modal-login");

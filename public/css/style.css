@@ -113,12 +113,20 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
-  color: #ffffff;
+  width: 36px;
+  height: 36px;
+  background: radial-gradient(circle at 35% 30%, rgba(168, 85, 247, 0.3) 0%, rgba(15, 23, 42, 0.85) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.35);
   border-radius: var(--radius-sm);
-  box-shadow: 0 2px 8px rgba(124,58,237,0.35);
+  box-shadow: 0 0 16px rgba(124, 58, 237, 0.35), inset 0 0 8px rgba(0, 242, 254, 0.15);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.brand:hover .brand-icon {
+  transform: scale(1.06) translateY(-1px);
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4), inset 0 0 12px rgba(168, 85, 247, 0.3);
 }
 
 .brand-badge {
