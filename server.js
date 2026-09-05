@@ -140,6 +140,19 @@ function loadDb() {
     // Purgar cualquier dato residual de staff y opRentals
     delete db.staff;
     delete db.opRentals;
+
+    // Purgar entregas residuales relacionadas con OP/deop y asegurar campos
+    if (!Array.isArray(db.deliveries)) db.deliveries = [];
+    db.deliveries = db.deliveries.filter(d => {
+      if (!d) return false;
+      const cmd = (d.command || "").toLowerCase();
+      if (cmd.startsWith("deop ") || cmd.startsWith("op ") || cmd.includes("renta op")) return false;
+      return true;
+    });
+    for (const d of db.deliveries) {
+      if (!d.username && d.targetGamertag) d.username = d.targetGamertag;
+      if (!d.username) d.username = "Unknown";
+    }
   } catch (err) {
     console.error("Error al cargar db.json:", err);
   }
@@ -332,7 +345,10 @@ function handleWsMessage(ws, data) {
   } else if (data.type === "POLL_DELIVERIES") {
     // Servidor pide entregas pendientes para un jugador que acaba de entrar
     const uname = (data.player || "").trim().toLowerCase();
-    const pendings = db.deliveries.filter(d => d.username.toLowerCase() === uname && d.status === "PENDING");
+    const pendings = (db.deliveries || []).filter(d => {
+      const u = (d.username || d.targetGamertag || "").toLowerCase();
+      return u === uname && d.status === "PENDING";
+    });
     ws.send(JSON.stringify({ type: "DELIVERIES_RESULT", player: data.player, deliveries: pendings }));
   } else if (data.type === "SYNC_PLAYERS") {
     // Sincronizar lista de jugadores desde el servidor de Minecraft
@@ -390,8 +406,8 @@ app.post("/api/addon/sync-players", (req, res) => {
 app.get("/api/addon/pending-deliveries", (req, res) => {
   const player = (req.query.player || "").trim().toLowerCase();
   const pendings = player
-    ? db.deliveries.filter(d => d.username.toLowerCase() === player && d.status === "PENDING")
-    : db.deliveries.filter(d => d.status === "PENDING");
+    ? (db.deliveries || []).filter(d => ((d.username || d.targetGamertag || "").toLowerCase() === player) && d.status === "PENDING")
+    : (db.deliveries || []).filter(d => d.status === "PENDING");
   res.json({ ok: true, deliveries: pendings });
 });
 
@@ -1111,11 +1127,17 @@ app.post("/api/market/buy", (req, res) => {
 // ── Rutas de Entregas / Buzón ──────────────────────────────────
 
 app.get("/api/deliveries", (req, res) => {
-  const uname = (req.query.username || "").trim().toLowerCase();
-  const list = uname
-    ? db.deliveries.filter(d => d.username.toLowerCase() === uname)
-    : db.deliveries;
-  res.json({ ok: true, deliveries: list.slice(0, 50) });
+  try {
+    if (!Array.isArray(db.deliveries)) db.deliveries = [];
+    const uname = (req.query.username || "").trim().toLowerCase();
+    const list = uname
+      ? db.deliveries.filter(d => (d.username || d.targetGamertag || "").toLowerCase() === uname)
+      : db.deliveries;
+    res.json({ ok: true, deliveries: list.slice(0, 50) });
+  } catch (err) {
+    console.error("Error al obtener entregas:", err);
+    res.status(500).json({ ok: false, error: err.message, deliveries: [] });
+  }
 });
 
 // ── Rutas del Panel de Administración (/admin) ─────────────────
