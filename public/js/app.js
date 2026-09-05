@@ -1455,35 +1455,49 @@ function renderPlayers(players) {
     const isFriend = p.friendship === "friends";
     const isIncoming = p.friendship === "incoming";
     const isOutgoing = p.friendship === "outgoing";
+    const isMe = currentUser && (p.username.toLowerCase() === currentUser.toLowerCase());
 
     let actionBtnHtml = "";
     if (!currentUser) {
-      actionBtnHtml = `<button class="btn btn-secondary btn-block" onclick="openModal('modal-login')">Conectar</button>`;
+      actionBtnHtml = `<button type="button" class="btn btn-secondary btn-block" onclick="openModal('modal-login')">Conectar</button>`;
+    } else if (isMe) {
+      actionBtnHtml = `
+        <button type="button" class="btn btn-secondary btn-block" onclick="openProfile('${p.username}')" style="display:flex; align-items:center; justify-content:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Mi Perfil</span>
+        </button>
+      `;
     } else if (isFriend) {
       actionBtnHtml = `
-        <button class="btn btn-tiktok" style="flex:2; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="openChatWith('${p.username}')">
+        <button type="button" class="btn btn-primary" style="flex:2; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="openChatWith('${p.username}')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           <span>Chat</span>
         </button>
-        <button class="btn btn-danger-soft" style="flex:1; display:flex; align-items:center; justify-content:center;" onclick="removeFriend('${p.username}')" title="Eliminar Amigo">
+        <button type="button" class="btn btn-danger-soft" style="flex:1; display:flex; align-items:center; justify-content:center;" onclick="removeFriend('${p.username}')" title="Eliminar Amigo">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       `;
     } else if (isIncoming) {
       actionBtnHtml = `
-        <button class="btn btn-tiktok btn-block" onclick="loadFriendRequests()">Responder Solicitud</button>
+        <button type="button" class="btn btn-primary btn-block" onclick="loadFriendRequests()" style="display:flex; align-items:center; justify-content:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          <span>Responder Solicitud</span>
+        </button>
       `;
     } else if (isOutgoing) {
       actionBtnHtml = `
-        <button class="btn btn-secondary btn-block" disabled>Solicitud Enviada</button>
+        <button type="button" class="btn btn-secondary btn-block" disabled style="display:flex; align-items:center; justify-content:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Solicitud Enviada</span>
+        </button>
       `;
     } else {
       actionBtnHtml = `
-        <button class="btn btn-tiktok" style="flex:2; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="sendFriendRequest('${p.username}')">
+        <button type="button" class="btn btn-primary" style="flex:2; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="sendFriendRequest('${p.username}')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
           <span>Añadir</span>
         </button>
-        <button class="btn btn-secondary" style="flex:1; display:flex; align-items:center; justify-content:center;" onclick="openChatWith('${p.username}')" title="Enviar Mensaje Directo">
+        <button type="button" class="btn btn-secondary" style="flex:1; display:flex; align-items:center; justify-content:center;" onclick="openChatWith('${p.username}')" title="Enviar Mensaje Directo">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </button>
       `;

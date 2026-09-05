@@ -288,8 +288,8 @@ body {
   gap: 0.75rem;
 }
 .player-card-avatar {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 2px solid var(--border);
   object-fit: cover;
@@ -330,6 +330,11 @@ body {
   align-items: center;
   font-size: 0.78rem;
   color: var(--text-muted);
+  gap: 0.5rem;
+}
+.player-card-stat-item {
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 .player-card-stat-item strong {
   color: var(--text);
@@ -339,19 +344,27 @@ body {
   display: flex;
   gap: 0.45rem;
   width: 100%;
-  align-items: stretch;
+  align-items: center;
 }
 .player-card-actions .btn {
-  padding: 0.48rem 0.75rem !important;
-  font-size: 0.8rem !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.82rem !important;
   font-weight: 700 !important;
   border-radius: var(--radius-sm) !important;
   line-height: 1.2 !important;
+  box-sizing: border-box;
 }
+.player-card-actions .btn-primary,
 .player-card-actions .btn-tiktok {
   color: #ffffff !important;
   background: var(--primary) !important;
+  border: 1px solid var(--primary) !important;
 }
+.player-card-actions .btn-primary:hover,
+.player-card-actions .btn-tiktok:hover {
+  background: var(--primary-hover) !important;
+}
+.player-card-actions .btn-primary svg,
 .player-card-actions .btn-tiktok svg {
   stroke: #ffffff !important;
 }
@@ -360,8 +373,22 @@ body {
   background: var(--tiktok-gray) !important;
   border: 1px solid var(--border) !important;
 }
+.player-card-actions .btn-secondary:hover {
+  background: var(--surface-hover) !important;
+  border-color: var(--border-hover) !important;
+}
 .player-card-actions .btn-secondary svg {
   stroke: var(--text) !important;
+}
+.player-card-actions .btn:disabled {
+  opacity: 0.75 !important;
+  cursor: not-allowed !important;
+  background: var(--tiktok-gray) !important;
+  color: var(--text-muted) !important;
+  border: 1px solid var(--border) !important;
+}
+.player-card-actions .btn:disabled svg {
+  stroke: var(--text-muted) !important;
 }
 
 /* Badge flotante móvil discreto - No tapa textos */
@@ -489,16 +516,47 @@ body {
 .search-clear-btn:hover { background: var(--primary); color: #fff; }
 
 /* Tags de búsqueda rápida */
-.search-tags { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.85rem; }
+.search-tags {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
 .search-tags-label { font-size: 0.78rem; font-weight: 600; color: var(--text-subtle); margin-right: 0.2rem; }
 
 .search-tag-pill {
-  background: var(--tiktok-gray); border: 1px solid transparent;
-  padding: 0.3rem 0.8rem; border-radius: var(--radius-full);
-  font-size: 0.78rem; font-weight: 600; color: var(--text-muted);
-  cursor: pointer; transition: all 0.15s; font-family: inherit;
+  background: var(--tiktok-gray);
+  border: 1px solid transparent;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  white-space: nowrap;
 }
 .search-tag-pill:hover, .search-tag-pill.active { background: var(--primary-light); color: var(--primary); border-color: var(--border-strong); }
+
+@media (max-width: 768px) {
+  .search-tags {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 2px 4px 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .search-tags::-webkit-scrollbar {
+    display: none;
+  }
+  .search-tag-pill {
+    flex-shrink: 0;
+  }
+}
 
 /* ==========================================================================
    SECCIÓN HEADER
@@ -742,23 +800,6 @@ tr:hover td { background: var(--surface-hover); }
 .social-panel.active { display: block; }
 
 /* ==========================================================================
-   TARJETAS DE JUGADORES
-   ========================================================================== */
-.player-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.2rem; display: flex; flex-direction: column; gap: 0.9rem; transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; }
-.player-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--border-hover); }
-
-.player-card-header { display: flex; align-items: center; gap: 0.8rem; }
-.player-card-avatar { width: 48px; height: 48px; border-radius: var(--radius-full); border: 2px solid var(--border); object-fit: cover; flex-shrink: 0; }
-.player-card-name { font-size: 0.98rem; font-weight: 800; color: var(--text); }
-.player-card-title { font-size: 0.74rem; font-weight: 700; color: var(--primary); margin-top: 1px; }
-.player-card-info { flex: 1; min-width: 0; }
-.player-card-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; background: var(--surface-hover); padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.78rem; }
-.player-card-stat-item { color: var(--text-muted); }
-.player-card-stat-item strong { color: var(--text); }
-.player-card-actions { display: flex; gap: 0.45rem; }
-.player-card-actions .btn { flex: 1; }
-
-/* ==========================================================================
    MESSENGER / CHAT
    ========================================================================== */
 .messenger-container { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); height: calc(100vh - 210px); min-height: 480px; max-height: 750px; overflow: hidden; }
@@ -785,14 +826,81 @@ tr:hover td { background: var(--surface-hover); }
 .messenger-empty-icon { width: 68px; height: 68px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; }
 .messenger-active-chat { display: flex; flex-direction: column; flex: 1; min-height: 0; height: 100%; overflow: hidden; }
 
-.messenger-chat-header { padding: 0.7rem 1.1rem; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; flex-shrink: 0; }
-.messenger-header-user { display: flex; align-items: center; gap: 0.65rem; min-width: 0; }
-.chat-back-btn { display: none; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: var(--radius-sm); }
-.chat-back-btn:hover { color: var(--text); background: var(--surface-hover); }
-.chat-header-avatar { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); object-fit: cover; }
-.chat-header-name { font-size: 0.92rem; font-weight: 800; color: var(--text); }
-.chat-header-status { font-size: 0.73rem; color: var(--emerald); font-weight: 600; }
-.messenger-header-actions { display: flex; gap: 0.35rem; }
+.messenger-chat-header {
+  padding: 0.65rem 0.9rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  min-width: 0;
+}
+.messenger-header-user {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.messenger-header-user > div {
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.chat-back-btn {
+  display: none;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  transition: all 0.15s;
+}
+.chat-back-btn:hover {
+  color: var(--primary);
+  background: var(--primary-light);
+  border-color: var(--border-strong);
+}
+.chat-header-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.chat-header-name {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-header-status {
+  font-size: 0.72rem;
+  color: var(--emerald);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.messenger-header-actions {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  flex-shrink: 0;
+}
 
 .messenger-messages-body { flex: 1; padding: 1.1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6rem; min-height: 0; }
 .chat-bubble-row { display: flex; flex-direction: column; max-width: 74%; }
@@ -1384,6 +1492,35 @@ tr:hover td { background: var(--surface-hover); }
   .messenger-container.mobile-chat-open .messenger-sidebar { display: none; }
   .messenger-container.mobile-chat-open .messenger-chat-area { display: flex; }
   .chat-back-btn { display: inline-flex; align-items: center; justify-content: center; }
+  
+  .messenger-chat-header {
+    padding: 0.55rem 0.75rem;
+    gap: 0.4rem;
+  }
+  .messenger-header-user {
+    gap: 0.45rem;
+  }
+  .chat-header-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  .chat-header-name {
+    font-size: 0.85rem;
+    max-width: 120px;
+  }
+  .chat-header-status {
+    font-size: 0.68rem;
+  }
+  .messenger-header-actions .btn {
+    padding: 0.42rem 0.55rem !important;
+    font-size: 0.75rem !important;
+    gap: 0 !important;
+    min-width: 32px;
+    height: 32px;
+  }
+  .messenger-header-actions .btn span {
+    display: none;
+  }
 
   /* Admin tabla → cards */
   .admin-table-wrap { background: transparent; border: none; box-shadow: none; }
