@@ -1311,18 +1311,17 @@ function renderPlayers(players) {
 
     const isLinked = !!p.linked;
     const cardClass = isLinked ? "player-card linked" : "player-card unlinked";
-    const statusBadgeHtml = isLinked
-      ? `<span class="player-status-badge linked">✓ Vinculado Bedrock</span>`
-      : `<span class="player-status-badge unlinked" title="Este jugador aún no ejecuta /link en el servidor">⚠️ No Vinculado</span>`;
+    const statusDot = isLinked
+      ? `<span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--emerald); margin-left:4px; vertical-align:middle;" title="Vinculado a Bedrock"></span>`
+      : `<span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--text-subtle); margin-left:4px; vertical-align:middle;" title="No vinculado"></span>`;
 
     return `
       <div class="${cardClass}">
         <div class="player-card-header" onclick="openProfile('${p.username}')" style="cursor:pointer;" title="Toca para ver el perfil completo de ${p.displayName}">
           <img src="${p.avatarUrl}" alt="${p.displayName}" class="player-card-avatar">
           <div class="player-card-info">
-            <div class="player-card-name">${p.displayName}</div>
-            <div class="player-card-title">${p.selectedTitle ? `[${p.selectedTitle}]` : (isLinked ? 'Jugador Bedrock' : 'No Vinculado')}</div>
-            <div>${statusBadgeHtml}</div>
+            <div class="player-card-name">${p.displayName}${statusDot}</div>
+            <div class="player-card-title">${p.selectedTitle ? `[${p.selectedTitle}]` : (isLinked ? 'Jugador Bedrock' : 'Sin vincular')}</div>
           </div>
         </div>
         <div class="player-card-stats" onclick="openProfile('${p.username}')" style="cursor:pointer;" title="Toca para ver estadísticas detalladas">
