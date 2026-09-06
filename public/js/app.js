@@ -634,23 +634,23 @@ function showReceipt(receipt) {
     hour: "2-digit", minute: "2-digit"
   });
 
-  document.getElementById("receipt-amount").textContent  = `-${fmt(receipt.amount)} NC`;
-  document.getElementById("receipt-from").textContent    = receipt.from;
-  document.getElementById("receipt-to").textContent      = receipt.to;
-  document.getElementById("receipt-balance").textContent = `${fmt(receipt.newBalance)} NC`;
-  document.getElementById("receipt-date").textContent    = date;
-  document.getElementById("receipt-txid").textContent    = receipt.txId;
+  document.getElementById("tr-amount").textContent  = `-${fmt(receipt.amount)} NC`;
+  document.getElementById("tr-from").textContent    = receipt.from;
+  document.getElementById("tr-to").textContent      = receipt.to;
+  document.getElementById("tr-balance").textContent = `${fmt(receipt.newBalance)} NC`;
+  document.getElementById("tr-date").textContent    = date;
+  document.getElementById("tr-txid").textContent    = receipt.txId;
 
-  const noteRow = document.getElementById("receipt-note-row");
-  const noteEl  = document.getElementById("receipt-note");
+  const noteRow = document.getElementById("tr-note-row");
+  const noteEl  = document.getElementById("tr-note");
   if (receipt.note) {
-    noteEl.textContent      = receipt.note;
-    noteRow.style.display   = "flex";
+    noteEl.textContent    = receipt.note;
+    noteRow.style.display = "flex";
   } else {
-    noteRow.style.display   = "none";
+    noteRow.style.display = "none";
   }
 
-  openModal("modal-receipt");
+  openModal("modal-transfer-receipt");
 }
 
 document.getElementById("quick-transfer-form")?.addEventListener("submit", async (e) => {
