@@ -162,6 +162,13 @@ window.openProfile = async (targetUser) => {
         openChatWith(userToLoad);
       };
     }
+    const btnTransfer = document.getElementById("btn-other-profile-transfer");
+    if (btnTransfer) {
+      btnTransfer.onclick = () => {
+        closeModal("modal-profile");
+        openQuickTransfer(userToLoad);
+      };
+    }
     const btnFriend = document.getElementById("btn-other-profile-friend");
     if (btnFriend) {
       btnFriend.onclick = () => {
@@ -520,13 +527,13 @@ function startAuthCountdown(expiresAt) {
       const res = await fetch(`/api/auth/check-link-status?code=${pendingAuthCode}&sessionToken=${pendingSessionToken || ''}`);
       const data = await res.json();
       if (data.ok && data.verified) {
-        completeAuth(data.user);
+        completeAuth(data.user, data.welcomeBonus || 0);
       }
     } catch (_) {}
   }, 2500);
 }
 
-function completeAuth(user) {
+function completeAuth(user, welcomeBonus = 0) {
   clearInterval(authCountdownInterval);
   clearInterval(authPollingInterval);
 
@@ -539,7 +546,12 @@ function completeAuth(user) {
   closeModal("modal-login");
   resetAuthModal();
   updateAuthUI();
-  showToast(`Cuenta vinculada con éxito. Bienvenido, ${currentUser}`);
+
+  if (welcomeBonus > 0) {
+    showToast(`¡Bienvenido ${currentUser}! Recibiste +${welcomeBonus.toLocaleString()} NC de bono por vincularte.`);
+  } else {
+    showToast(`Cuenta vinculada. Bienvenido de vuelta, ${currentUser}.`);
+  }
 }
 
 async function validateCurrentSession() {
@@ -592,6 +604,59 @@ async function loadBalance() {
     console.error("Error cargando saldo:", err);
   }
 }
+
+// Transferencia rápida desde perfil de jugador
+window.openQuickTransfer = (toUsername) => {
+  if (!currentUser) return openModal("modal-login");
+  const avatar = `https://mc-heads.net/avatar/${encodeURIComponent(toUsername)}/40`;
+  document.getElementById("qt-recipient-name").textContent    = toUsername;
+  document.getElementById("qt-recipient-display").textContent = toUsername;
+  document.getElementById("qt-recipient-avatar").src          = avatar;
+  document.getElementById("qt-recipient-input").value         = toUsername;
+  document.getElementById("qt-my-balance").textContent        = `${userData.wallet.toLocaleString()} NC`;
+  document.getElementById("qt-amount").value                  = "";
+  document.getElementById("qt-note").value                    = "";
+
+  // Intentar obtener avatar real
+  fetch(`/api/players/profile/${encodeURIComponent(toUsername)}`)
+    .then(r => r.json())
+    .then(d => { if (d.ok && d.user && d.user.avatarUrl) document.getElementById("qt-recipient-avatar").src = d.user.avatarUrl; })
+    .catch(() => {});
+
+  openModal("modal-quick-transfer");
+};
+
+document.getElementById("quick-transfer-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!currentUser) return;
+  const toUser  = document.getElementById("qt-recipient-input").value.trim();
+  const amount  = parseInt(document.getElementById("qt-amount").value);
+  const note    = document.getElementById("qt-note").value.trim();
+  if (!toUser || isNaN(amount) || amount <= 0) return showToast("Monto inválido");
+
+  const btn = e.submitter;
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch("/api/wallet/transfer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fromUser: currentUser, toUser, amount, note })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      closeModal("modal-quick-transfer");
+      showToast(data.message || `Transferencia enviada a ${toUser}.`);
+      loadBalance();
+    } else {
+      showToast(data.error || "Error en la transferencia");
+    }
+  } catch {
+    showToast("Error de conexión");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+});
 
 // Historial de transacciones
 async function loadTransactions() {
@@ -2151,7 +2216,7 @@ function initWS() {
                            (msg.displayName && msg.displayName.toLowerCase() === pendingAuthUsername.toLowerCase())
                          ));
         if (isTarget && msg.user) {
-          completeAuth(msg.user);
+          completeAuth(msg.user, msg.welcomeBonus || 0);
         }
       }
       else if (eventType === "STORE_UPDATED") loadStore();

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, saveDb } from "../database/index.js";
-import { getOrCreateUser } from "../services/economy.js";
+import { getOrCreateUser, logTransaction } from "../services/economy.js";
 import { broadcastWs } from "../services/websocket.js";
 
 const router = Router();
@@ -78,6 +78,14 @@ router.post("/verify-link", (req, res) => {
 
   const user = getOrCreateUser(targetPlayer);
   user.displayName = player.trim();
+
+  // Bono de bienvenida: 500 NC solo la primera vez que se vincula
+  const isFirstLink = !user.linked;
+  if (isFirstLink) {
+    user.wallet = (user.wallet || 0) + 500;
+    logTransaction("SYSTEM", user.username, 500, "WELCOME_BONUS", "Bono de bienvenida por primera vinculación");
+  }
+
   user.linked = true;
   user.linkedAt = new Date().toISOString();
   if (xuid && !user.xuid) user.xuid = xuid;
@@ -97,7 +105,8 @@ router.post("/verify-link", (req, res) => {
     username: user.username,
     displayName: user.displayName,
     sessionToken,
-    user
+    user,
+    welcomeBonus: isFirstLink ? 500 : 0
   });
 
   res.json({
