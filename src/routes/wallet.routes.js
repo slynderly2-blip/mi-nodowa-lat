@@ -94,7 +94,20 @@ router.post("/transfer", (req, res) => {
   broadcastWs("BALANCE_UPDATE", { username: sender.username, wallet: sender.wallet });
   broadcastWs("BALANCE_UPDATE", { username: receiver.username, wallet: receiver.wallet });
 
-  res.json({ ok: true, message: `Has enviado ${numAmount.toLocaleString()} NC a ${receiver.displayName || receiver.username}.` });
+  const txId = "TX-" + Date.now().toString(36).toUpperCase();
+  res.json({
+    ok: true,
+    message: `Has enviado ${numAmount.toLocaleString()} NC a ${receiver.displayName || receiver.username}.`,
+    receipt: {
+      txId,
+      from:        sender.displayName   || sender.username,
+      to:          receiver.displayName || receiver.username,
+      amount:      numAmount,
+      note:        note || "",
+      newBalance:  Math.floor(sender.wallet),
+      date:        new Date().toISOString()
+    }
+  });
 });
 
 // Consultar estado de intereses bancarios

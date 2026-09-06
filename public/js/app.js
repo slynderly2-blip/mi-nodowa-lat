@@ -626,6 +626,33 @@ window.openQuickTransfer = (toUsername) => {
   openModal("modal-quick-transfer");
 };
 
+// Mostrar recibo de transferencia
+function showReceipt(receipt) {
+  const fmt = (n) => Number(n).toLocaleString();
+  const date = new Date(receipt.date).toLocaleString("es", {
+    day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+
+  document.getElementById("receipt-amount").textContent  = `-${fmt(receipt.amount)} NC`;
+  document.getElementById("receipt-from").textContent    = receipt.from;
+  document.getElementById("receipt-to").textContent      = receipt.to;
+  document.getElementById("receipt-balance").textContent = `${fmt(receipt.newBalance)} NC`;
+  document.getElementById("receipt-date").textContent    = date;
+  document.getElementById("receipt-txid").textContent    = receipt.txId;
+
+  const noteRow = document.getElementById("receipt-note-row");
+  const noteEl  = document.getElementById("receipt-note");
+  if (receipt.note) {
+    noteEl.textContent      = receipt.note;
+    noteRow.style.display   = "flex";
+  } else {
+    noteRow.style.display   = "none";
+  }
+
+  openModal("modal-receipt");
+}
+
 document.getElementById("quick-transfer-form")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!currentUser) return;
@@ -646,8 +673,9 @@ document.getElementById("quick-transfer-form")?.addEventListener("submit", async
     const data = await res.json();
     if (data.ok) {
       closeModal("modal-quick-transfer");
-      showToast(data.message || `Transferencia enviada a ${toUser}.`);
       loadBalance();
+      if (data.receipt) showReceipt(data.receipt);
+      else showToast(data.message || `Transferencia enviada a ${toUser}.`);
     } else {
       showToast(data.error || "Error en la transferencia");
     }
@@ -874,9 +902,10 @@ document.getElementById("transfer-form").addEventListener("submit", async (e) =>
     });
     const data = await res.json();
     if (data.ok) {
-      showToast(data.message);
       document.getElementById("transfer-form").reset();
       loadBalance();
+      if (data.receipt) showReceipt(data.receipt);
+      else showToast(data.message);
     } else {
       showToast(data.error || "Error en la transferencia");
     }
