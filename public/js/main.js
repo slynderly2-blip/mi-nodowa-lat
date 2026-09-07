@@ -14,7 +14,7 @@ import { loadCoinsCenter, createNcListing, buyNcListing, startOfficialCoinsCheck
 import { loadUserShop, switchShopSubTab } from './user-shop.js';
 import { loadMarket, buyP2PListing, deleteP2PListing, listMyItemP2P } from './market.js';
 import { loadTransactions, openQuickTransfer, openBankActionModal, setBankPercentage, claimBankInterest, submitQuickTransfer } from './wallet.js';
-import { openChatWith, closeChatMobile, deleteMessage } from './chat.js';
+import { openChatWith, closeChatMobile, deleteMessage, initChat } from './chat.js';
 import { sendFriendRequest, viewOtherPlayerProfile, switchSocialSubTab, setPlayersFilter, clearPlayersSearch, respondFriendRequest, removeFriend, initSocial } from './social.js';
 import { openReportModal } from './deliveries.js';
 import { loadLeaderboard } from './leaderboard.js';
@@ -90,11 +90,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 [Nodowa] Cliente Web v2.5 Iniciado (Tema Claro & Modular)');
 
   try {
-    // 1. Listeners de autenticación, perfil y social
+    // 1. Listeners de autenticación, perfil, social y chat
     initAuthListeners();
     initProfileListeners();
     initSocial();
-    console.log('✓ [Auth/Profile/Social] Listeners registrados');
+    initChat();
+    console.log('✓ [Auth/Profile/Social/Chat] Listeners registrados');
 
     // 2. Comprobar sesión activa
     await validateCurrentSession();

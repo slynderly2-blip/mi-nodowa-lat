@@ -143,7 +143,9 @@ export function initDeliveries() {
   window.__showReceiptFromData = (dataStr) => {
     try {
       const parsed = JSON.parse(dataStr.replace(/&quot;/g, '"'));
-      showPurchaseReceipt(parsed);
+      if (typeof window.showPurchaseReceipt === 'function') {
+        window.showPurchaseReceipt(parsed);
+      }
     } catch (e) {}
   };
 }

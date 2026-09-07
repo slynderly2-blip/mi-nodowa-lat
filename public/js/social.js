@@ -25,8 +25,14 @@ export function switchSocialSubTab(subTab) {
 
   if (pBtn)   pBtn.classList.toggle("active",   subTab === "players");
   if (cBtn)   cBtn.classList.toggle("active",   subTab === "chat");
-  if (pPanel) pPanel.classList.toggle("active", subTab === "players");
-  if (cPanel) cPanel.classList.toggle("active", subTab === "chat");
+  if (pPanel) {
+    pPanel.classList.toggle("active", subTab === "players");
+    pPanel.style.display = subTab === "players" ? "block" : "none";
+  }
+  if (cPanel) {
+    cPanel.classList.toggle("active", subTab === "chat");
+    cPanel.style.display = subTab === "chat" ? "block" : "none";
+  }
 
   if (subTab === "players") { loadPlayers(); loadFriendRequests(); }
   else {
@@ -119,9 +125,12 @@ function renderPlayers(players) {
         </button>`;
     } else if (isOutgoing) {
       actionBtnHtml = `
-        <button type="button" class="btn btn-secondary btn-block" disabled style="display:flex; align-items:center; justify-content:center; gap:6px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          <span>Solicitud Enviada</span>
+        <button type="button" class="btn btn-danger-soft" style="flex:2; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="cancelFriendRequest('${p.username}')" title="Cancelar Solicitud de Amistad">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <span>Cancelar</span>
+        </button>
+        <button type="button" class="btn btn-secondary" style="flex:1; display:flex; align-items:center; justify-content:center;" onclick="openChatWith('${p.username}')" title="Enviar Mensaje Directo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </button>`;
     } else {
       actionBtnHtml = `
@@ -243,8 +252,25 @@ export async function removeFriend(friendUsername) {
   } catch (e) { showToast("Error de conexión"); }
 }
 
-export function viewOtherPlayerProfile(uname) {
-  if (window.navigateTo) window.navigateTo('/' + encodeURIComponent(uname));
+export async function cancelFriendRequest(target) {
+  const { currentUser } = state;
+  if (!currentUser) return openModal("modal-login");
+  try {
+    const res = await fetch("/api/social/friends/cancel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sender: currentUser, target })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(data.message || "Solicitud cancelada.");
+      loadPlayers();
+    } else {
+      showToast(data.error || "No se pudo cancelar.");
+    }
+  } catch (err) {
+    showToast("Error de conexión");
+  }
 }
 
 window.viewOtherPlayerProfile = viewOtherPlayerProfile;
@@ -252,6 +278,7 @@ window.switchSocialSubTab   = switchSocialSubTab;
 window.setPlayersFilter     = setPlayersFilter;
 window.clearPlayersSearch   = clearPlayersSearch;
 window.sendFriendRequest    = sendFriendRequest;
+window.cancelFriendRequest  = cancelFriendRequest;
 window.respondFriendRequest = respondFriendRequest;
 window.removeFriend         = removeFriend;
 window.loadFriendRequests   = loadFriendRequests;

@@ -1,24 +1,254 @@
 /* ==========================================================================
-   TARJETAS DE JUGADORES (Comunidad)
+   COMUNIDAD & TARJETAS DE JUGADORES (Nodowa Network)
    ========================================================================== */
-.player-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.15rem; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 0.75rem; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
-.player-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--border-hover); }
-.player-card-header { display: flex; align-items: center; gap: 0.75rem; }
-.player-card-avatar { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--border); object-fit: cover; flex-shrink: 0; }
-.player-card.linked .player-card-avatar { border-color: var(--emerald); }
-.player-card-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-.player-card-name { font-size: 0.95rem; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; }
-.player-card-title { font-size: 0.74rem; font-weight: 700; color: var(--primary); margin-top: 1px; }
-.player-card-stats { background: var(--surface-hover); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.55rem 0.85rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--text-muted); gap: 0.5rem; }
-.player-card-stat-item { color: var(--text-muted); white-space: nowrap; }
-.player-card-stat-item strong { color: var(--text); font-weight: 800; }
-.player-card-actions { display: flex; gap: 0.45rem; width: 100%; align-items: center; }
-.player-card-actions .btn { padding: 0.5rem 0.75rem !important; font-size: 0.82rem !important; font-weight: 700 !important; border-radius: var(--radius-sm) !important; line-height: 1.2 !important; box-sizing: border-box; }
-.player-card-actions .btn-primary, .player-card-actions .btn-tiktok { color: #ffffff !important; background: var(--primary) !important; border: 1px solid var(--primary) !important; }
-.player-card-actions .btn-primary:hover, .player-card-actions .btn-tiktok:hover { background: var(--primary-hover) !important; }
-.player-card-actions .btn-primary svg, .player-card-actions .btn-tiktok svg { stroke: #ffffff !important; }
-.player-card-actions .btn-secondary { color: var(--text) !important; background: var(--tiktok-gray) !important; border: 1px solid var(--border) !important; }
-.player-card-actions .btn-secondary:hover { background: var(--surface-hover) !important; border-color: var(--border-hover) !important; }
-.player-card-actions .btn-secondary svg { stroke: var(--text) !important; }
-.player-card-actions .btn:disabled { opacity: 0.75 !important; cursor: not-allowed !important; background: var(--tiktok-gray) !important; color: var(--text-muted) !important; border: 1px solid var(--border) !important; }
-.player-card-actions .btn:disabled svg { stroke: var(--text-muted) !important; }
+
+/* Sub-pestañas de Comunidad */
+.social-subnav {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0.75rem;
+}
+
+.social-subnav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.25rem;
+  border-radius: var(--radius-full);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  transition: all 0.18s ease;
+}
+
+.social-subnav-btn:hover {
+  color: var(--text);
+  border-color: var(--primary);
+  background: var(--surface-hover);
+}
+
+.social-subnav-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+/* Grid de Jugadores */
+#players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+/* Tarjeta individual de jugador */
+.player-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.player-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary);
+}
+
+.player-card.linked {
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.player-card.linked:hover {
+  border-color: var(--emerald);
+  box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.2);
+}
+
+/* Encabezado con Avatar e Identidad */
+.player-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.player-card-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  object-fit: cover;
+  background: var(--surface-subtle);
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease;
+}
+
+.player-card:hover .player-card-avatar {
+  transform: scale(1.05);
+}
+
+.player-card.linked .player-card-avatar {
+  border-color: var(--emerald);
+}
+
+.player-card-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.player-card-name {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.player-card-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.player-card.linked .player-card-title {
+  color: var(--emerald);
+}
+
+/* Indicador de vinculación Bedrock */
+.bedrock-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  margin-top: 2px;
+}
+
+.bedrock-tag.linked {
+  background: var(--emerald-light);
+  color: var(--emerald);
+}
+
+.bedrock-tag.unlinked {
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+}
+
+/* Caja de estadísticas */
+.player-card-stats {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.9rem;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  gap: 0.5rem;
+}
+
+.player-card-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.player-card-stat-item .stat-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  letter-spacing: 0.3px;
+}
+
+.player-card-stat-item strong {
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+/* Barra de acciones */
+.player-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  align-items: center;
+  margin-top: auto;
+}
+
+.player-card-actions .btn {
+  padding: 0.55rem 0.85rem !important;
+  font-size: 0.84rem !important;
+  font-weight: 700 !important;
+  border-radius: var(--radius-md) !important;
+  box-sizing: border-box;
+}
+
+.player-card-actions .btn-primary {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--primary) !important;
+}
+
+.player-card-actions .btn-primary:hover {
+  background: var(--primary-hover) !important;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.25);
+}
+
+.player-card-actions .btn-secondary {
+  background: var(--surface-subtle) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.player-card-actions .btn-secondary:hover {
+  background: #e2e8f0 !important;
+  border-color: var(--border) !important;
+}
+
+.player-card-actions .btn-danger-soft {
+  background: var(--red-light) !important;
+  color: var(--red) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+.player-card-actions .btn-danger-soft:hover {
+  background: var(--red) !important;
+  color: #ffffff !important;
+}
+
+/* Solicitudes de amistad entrantes */
+#incoming-requests-box {
+  background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}

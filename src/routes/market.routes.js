@@ -32,29 +32,39 @@ const getListingsHandler = (req, res) => {
 router.get("/", getListingsHandler);
 router.get("/listings", getListingsHandler);
 
-// Publicar un artículo en el mercado P2P
+// Publicar un artículo en el mercado P2P (Marketplace)
 const publishHandler = (req, res) => {
-  const { seller, title, itemType, quantity, price, description } = req.body;
-  const numPrice = Math.floor(Number(price));
+  const { seller, title, itemType, quantity, price, description, whatsappCountry, whatsappNumber } = req.body;
+  const numPrice = Math.floor(Number(price) || 0);
   const numQty = Math.max(1, Math.floor(Number(quantity) || 1));
 
-  if (!seller || !title || !itemType || isNaN(numPrice) || numPrice <= 0) {
-    return res.status(400).json({ ok: false, error: "Completa todos los campos obligatorios del artículo." });
+  if (!seller || !title) {
+    return res.status(400).json({ ok: false, error: "Completa el título del artículo a publicar." });
   }
 
   const user = getOrCreateUser(seller);
-  if (!user.linked) {
-    return res.status(403).json({ ok: false, error: "Debes vincular tu cuenta con Minecraft para vender en el mercado." });
+  const cleanWaNumber = (whatsappNumber || "").trim().replace(/\D/g, "");
+  const cleanWaCountry = (whatsappCountry || "+591").trim();
+
+  // Si proporcionó WhatsApp, recordarlo en el perfil del usuario
+  if (cleanWaNumber) {
+    if (!user.socialLinks) user.socialLinks = {};
+    user.socialLinks.whatsapp = `${cleanWaCountry}${cleanWaNumber}`;
   }
 
   const listing = {
     id: "p2p_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
     seller: user.displayName || user.username,
+    sellerAvatar: user.avatarUrl || `https://mc-heads.net/avatar/${user.displayName || user.username}/64`,
+    sellerLinked: !!user.linked,
     title: title.trim(),
-    itemType: itemType.trim().toLowerCase(),
+    itemType: (itemType || "Varios").trim(),
     quantity: numQty,
-    price: numPrice,
+    price: numPrice > 0 ? numPrice : "A convenir",
     description: (description || "").trim(),
+    whatsappCountry: cleanWaCountry,
+    whatsappNumber: cleanWaNumber,
+    whatsappFull: cleanWaNumber ? `${cleanWaCountry.replace(/\+/g, '')}${cleanWaNumber}` : null,
     createdAt: new Date().toISOString()
   };
 
@@ -63,7 +73,7 @@ const publishHandler = (req, res) => {
   saveDb();
 
   broadcastWs("P2P_NEW_LISTING", listing);
-  res.json({ ok: true, message: "Artículo publicado en el mercado P2P", listing });
+  res.json({ ok: true, message: "Artículo publicado en el Marketplace", listing });
 };
 
 router.post("/publish", publishHandler);

@@ -1,5 +1,195 @@
 /* ==========================================================================
-   MERCADO P2P
+   MARKETPLACE P2P (Estilo Facebook Marketplace / Conexión de Jugadores)
    ========================================================================== */
-/* Las tarjetas P2P reutilizan .card y .card-grid de components.css */
-/* Estilos especificos del mercado van aqui si se agregan en el futuro */
+
+.marketplace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.marketplace-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.85rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.marketplace-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary);
+}
+
+.marketplace-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.marketplace-item-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.25;
+  margin-bottom: 0.25rem;
+}
+
+.marketplace-category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--primary-light);
+  color: var(--primary);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.marketplace-seller-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.marketplace-seller-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.marketplace-seller-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.marketplace-price-box {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-top: 1px dashed var(--border);
+  border-bottom: 1px dashed var(--border);
+  padding: 0.6rem 0;
+}
+
+.marketplace-price {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--amber);
+}
+
+.marketplace-qty {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--surface-subtle);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.marketplace-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  flex-grow: 1;
+}
+
+/* Acciones de Contacto */
+.marketplace-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+/* Botón Oficial WhatsApp */
+.btn-whatsapp {
+  background: #25D366 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border: 1px solid #1ebe5d !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  padding: 0.6rem 1rem !important;
+  border-radius: var(--radius-md) !important;
+  transition: all 0.15s ease !important;
+  text-decoration: none !important;
+}
+
+.btn-whatsapp:hover {
+  background: #20ba59 !important;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35) !important;
+  transform: translateY(-1px);
+}
+
+.btn-whatsapp svg {
+  fill: currentColor;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+/* Input group para WhatsApp con selector de país */
+.wa-input-group {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.wa-input-group:focus-within {
+  border-color: #25D366;
+  box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.15);
+}
+
+.wa-country-select {
+  background: var(--surface-subtle);
+  border: none;
+  border-right: 1px solid var(--border);
+  padding: 0.65rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  max-width: 140px;
+}
+
+.wa-number-input {
+  flex: 1;
+  border: none;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  outline: none;
+  background: transparent;
+}

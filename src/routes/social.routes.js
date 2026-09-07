@@ -220,6 +220,32 @@ router.post("/friends/respond", (req, res) => {
 });
 
 /**
+ * Cancelar solicitud de amistad enviada
+ * POST /api/social/friends/cancel
+ */
+router.post("/friends/cancel", (req, res) => {
+  const { sender, target } = req.body;
+  if (!sender || !target) return res.status(400).json({ ok: false, error: "Datos incompletos" });
+
+  const sLower = sender.trim().toLowerCase();
+  const tLower = target.trim().toLowerCase();
+
+  if (!Array.isArray(db.friendRequests)) db.friendRequests = [];
+  const idx = db.friendRequests.findIndex(
+    r => r.status === "PENDING" && r.sender.toLowerCase() === sLower && r.target.toLowerCase() === tLower
+  );
+
+  if (idx >= 0) {
+    db.friendRequests.splice(idx, 1);
+    saveDb();
+    broadcastWs("FRIEND_CANCELLED", { sender: sLower, target: tLower });
+    return res.json({ ok: true, message: "Solicitud cancelada exitosamente." });
+  }
+
+  return res.status(404).json({ ok: false, error: "Solicitud no encontrada o ya procesada." });
+});
+
+/**
  * Eliminar amigo
  * POST /api/social/friends/remove
  */

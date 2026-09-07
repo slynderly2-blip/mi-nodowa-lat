@@ -81,11 +81,10 @@ export async function openChatWith(partnerUsername) {
     return showToast("No puedes chatear contigo mismo.");
   }
 
-  // Activar pestaña Comunidad
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === "social"));
-  document.querySelectorAll(".tab-view").forEach(v => v.classList.remove("active"));
-  const viewSocial = document.getElementById("view-social");
-  if (viewSocial) viewSocial.classList.add("active");
+  // Navegar a pestaña Comunidad
+  if (window.navigateTo) {
+    window.navigateTo('/social');
+  }
 
   const { switchSocialSubTab } = await import('./social.js');
   switchSocialSubTab("chat");
@@ -209,19 +208,22 @@ export async function deleteMessage(messageId) {
 
 // ── Inicializar event listeners ────────────────────────────────────────────
 export function initChat() {
-  // Formulario enviar mensaje
-  const chatForm = document.getElementById("chat-send-form");
+  // Formulario enviar mensaje (soporta ambos ids posibles)
+  const chatForm = document.getElementById("chat-input-form") || document.getElementById("chat-send-form");
   if (chatForm) {
     chatForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      if (!state.currentUser || !activeChatPartner) return;
+      if (!state.currentUser) return openModal("modal-login");
+      if (!activeChatPartner) return showToast("Selecciona una conversación o jugador");
 
-      const input = document.getElementById("chat-text-input");
-      const text  = (input.value || "").trim();
+      const input = document.getElementById("chat-input") || document.getElementById("chat-text-input");
+      const text  = (input?.value || "").trim();
       if (!text) return;
 
-      input.value = "";
-      input.focus();
+      if (input) {
+        input.value = "";
+        input.focus();
+      }
 
       try {
         const res  = await fetch("/api/social/message", {
@@ -241,6 +243,10 @@ export function initChat() {
       }
     });
   }
+
+  window.openChatWith    = openChatWith;
+  window.closeChatMobile = closeChatMobile;
+  window.deleteMessage   = deleteMessage;
 
   // Borrar chat completo
   const btnClearChat = document.getElementById("btn-clear-active-chat");
