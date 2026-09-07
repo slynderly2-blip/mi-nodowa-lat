@@ -10,11 +10,12 @@ import { initRouter, navigateTo } from './router.js';
 
 // Módulos de vistas
 import { loadStore, setStoreCategory, setStoreSort, copyServerIp, clearSearch, setSearchTag, startCheckout, renderStore } from './store.js';
+import { loadCoinsCenter, createNcListing, buyNcListing, startOfficialCoinsCheckout, submitBinanceOrder, switchCoinsTab } from './coins.js';
 import { loadUserShop, switchShopSubTab } from './user-shop.js';
 import { loadMarket, buyP2PListing, deleteP2PListing, listMyItemP2P } from './market.js';
-import { loadTransactions, openQuickTransfer, openBankActionModal, setBankPercentage, claimBankInterest } from './wallet.js';
+import { loadTransactions, openQuickTransfer, openBankActionModal, setBankPercentage, claimBankInterest, submitQuickTransfer } from './wallet.js';
 import { openChatWith, closeChatMobile, deleteMessage } from './chat.js';
-import { sendFriendRequest, viewOtherPlayerProfile } from './social.js';
+import { sendFriendRequest, viewOtherPlayerProfile, switchSocialSubTab, setPlayersFilter, clearPlayersSearch, respondFriendRequest, removeFriend, initSocial } from './social.js';
 import { openReportModal } from './deliveries.js';
 import { loadLeaderboard } from './leaderboard.js';
 
@@ -36,7 +37,6 @@ window.startCheckout          = startCheckout;
 window.renderStore            = renderStore;
 
 // Monedas & NC Exchange
-import { loadCoinsCenter, createNcListing, buyNcListing, startOfficialCoinsCheckout, submitBinanceOrder, switchCoinsTab } from './coins.js';
 window.loadCoinsCenter        = loadCoinsCenter;
 window.createNcListing        = createNcListing;
 window.buyNcListing           = buyNcListing;
@@ -61,6 +61,7 @@ window.listMyItemP2P          = listMyItemP2P;
 
 // Wallet & Banco
 window.openQuickTransfer      = openQuickTransfer;
+window.submitQuickTransfer    = submitQuickTransfer;
 window.loadTransactions       = loadTransactions;
 window.openBankActionModal    = openBankActionModal;
 window.setBankPercentage      = setBankPercentage;
@@ -72,6 +73,11 @@ window.closeChatMobile        = closeChatMobile;
 window.deleteMessage          = deleteMessage;
 window.sendFriendRequest      = sendFriendRequest;
 window.viewOtherPlayerProfile = (uname) => navigateTo(`/${encodeURIComponent(uname)}`);
+window.switchSocialSubTab     = switchSocialSubTab;
+window.setPlayersFilter       = setPlayersFilter;
+window.clearPlayersSearch     = clearPlayersSearch;
+window.respondFriendRequest   = respondFriendRequest;
+window.removeFriend           = removeFriend;
 
 // Otros
 window.openReportModal        = openReportModal;
@@ -84,10 +90,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 [Nodowa] Cliente Web v2.5 Iniciado (Tema Claro & Modular)');
 
   try {
-    // 1. Listeners de autenticación y perfil
+    // 1. Listeners de autenticación, perfil y social
     initAuthListeners();
     initProfileListeners();
-    console.log('✓ [Auth/Profile] Listeners registrados');
+    initSocial();
+    console.log('✓ [Auth/Profile/Social] Listeners registrados');
 
     // 2. Comprobar sesión activa
     await validateCurrentSession();
@@ -105,4 +112,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('❌ [Nodowa] Error durante la inicialización:', err);
   }
 });
-

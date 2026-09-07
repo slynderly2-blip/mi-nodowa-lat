@@ -3,9 +3,32 @@ import { state } from './state.js';
 import { showToast } from './utils.js';
 import { completeAuth } from './auth.js';
 
+let wsInstance = null;
+let reconnectAttempts = 0;
+let reconnectTimer = null;
+
 export function initWS() {
+  if (wsInstance && (wsInstance.readyState === WebSocket.OPEN || wsInstance.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const ws = new WebSocket(`${protocol}//${location.host}`);
+  let ws;
+  try {
+    ws = new WebSocket(`${protocol}//${location.host}`);
+    wsInstance = ws;
+  } catch (err) {
+    scheduleReconnect();
+    return;
+  }
+
+  ws.onopen = () => {
+    reconnectAttempts = 0;
+  };
+
+  ws.onerror = (e) => {
+    // Manejo de error silencioso para proxies o reversas que no soporten WS
+  };
 
   ws.onmessage = async (e) => {
     try {
@@ -135,5 +158,18 @@ export function initWS() {
     } catch (err) {}
   };
 
-  ws.onclose = () => { setTimeout(initWS, 4000); };
+  ws.onclose = () => {
+    wsInstance = null;
+    scheduleReconnect();
+  };
+}
+
+function scheduleReconnect() {
+  if (reconnectTimer) return;
+  reconnectAttempts++;
+  const delay = Math.min(30000, 4000 * Math.pow(1.4, Math.min(reconnectAttempts, 5)));
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    initWS();
+  }, delay);
 }
