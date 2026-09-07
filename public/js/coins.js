@@ -681,8 +681,6 @@ function renderSellerPanelHtml() {
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. ACCIONES P2P: VENDER, CANCELAR Y COMPRAR CON COMPROBANTE
 // ─────────────────────────────────────────────────────────────────────────────
-
-// Guardar configuración de métodos de cobro del vendedor
 export async function saveSellerConfig(event) {
   if (event) event.preventDefault();
   if (!state.currentUser) return;
