@@ -16,27 +16,17 @@ export function updateAuthUI() {
       `https://mc-heads.net/avatar/${encodeURIComponent(state.currentUser)}/64`;
     container.innerHTML = `
       <div class="user-pill">
-        <div style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;" id="btn-header-profile" title="Ver mi tienda y perfil">
+        <div style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;" id="btn-header-profile" title="Ver mi perfil">
           <img id="header-avatar-img" src="${avatar}" alt="Avatar" class="user-pill-avatar">
           <span class="user-pill-name">${state.currentUser}</span>
+          <span id="header-coins-pill" style="font-size:0.75rem; font-weight:800; color:var(--primary); white-space:nowrap;">${state.userData.wallet.toLocaleString()} NC</span>
         </div>
-        <button type="button" class="user-pill-balance" id="header-coins-pill" title="Recargar Monedas Oficiales" style="cursor: pointer; border: none; font-family: inherit;">
-          🪙 ${state.userData.wallet.toLocaleString()} NC
-        </button>
       </div>
     `;
 
     document.getElementById('btn-header-profile').onclick = () => {
-      if (window.navigateTo) window.navigateTo('/' + encodeURIComponent(state.currentUser));
-      else if (window.openProfile) window.openProfile(state.currentUser);
-    };
-
-    document.getElementById('header-coins-pill').onclick = (e) => {
-      e.stopPropagation();
-      if (window.navigateTo) {
-        window.navigateTo('/coins');
-        if (window.switchCoinsTab) window.switchCoinsTab('official');
-      }
+      if (window.openProfile) window.openProfile(state.currentUser);
+      else if (window.navigateTo) window.navigateTo('/' + encodeURIComponent(state.currentUser));
     };
 
     // Cargar datos iniciales del usuario

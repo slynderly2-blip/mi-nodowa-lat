@@ -327,215 +327,197 @@ function renderNcListingsHtml() {
 function renderSellerPanelHtml() {
   if (!state.currentUser) {
     return `
-      <div class="card" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
-        <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin-bottom: 0.25rem;">
-          Inicia Sesión para Vender Monedas
-        </h3>
-        <p style="font-size: 0.82rem; max-width: 400px; margin: 0 auto 1rem;">
-          Configura tus métodos de cobro y aprueba las órdenes de compra que te envíen otros jugadores.
-        </p>
+      <div class="card" style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
+        <h3 style="font-size: 1rem; font-weight: 800; color: var(--text); margin-bottom: 0.5rem;">Inicia Sesión para Vender NC</h3>
         <button class="btn btn-primary btn-sm" onclick="window.openModal('modal-login')">Iniciar Sesión</button>
       </div>
     `;
   }
 
-  const myActiveOffers = ncListings.filter(l => l.seller.toLowerCase() === state.currentUser.toLowerCase());
-  const pendingOrders = mySellerOrders.filter(o => o.status === 'PENDING_SELLER_APPROVAL');
-  const finishedOrders = mySellerOrders.filter(o => o.status !== 'PENDING_SELLER_APPROVAL');
+  const myActiveOffers  = ncListings.filter(l => l.seller.toLowerCase() === state.currentUser.toLowerCase());
+  const pendingOrders   = mySellerOrders.filter(o => o.status === 'PENDING_SELLER_APPROVAL');
+  const finishedOrders  = mySellerOrders.filter(o => o.status !== 'PENDING_SELLER_APPROVAL');
+  const hasPaymentSetup = !!(mySellerConfig.binanceId || mySellerConfig.whatsapp);
 
   return `
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; align-items: start;">
-      
-      <!-- Columna Izquierda: Órdenes Recibidas por Aprobar + Historial -->
-      <div>
-        <!-- Órdenes Pendientes de Revisión -->
-        <div class="card" style="margin-bottom: 1rem; border: 1px solid ${pendingOrders.length > 0 ? 'var(--amber)' : 'var(--border)'};">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <div>
-              <h3 style="font-size: 1.05rem; font-weight: 800; display: flex; align-items: center; gap: 0.4rem;">
-                Órdenes de Compra Recibidas
-                ${pendingOrders.length > 0 ? `<span class="badge badge-red">${pendingOrders.length}</span>` : ''}
-              </h3>
-              <p style="font-size: 0.78rem; color: var(--text-muted);">
-                Verifica el pago y presiona <strong>Aprobar</strong> para liberar las monedas al comprador.
-              </p>
-            </div>
-            <button class="btn btn-outline btn-sm" onclick="window.loadCoinsCenter('seller_panel')">Actualizar</button>
+    <!-- PASO 1 — Métodos de Cobro (Colapsable) -->
+    <div class="card" style="margin-bottom: 0.75rem; border: 1px solid ${hasPaymentSetup ? 'var(--emerald)' : 'var(--amber)'};">
+      <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+           onclick="document.getElementById('seller-step1').classList.toggle('hidden')">
+        <div>
+          <div style="font-size: 0.95rem; font-weight: 800;">
+            ${hasPaymentSetup ? '&#10003; Paso 1 — Métodos de Cobro' : 'Paso 1 — Configurar Métodos de Cobro'}
+          </div>
+          ${hasPaymentSetup
+            ? `<div style="font-size: 0.75rem; color: var(--emerald); font-weight: 600; margin-top: 1px;">
+                 ${mySellerConfig.binanceId ? `Binance: ${mySellerConfig.binanceId}` : ''}
+                 ${mySellerConfig.whatsapp ? `  WA: ${mySellerConfig.countryCode || ''}${mySellerConfig.whatsapp}` : ''}
+               </div>`
+            : `<div style="font-size: 0.75rem; color: var(--amber); font-weight: 600; margin-top: 1px;">Requerido para empezar a vender</div>`
+          }
+        </div>
+        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">${hasPaymentSetup ? 'Editar' : 'Configurar'}</span>
+      </div>
+
+      <div id="seller-step1" class="${hasPaymentSetup ? 'hidden' : ''}" style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+        <form id="form-seller-config" onsubmit="event.preventDefault(); window.saveSellerConfig(event);">
+          <div style="margin-bottom: 0.6rem;">
+            <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Binance Pay ID:</label>
+            <input type="text" id="seller-binance-id" class="input" placeholder="Ej. 1255344898" value="${escapeHtml(mySellerConfig.binanceId || '')}">
           </div>
 
-          ${pendingOrders.length === 0 ? `
-            <div style="text-align: center; padding: 1.5rem 1rem; color: var(--text-muted); font-size: 0.82rem;">
-              No tienes órdenes pendientes de aprobación en este momento.
+          <div style="margin-bottom: 0.6rem;">
+            <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">WhatsApp:</label>
+            <div style="display: flex; gap: 0.4rem;">
+              <select id="seller-wa-country" class="input" style="width: 90px; flex-shrink: 0;">
+                ${['+591','+52','+54','+57','+51','+56','+34','+1','+58','+593'].map(c =>
+                  `<option value="${c}" ${mySellerConfig.countryCode === c ? 'selected' : ''}>${c}</option>`
+                ).join('')}
+              </select>
+              <input type="tel" id="seller-wa-number" class="input" placeholder="Número" value="${escapeHtml(mySellerConfig.whatsapp || '')}">
             </div>
-          ` : `
-            <div style="display: flex; flex-direction: column; gap: 0.65rem;">
-              ${pendingOrders.map(ord => `
-                <div style="background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem;">
-                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.4rem;">
-                    <div>
-                      <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Comprador</span>
-                      <div style="font-size: 0.9rem; font-weight: 800;">${escapeHtml(ord.buyer)}</div>
-                    </div>
-                    <div style="text-align: right;">
-                      <div style="font-size: 1.05rem; font-weight: 800; color: var(--amber);">${Number(ord.amount).toLocaleString()} NC</div>
-                      <div style="font-size: 0.76rem; font-weight: 700; color: var(--emerald);">${ord.priceUsd ? `$${Number(ord.priceUsd).toFixed(2)} USDT` : 'Acordado'}</div>
-                    </div>
-                  </div>
+          </div>
 
-                  <div style="background: var(--bg-card); padding: 0.4rem 0.5rem; border-radius: var(--radius-sm); font-size: 0.76rem; margin-bottom: 0.6rem; border: 1px dashed var(--border);">
-                    <div><strong>TXID:</strong> <code style="color: var(--primary);">${escapeHtml(ord.txid || 'Sin TXID')}</code></div>
-                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 1px;">Fecha: ${new Date(ord.createdAt).toLocaleString()}</div>
-                  </div>
+          <div style="margin-bottom: 0.6rem;">
+            <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">QR de Cobro (imagen):</label>
+            ${mySellerConfig.qrImage ? `<img src="${mySellerConfig.qrImage}" style="width:60px; height:60px; object-fit:cover; border-radius:6px; border:1px solid var(--border); margin-bottom:4px; display:block;">` : ''}
+            <input type="file" id="seller-qr-file" class="input" accept="image/*" style="font-size:0.78rem; padding:0.3rem;">
+          </div>
 
-                  <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
-                    ${ord.receiptImage ? `
-                      <button class="btn btn-outline btn-sm" onclick="window.viewReceiptImage('${escapeHtml(ord.receiptImage)}', 'Comprobante de ${escapeHtml(ord.buyer)}')">
-                        Ver Captura
-                      </button>
-                    ` : ''}
-                    <button class="btn btn-emerald btn-sm" style="flex: 1;" onclick="window.approveP2pOrder('${ord.id}')">
-                      ✓ Aprobar y Liberar
-                    </button>
-                    <button class="btn btn-danger-soft btn-sm" onclick="window.rejectP2pOrder('${ord.id}')">
-                      ✕ Rechazar
-                    </button>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          `}
+          <div style="margin-bottom: 0.75rem;">
+            <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Instrucciones para el comprador:</label>
+            <input type="text" id="seller-instructions" class="input" placeholder="Ej. Poner Gamertag en la nota" value="${escapeHtml(mySellerConfig.instructions || '')}">
+          </div>
+
+          <button type="submit" id="btn-save-seller-config" class="btn btn-primary btn-sm btn-block">Guardar Métodos de Cobro</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- PASO 2 — Publicar NC a la venta -->
+    <div class="card" style="margin-bottom: 0.75rem; border: 1px solid ${myActiveOffers.length > 0 ? 'var(--primary)' : 'var(--border)'};">
+      <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+           onclick="document.getElementById('seller-step2').classList.toggle('hidden')">
+        <div>
+          <div style="font-size: 0.95rem; font-weight: 800;">Paso 2 — Publicar NC a la Venta</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1px;">
+            ${myActiveOffers.length === 0
+              ? 'Sin ofertas activas. Las monedas quedan en custodia.'
+              : `${myActiveOffers.length} oferta(s) activa(s): ${myActiveOffers.map(o => `${Number(o.amount).toLocaleString()} NC`).join(', ')}`
+            }
+          </div>
         </div>
+        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">+ Publicar</span>
+      </div>
 
-        <!-- Mis Ofertas Activas -->
-        <div class="card" style="margin-bottom: 1rem;">
-          <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.4rem;">Mis Ofertas Publicadas</h4>
-          ${myActiveOffers.length === 0 ? `
-            <div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0;">No tienes ofertas de monedas activas en venta.</div>
-          ` : `
-            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-              ${myActiveOffers.map(o => `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.82rem;">
+      <div id="seller-step2" class="hidden" style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+        ${myActiveOffers.length > 0 ? `
+          <div style="margin-bottom: 0.75rem;">
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.35rem;">Mis ofertas activas:</div>
+            ${myActiveOffers.map(o => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.5rem; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 0.35rem; font-size: 0.82rem;">
+                <strong style="color: var(--amber);">${Number(o.amount).toLocaleString()} NC</strong>
+                <span style="color: var(--text-muted);">${o.priceUsd ? `$${Number(o.priceUsd).toFixed(2)} USDT` : 'Acordado'}</span>
+                <button class="btn btn-danger-soft btn-sm" style="padding:2px 8px; font-size:0.72rem;" onclick="window.cancelNcListing('${o.id}')">Cancelar</button>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        ${!hasPaymentSetup ? `
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 0.6rem 0.75rem; font-size: 0.78rem; color: #92400e; margin-bottom: 0.75rem;">
+            Primero configura tus metodos de cobro en el Paso 1.
+          </div>
+        ` : ''}
+
+        <form id="form-sell-nc" onsubmit="event.preventDefault(); window.createNcListing();">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.6rem;">
+            <div>
+              <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Cantidad NC:</label>
+              <input type="number" id="nc-sell-amount" class="input" placeholder="5000" min="50" step="50" required>
+            </div>
+            <div>
+              <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Precio USDT:</label>
+              <input type="number" id="nc-sell-price-usd" class="input" placeholder="0.49" min="0.01" step="0.01" required>
+            </div>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.6rem;">
+            Saldo disponible: <strong style="color: var(--primary);">${Number(state.userData?.wallet || 0).toLocaleString()} NC</strong>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm btn-block">Publicar Oferta</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- PASO 3 — Ordenes recibidas -->
+    <div class="card" style="border: 1px solid ${pendingOrders.length > 0 ? 'var(--amber)' : 'var(--border)'};">
+      <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+           onclick="document.getElementById('seller-step3').classList.toggle('hidden')">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div style="font-size: 0.95rem; font-weight: 800;">Ordenes Recibidas</div>
+          ${pendingOrders.length > 0 ? `<span style="background: var(--red); color:#fff; border-radius:9999px; padding:1px 7px; font-size:0.7rem; font-weight:800;">${pendingOrders.length}</span>` : ''}
+        </div>
+        <button class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:0.72rem;" onclick="event.stopPropagation(); window.loadCoinsCenter('seller_panel')">Actualizar</button>
+      </div>
+
+      <div id="seller-step3" class="${pendingOrders.length > 0 ? '' : 'hidden'}" style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+        ${pendingOrders.length === 0 && finishedOrders.length === 0 ? `
+          <div style="text-align: center; padding: 1rem; color: var(--text-muted); font-size: 0.82rem;">
+            Sin ordenes por el momento.
+          </div>
+        ` : ''}
+
+        ${pendingOrders.length > 0 ? `
+          <div style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 0.75rem;">
+            ${pendingOrders.map(ord => `
+              <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
                   <div>
-                    <strong style="color: var(--amber); font-size: 0.9rem;">${Number(o.amount).toLocaleString()} NC</strong>
-                    <span style="color: var(--text-muted); font-size: 0.75rem;"> • ${o.priceUsd ? `$${Number(o.priceUsd).toFixed(2)} USDT` : 'Acordado'}</span>
+                    <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Comprador</div>
+                    <div style="font-size: 0.9rem; font-weight: 800;">${escapeHtml(ord.buyer)}</div>
                   </div>
-                  <button class="btn btn-danger-soft btn-sm" onclick="window.cancelNcListing('${o.id}')">
-                    ✕ Cancelar
-                  </button>
+                  <div style="text-align: right;">
+                    <div style="font-size: 1rem; font-weight: 800; color: var(--amber);">${Number(ord.amount).toLocaleString()} NC</div>
+                    <div style="font-size: 0.75rem; font-weight: 700; color: var(--emerald);">${ord.priceUsd ? `$${Number(ord.priceUsd).toFixed(2)} USDT` : 'Acordado'}</div>
+                  </div>
                 </div>
-              `).join('')}
-            </div>
-          `}
-        </div>
 
-        <!-- Historial de Órdenes Pasadas -->
+                <div style="background: #fff; border: 1px dashed #fde68a; border-radius: 6px; padding: 0.4rem 0.5rem; font-size: 0.75rem; margin-bottom: 0.5rem;">
+                  <div><strong>TXID:</strong> <code style="color: var(--primary);">${escapeHtml(ord.txid || 'Sin TXID')}</code></div>
+                  <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 2px;">${new Date(ord.createdAt).toLocaleString()}</div>
+                </div>
+
+                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                  ${ord.receiptImage ? `
+                    <button class="btn btn-outline btn-sm" style="font-size:0.72rem; padding:3px 8px;" onclick="window.viewReceiptImage('${escapeHtml(ord.receiptImage)}', 'Comprobante de ${escapeHtml(ord.buyer)}')">Ver Captura</button>
+                  ` : ''}
+                  <button class="btn btn-primary btn-sm" style="flex:1; background: #059669; border-color:#059669;" onclick="window.approveP2pOrder('${ord.id}')">Liberar Monedas</button>
+                  <button class="btn btn-danger-soft btn-sm" onclick="window.rejectP2pOrder('${ord.id}')">Rechazar</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
         ${finishedOrders.length > 0 ? `
-          <div class="card">
-            <h4 style="font-size: 0.9rem; font-weight: 800; margin-bottom: 0.4rem; color: var(--text-muted);">Historial de Órdenes</h4>
-            <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.78rem;">
-              ${finishedOrders.slice(0, 5).map(fo => `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px dashed var(--border);">
-                  <div>
-                    <strong>${Number(fo.amount).toLocaleString()} NC</strong> a ${escapeHtml(fo.buyer)}
-                  </div>
-                  <span class="badge ${fo.status === 'COMPLETED' ? 'badge-emerald' : 'badge-red'}">
-                    ${fo.status === 'COMPLETED' ? 'Aprobada' : 'Rechazada'}
-                  </span>
-                </div>
-              `).join('')}
-            </div>
+          <div>
+            <div style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.35rem;">Historial</div>
+            ${finishedOrders.slice(0, 5).map(fo => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.3rem 0; border-bottom: 1px dashed var(--border); font-size: 0.78rem;">
+                <span><strong>${Number(fo.amount).toLocaleString()} NC</strong> a ${escapeHtml(fo.buyer)}</span>
+                <span style="font-weight: 700; color: ${fo.status === 'COMPLETED' ? 'var(--emerald)' : 'var(--red)'};">
+                  ${fo.status === 'COMPLETED' ? 'Aprobada' : 'Rechazada'}
+                </span>
+              </div>
+            `).join('')}
           </div>
         ` : ''}
       </div>
-
-      <!-- Columna Derecha: Configuración de Cobro + Publicar NC -->
-      <div>
-        <!-- 1. Configurar Mis Métodos de Cobro -->
-        <div class="card" style="margin-bottom: 1rem;">
-          <h3 style="font-size: 1.05rem; font-weight: 800; margin-bottom: 0.25rem;">Mis Métodos de Cobro</h3>
-          <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            Los compradores verán estos datos para transferirte antes de que liberes las monedas.
-          </p>
-
-          <form id="form-seller-config" onsubmit="event.preventDefault(); window.saveSellerConfig(event);">
-            <div style="margin-bottom: 0.6rem;">
-              <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">
-                Tu Binance Pay ID:
-              </label>
-              <input type="text" id="seller-binance-id" class="input" placeholder="Ej. 1255344898" value="${escapeHtml(mySellerConfig.binanceId || '')}">
-            </div>
-
-            <div style="margin-bottom: 0.6rem;">
-              <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">
-                WhatsApp de Contacto:
-              </label>
-              <div class="wa-input-group">
-                <select id="seller-wa-country" class="wa-country-select">
-                  <option value="+591" ${mySellerConfig.countryCode === '+591' ? 'selected' : ''}>+591</option>
-                  <option value="+52" ${mySellerConfig.countryCode === '+52' ? 'selected' : ''}>+52</option>
-                  <option value="+54" ${mySellerConfig.countryCode === '+54' ? 'selected' : ''}>+54</option>
-                  <option value="+57" ${mySellerConfig.countryCode === '+57' ? 'selected' : ''}>+57</option>
-                  <option value="+51" ${mySellerConfig.countryCode === '+51' ? 'selected' : ''}>+51</option>
-                  <option value="+56" ${mySellerConfig.countryCode === '+56' ? 'selected' : ''}>+56</option>
-                  <option value="+34" ${mySellerConfig.countryCode === '+34' ? 'selected' : ''}>+34</option>
-                  <option value="+1" ${mySellerConfig.countryCode === '+1' ? 'selected' : ''}>+1</option>
-                  <option value="+58" ${mySellerConfig.countryCode === '+58' ? 'selected' : ''}>+58</option>
-                  <option value="+593" ${mySellerConfig.countryCode === '+593' ? 'selected' : ''}>+593</option>
-                </select>
-                <input type="tel" id="seller-wa-number" class="wa-number-input" placeholder="Tu número WhatsApp" value="${escapeHtml(mySellerConfig.whatsapp || '')}">
-              </div>
-            </div>
-
-            <div style="margin-bottom: 0.6rem;">
-              <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">
-                Subir Código QR de Cobro:
-              </label>
-              <input type="file" id="seller-qr-file" class="input" accept="image/*">
-            </div>
-
-            <div style="margin-bottom: 0.75rem;">
-              <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">
-                Instrucciones para el comprador:
-              </label>
-              <input type="text" id="seller-instructions" class="input" placeholder="Ej. Poner mi Gamertag en la nota del pago" value="${escapeHtml(mySellerConfig.instructions || '')}">
-            </div>
-
-            <button type="submit" id="btn-save-seller-config" class="btn btn-outline btn-sm btn-block">
-              Guardar Métodos de Cobro
-            </button>
-          </form>
-        </div>
-
-        <!-- 2. Publicar Monedas a la Venta -->
-        <div class="card">
-          <h3 style="font-size: 1.05rem; font-weight: 800; margin-bottom: 0.25rem;">Publicar Monedas a la Venta</h3>
-          <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            Las monedas pasarán a custodia mientras dure la oferta.
-          </p>
-
-          <form id="form-sell-nc" onsubmit="event.preventDefault(); window.createNcListing();">
-            <div style="margin-bottom: 0.6rem;">
-              <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">
-                Cantidad de NC a vender:
-              </label>
-              <input type="number" id="nc-sell-amount" class="input" placeholder="Ej. 5000" min="50" step="50" required>
-            </div>
-
-            <div style="margin-bottom: 0.75rem;">
-              <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">
-                Precio en USDT:
-              </label>
-              <input type="number" id="nc-sell-price-usd" class="input" placeholder="Ej. 0.49" min="0.01" step="0.01" required>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-sm btn-block">
-              Publicar Oferta
-            </button>
-          </form>
-        </div>
-
-      </div>
     </div>
+
+    <style>
+      .hidden { display: none !important; }
+    </style>
   `;
 }
 

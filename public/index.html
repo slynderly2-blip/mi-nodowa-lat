@@ -107,9 +107,9 @@
         </div>
         
         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-          <button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('mi.nodowa.lat:19132').then(()=>window.showToast('¡IP copiada!'))" style="white-space: nowrap;">
-            Servidor: mi.nodowa.lat
-          </button>
+          <a href="minecraft://?addExternalServer=Nodowa%20Network|mi.nodowa.lat:19132" class="btn btn-primary btn-sm" style="white-space:nowrap; text-decoration:none;" onclick="navigator.clipboard.writeText('mi.nodowa.lat:19132')">
+            Unirse: mi.nodowa.lat
+          </a>
           <input type="text" id="store-search" class="input" placeholder="Buscar productos..." style="width: 200px;" oninput="window.renderStore()">
         </div>
       </div>
