@@ -1,6 +1,11 @@
 // social.js — Jugadores, amigos y solicitudes de amistad
 import { state } from './state.js';
 import { showToast, openModal, escapeHtml } from './utils.js';
+import { openProfile } from './profile.js';
+
+export function viewOtherPlayerProfile(username) {
+  openProfile(username);
+}
 
 let currentSocialSubTab  = "players";
 let currentPlayersFilter = "all";
