@@ -239,7 +239,21 @@ export function showPurchaseReceipt(receipt) {
   const status = receipt.status || "Entregado";
   const date = receipt.date || new Date().toLocaleString();
 
+  const srItem    = document.getElementById('sr-item');
+  const srPrice   = document.getElementById('sr-price');
+  const srPlayer  = document.getElementById('sr-player');
+  const srStatus  = document.getElementById('sr-status');
+  const srBalance = document.getElementById('sr-balance');
+  const srDate    = document.getElementById('sr-date');
+  if (srItem)    srItem.textContent    = item;
+  if (srPrice)   srPrice.textContent   = price;
+  if (srPlayer)  srPlayer.textContent  = player;
+  if (srStatus)  srStatus.textContent  = status;
+  if (srBalance) srBalance.textContent = receipt.balanceFormatted || "—";
+  if (srDate)    srDate.textContent    = date;
+
   showToast(`🧾 Recibo #${folio} de ${item} (${status})`);
+  openModal('modal-store-receipt');
 }
 window.showPurchaseReceipt = showPurchaseReceipt;
 
