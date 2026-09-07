@@ -10,7 +10,7 @@ import { initRouter, navigateTo } from './router.js';
 
 // Módulos de vistas
 import { loadStore, setStoreCategory, setStoreSort, copyServerIp, clearSearch, setSearchTag, startCheckout, renderStore } from './store.js';
-import { loadCoinsCenter, createNcListing, buyNcListing, startOfficialCoinsCheckout, submitBinanceOrder, switchCoinsTab } from './coins.js';
+import { loadCoinsCenter, createNcListing, cancelNcListing, saveSellerConfig, openBuyP2pNcModal, submitP2pOrder, approveP2pOrder, rejectP2pOrder, viewReceiptImage, startOfficialCoinsCheckout, submitBinanceOrder, switchCoinsTab } from './coins.js';
 import { loadUserShop, switchShopSubTab } from './user-shop.js';
 import { loadMarket, buyP2PListing, deleteP2PListing, listMyItemP2P } from './market.js';
 import { loadTransactions, openQuickTransfer, openBankActionModal, setBankPercentage, claimBankInterest, submitQuickTransfer } from './wallet.js';
@@ -19,9 +19,9 @@ import { sendFriendRequest, viewOtherPlayerProfile, switchSocialSubTab, setPlaye
 import { openReportModal } from './deliveries.js';
 import { loadLeaderboard } from './leaderboard.js';
 
-// ==========================================================================
+// ==========================================
 // EXPOSICIÓN GLOBAL PARA ATRIBUTOS HTML onclick="..."
-// ==========================================================================
+// ==========================================
 window.openModal              = openModal;
 window.closeModal             = closeModal;
 window.showToast              = showToast;
@@ -36,10 +36,16 @@ window.setSearchTag           = setSearchTag;
 window.startCheckout          = startCheckout;
 window.renderStore            = renderStore;
 
-// Monedas & NC Exchange
+// Monedas & Panel de Vendedor P2P
 window.loadCoinsCenter        = loadCoinsCenter;
 window.createNcListing        = createNcListing;
-window.buyNcListing           = buyNcListing;
+window.cancelNcListing        = cancelNcListing;
+window.saveSellerConfig       = saveSellerConfig;
+window.openBuyP2pNcModal      = openBuyP2pNcModal;
+window.submitP2pOrder         = submitP2pOrder;
+window.approveP2pOrder        = approveP2pOrder;
+window.rejectP2pOrder         = rejectP2pOrder;
+window.viewReceiptImage       = viewReceiptImage;
 window.startOfficialCoinsCheckout = startOfficialCoinsCheckout;
 window.submitBinanceOrder     = submitBinanceOrder;
 window.switchCoinsTab         = switchCoinsTab;

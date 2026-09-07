@@ -519,6 +519,89 @@
     </div>
   </div>
 
+  <!-- Modal: Comprar NC P2P (A otro jugador) -->
+  <div class="modal-backdrop" id="modal-buy-p2p-nc">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🪙 Comprar NC P2P</h3>
+        <button class="modal-close" onclick="window.closeModal('modal-buy-p2p-nc')">✕</button>
+      </div>
+
+      <!-- Resumen de la Oferta -->
+      <div style="background: var(--bg-subtle); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border);">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <img id="p2p-buy-seller-avatar" src="" alt="Vendedor" style="width: 38px; height: 38px; border-radius: var(--radius-sm); object-fit: cover;">
+          <div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Vendedor</div>
+            <strong id="p2p-buy-seller-name" style="font-size: 0.95rem;">-</strong>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div id="p2p-buy-coins-amount" style="font-size: 1.25rem; font-weight: 800; color: var(--amber);">0 NC</div>
+          <div id="p2p-buy-price-usd" style="font-size: 0.82rem; font-weight: 700; color: var(--emerald);">$0.00 USDT</div>
+        </div>
+      </div>
+
+      <!-- Datos de Cobro del Vendedor -->
+      <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 1rem; background: var(--bg-card);">
+        <div style="font-size: 0.78rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">
+          💳 Métodos de Pago del Vendedor
+        </div>
+
+        <div id="p2p-buy-binance-box" style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; background: var(--bg-subtle); padding: 0.4rem 0.6rem; border-radius: var(--radius-sm);">
+          <span style="font-size: 0.82rem;">Binance Pay ID: <strong id="p2p-buy-binance-id">-</strong></span>
+          <button type="button" class="btn btn-outline btn-sm" style="font-size: 0.72rem; padding: 2px 8px;" onclick="navigator.clipboard.writeText(document.getElementById('p2p-buy-binance-id').textContent).then(()=>window.showToast('¡Binance ID copiado!'))">Copiar</button>
+        </div>
+
+        <div id="p2p-buy-qr-box" style="text-align: center; margin: 0.65rem 0; display: none;">
+          <img id="p2p-buy-qr-img" src="" alt="QR de Pago" style="max-width: 140px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        </div>
+
+        <div id="p2p-buy-wa-box" style="margin-top: 0.5rem;">
+          <a id="p2p-buy-wa-link" href="#" target="_blank" class="btn btn-outline btn-sm btn-block" style="color: #15803d; border-color: #86efac; background: #f0fdf4; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+            🟢 Contactar al Vendedor por WhatsApp
+          </a>
+        </div>
+
+        <div id="p2p-buy-instructions" style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.4rem; font-style: italic;"></div>
+      </div>
+
+      <!-- Formulario para Subir Comprobante -->
+      <form id="form-submit-p2p-order" onsubmit="event.preventDefault(); window.submitP2pOrder(event);">
+        <input type="hidden" id="p2p-order-listing-id" value="">
+        
+        <div style="margin-bottom: 0.65rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
+            ID de Transacción (TXID):
+          </label>
+          <input type="text" id="p2p-order-txid" class="input" placeholder="Ej. 2948192847192" required>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
+            Comprobante de Pago (Captura):
+          </label>
+          <input type="file" id="p2p-order-file" class="input" accept="image/*">
+        </div>
+
+        <button type="submit" id="btn-submit-p2p-order" class="btn btn-primary btn-block">
+          📨 Enviar Comprobante al Vendedor
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Visor de Imagen (Comprobantes) -->
+  <div class="modal-backdrop" id="modal-image-preview">
+    <div class="modal-box" style="max-width: 600px; text-align: center;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="image-preview-title">Comprobante</h3>
+        <button class="modal-close" onclick="window.closeModal('modal-image-preview')">✕</button>
+      </div>
+      <img id="image-preview-src" src="" alt="Comprobante" style="max-width: 100%; max-height: 70vh; border-radius: var(--radius-md); object-fit: contain; margin-top: 0.5rem;">
+    </div>
+  </div>
+
   <!-- Modal: Perfil y Ajustes -->
   <div class="modal-backdrop" id="modal-profile">
     <div class="modal-box">
