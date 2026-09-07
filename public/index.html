@@ -320,13 +320,13 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/></svg>
       <span>NC</span>
     </button>
-    <button class="mobile-tab-btn" data-tab="market" onclick="window.navigateTo('/market')">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
-      <span>P2P</span>
-    </button>
-    <button class="mobile-tab-btn" data-tab="social" onclick="window.navigateTo('/social')">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span>Chat</span>
+    <!-- Botón Más -->
+    <button class="mobile-tab-btn mobile-more-btn" id="btn-mobile-more" onclick="window.toggleMobileMore()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>
+      <span>Más</span>
     </button>
     <button class="mobile-tab-btn" data-tab="wallet" onclick="window.navigateTo('/wallet')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
@@ -336,11 +336,31 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
       <span>Buzón</span>
     </button>
-    <button class="mobile-tab-btn" data-tab="leaderboard" onclick="window.navigateTo('/leaderboard')">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-      <span>Top</span>
-    </button>
   </nav>
+
+  <!-- Panel "Más" desplegable -->
+  <div id="mobile-more-panel" class="mobile-more-panel" style="display:none;">
+    <div class="mobile-more-grid">
+      <button class="mobile-more-item" onclick="window.navigateTo('/market'); window.closeMobileMore()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
+        <span>Mercado P2P</span>
+      </button>
+      <button class="mobile-more-item" onclick="window.navigateTo('/social'); window.closeMobileMore()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Chat</span>
+      </button>
+      <button class="mobile-more-item" onclick="window.navigateTo('/leaderboard'); window.closeMobileMore()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        <span>Top Ricos</span>
+      </button>
+      <button class="mobile-more-item" onclick="window.navigateTo('/social'); window.switchSocialSubTab && window.switchSocialSubTab('players'); window.closeMobileMore()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Jugadores</span>
+      </button>
+    </div>
+  </div>
+  <!-- Overlay para cerrar panel Más -->
+  <div id="mobile-more-overlay" style="display:none; position:fixed; inset:0; z-index:88;" onclick="window.closeMobileMore()"></div>
 
   <!-- ========================================================================
        MODALES
@@ -643,47 +663,105 @@
 
   <!-- Modal: Perfil y Ajustes -->
   <div class="modal-backdrop" id="modal-profile">
-    <div class="modal-box" style="max-width: 440px;">
+    <div class="modal-box" style="max-width:480px; max-height:92vh; overflow-y:auto;">
       <div class="modal-header">
-        <h3 class="modal-title">Mi Perfil & Foto</h3>
+        <h3 class="modal-title">Mi Perfil</h3>
         <button class="modal-close" onclick="window.closeModal('modal-profile')">✕</button>
       </div>
 
-      <form id="profile-edit-form" onsubmit="event.preventDefault(); window.saveFullProfile(event);">
-        <!-- Sección de Foto de Perfil / Avatar -->
-        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; background: var(--bg-subtle); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border);">
-          <img id="profile-modal-avatar-preview" src="https://mc-heads.net/avatar/steve/80" alt="Avatar" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);">
-          <div style="flex: 1;">
-            <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
-              Foto de Perfil / Avatar:
-            </label>
-            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
-              <label class="btn btn-outline btn-sm" style="cursor: pointer; font-size: 0.75rem; padding: 3px 8px;">
-                Subir Foto
-                <input type="file" id="profile-modal-avatar-file" accept="image/*" style="display: none;" onchange="window.previewAvatarFile(event)">
-              </label>
-              <button type="button" class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 3px 8px;" onclick="window.useMinecraftSkinAvatar()">
-                Skin Minecraft
-              </button>
-            </div>
+      <!-- Avatar + nombre + badges -->
+      <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.1rem;">
+        <div style="position:relative; flex-shrink:0;">
+          <img id="profile-modal-avatar-preview" src="https://mc-heads.net/avatar/steve/80" alt="Avatar"
+            style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:3px solid var(--primary);">
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:1.1rem; font-weight:800; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" id="profile-gamertag-own">—</div>
+          <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:4px;">
+            <span style="font-size:0.72rem; font-weight:700; background:var(--amber-light); color:var(--amber); padding:2px 8px; border-radius:999px;" id="profile-tier-badge">NOVICIO</span>
+            <span style="font-size:0.72rem; font-weight:700; background:var(--primary-light); color:var(--primary); padding:2px 8px; border-radius:999px;" id="profile-active-title">Título: [Novato]</span>
+          </div>
+          <div style="font-size:0.73rem; color:var(--text-subtle); margin-top:2px;" id="profile-titles-count">0 / 34 Títulos</div>
+        </div>
+      </div>
+
+      <!-- Saldos -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-bottom:1.1rem;">
+        <div style="background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.65rem; text-align:center;">
+          <div style="font-size:0.68rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Billetera</div>
+          <div style="font-size:1.15rem; font-weight:800; color:var(--primary);" id="profile-wallet-val">0 NC</div>
+        </div>
+        <div style="background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.65rem; text-align:center;">
+          <div style="font-size:0.68rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Banco</div>
+          <div style="font-size:1.15rem; font-weight:800; color:var(--emerald);" id="profile-bank-val">0 NC</div>
+        </div>
+      </div>
+
+      <!-- Stats de aventura -->
+      <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.4px; margin-bottom:0.55rem;">Estadísticas de Aventura</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-bottom:1.1rem;">
+        <div style="background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.6rem; display:flex; align-items:center; gap:0.5rem;">
+          <span style="font-size:1.2rem;">⚔️</span>
+          <div>
+            <div style="font-size:1rem; font-weight:800; color:var(--text);" id="profile-stat-pvp">0</div>
+            <div style="font-size:0.68rem; color:var(--text-muted);">Bajas PvP</div>
           </div>
         </div>
-
-        <div style="margin-bottom: 0.85rem;">
-          <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Biografía:</label>
-          <textarea id="profile-bio-input" class="textarea" rows="2" placeholder="Cuéntale a la comunidad sobre ti..."></textarea>
+        <div style="background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.6rem; display:flex; align-items:center; gap:0.5rem;">
+          <span style="font-size:1.2rem;">🦇</span>
+          <div>
+            <div style="font-size:1rem; font-weight:800; color:var(--text);" id="profile-stat-mobs">0</div>
+            <div style="font-size:0.68rem; color:var(--text-muted);">Mobs Cazados</div>
+          </div>
         </div>
-
-        <div style="margin-bottom: 1rem;">
-          <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Discord / Redes:</label>
-          <input type="text" id="profile-social-discord" class="input" placeholder="Usuario de Discord">
+        <div style="background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.6rem; display:flex; align-items:center; gap:0.5rem;">
+          <span style="font-size:1.2rem;">💎</span>
+          <div>
+            <div style="font-size:1rem; font-weight:800; color:var(--text);" id="profile-stat-diamond">0</div>
+            <div style="font-size:0.68rem; color:var(--text-muted);">Diamantes</div>
+          </div>
         </div>
-
-        <div style="display: flex; gap: 0.5rem;">
-          <button type="submit" id="btn-save-profile" class="btn btn-primary btn-sm" style="flex: 1;">Guardar Cambios</button>
-          <button type="button" class="btn btn-danger-soft btn-sm" onclick="window.logoutUser ? window.logoutUser() : localStorage.clear(); location.reload();">Cerrar Sesión</button>
+        <div style="background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.6rem; display:flex; align-items:center; gap:0.5rem;">
+          <span style="font-size:1.2rem;">⛏️</span>
+          <div>
+            <div style="font-size:1rem; font-weight:800; color:var(--text);" id="profile-stat-mined">0</div>
+            <div style="font-size:0.68rem; color:var(--text-muted);">Bloques Picados</div>
+          </div>
         </div>
-      </form>
+      </div>
+
+      <!-- Editar foto + bio -->
+      <details style="margin-bottom:1rem;">
+        <summary style="font-size:0.82rem; font-weight:700; color:var(--primary); cursor:pointer; margin-bottom:0.65rem;">Editar perfil y foto</summary>
+        <form id="profile-edit-form" onsubmit="event.preventDefault(); window.saveFullProfile(event);">
+          <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.85rem; background:var(--surface-hover); padding:0.75rem; border-radius:var(--radius-sm); border:1px solid var(--border);">
+            <img id="profile-edit-avatar-preview" src="https://mc-heads.net/avatar/steve/64" alt="Avatar"
+              style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid var(--border);">
+            <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+              <label class="btn btn-outline btn-sm" style="cursor:pointer; font-size:0.73rem; padding:3px 8px;">
+                Subir Foto
+                <input type="file" id="profile-modal-avatar-file" accept="image/*" style="display:none;" onchange="window.previewAvatarFile(event)">
+              </label>
+              <button type="button" class="btn btn-outline btn-sm" style="font-size:0.73rem; padding:3px 8px;" onclick="window.useMinecraftSkinAvatar()">Skin MC</button>
+            </div>
+          </div>
+          <div style="margin-bottom:0.7rem;">
+            <label style="font-size:0.75rem; font-weight:700; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Biografía:</label>
+            <textarea id="profile-bio-input" class="input" rows="2" placeholder="Cuéntale a la comunidad sobre ti..."></textarea>
+          </div>
+          <div style="margin-bottom:0.85rem;">
+            <label style="font-size:0.75rem; font-weight:700; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Discord:</label>
+            <input type="text" id="profile-social-discord" class="input" placeholder="Usuario de Discord">
+          </div>
+          <button type="submit" id="btn-save-profile" class="btn btn-primary btn-block btn-sm">Guardar Cambios</button>
+        </form>
+      </details>
+
+      <!-- Botón cerrar sesión -->
+      <button type="button" class="btn btn-danger-soft btn-block btn-sm"
+        onclick="window.logoutUser ? window.logoutUser() : (localStorage.clear(), location.reload());">
+        Cerrar Sesión
+      </button>
     </div>
   </div>
 
@@ -822,7 +900,7 @@
             <span style="color: #065f46; font-weight: 600;">Estado</span>
             <span id="sr-status" style="font-weight: 700; color: var(--emerald);">Pendiente</span>
           </div>
-          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed #a7f3d0;">
+          <div id="sr-balance-row" style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed #a7f3d0;">
             <span style="color: #065f46; font-weight: 600;">Saldo restante</span>
             <strong id="sr-balance" style="color: var(--primary);">0 NC</strong>
           </div>

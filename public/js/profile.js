@@ -11,30 +11,73 @@ export async function openProfile(targetUser) {
 
   const isSelf = state.currentUser && userToLoad.toLowerCase() === state.currentUser.toLowerCase();
 
-  // Si es el propio usuario, abrimos el modal de edición de perfil y foto
+  // Si es el propio usuario, abrimos el modal de perfil con stats
   if (isSelf) {
-    const preview = document.getElementById("profile-modal-avatar-preview");
-    const bioInput = document.getElementById("profile-bio-input");
-    const discordInput = document.getElementById("profile-social-discord");
+    const preview     = document.getElementById("profile-modal-avatar-preview");
+    const editPreview = document.getElementById("profile-edit-avatar-preview");
+    const bioInput    = document.getElementById("profile-bio-input");
+    const discordInput= document.getElementById("profile-social-discord");
+    const nameEl      = document.getElementById("profile-gamertag-own");
 
-    if (preview) {
-      preview.src = state.currentUserAvatar || `https://mc-heads.net/avatar/${encodeURIComponent(userToLoad)}/80`;
-    }
+    if (nameEl)    nameEl.textContent = state.currentUser;
+    if (preview)   preview.src   = state.currentUserAvatar || `https://mc-heads.net/avatar/${encodeURIComponent(userToLoad)}/80`;
+    if (editPreview) editPreview.src = state.currentUserAvatar || `https://mc-heads.net/avatar/${encodeURIComponent(userToLoad)}/64`;
+
+    // Mostrar saldos ya disponibles en state
+    const wVal = document.getElementById("profile-wallet-val");
+    const bVal = document.getElementById("profile-bank-val");
+    if (wVal) wVal.textContent = `${(state.userData.wallet || 0).toLocaleString()} NC`;
+    if (bVal) bVal.textContent = `${(state.userData.bank   || 0).toLocaleString()} NC`;
+
+    openModal("modal-profile");
 
     try {
-      const res = await fetch(`/api/players/profile/${encodeURIComponent(userToLoad)}`);
+      const res  = await fetch(`/api/players/profile/${encodeURIComponent(userToLoad)}`);
       const data = await res.json();
       if (data.ok && data.user) {
         const u = data.user;
-        if (preview && u.avatarUrl) preview.src = u.avatarUrl;
-        if (bioInput) bioInput.value = u.bio || "";
+
+        // Avatar
+        if (u.avatarUrl) {
+          state.currentUserAvatar = u.avatarUrl;
+          localStorage.setItem("nodowa_avatar", u.avatarUrl);
+          if (preview)    preview.src    = u.avatarUrl;
+          if (editPreview) editPreview.src = u.avatarUrl;
+          const hImg = document.getElementById("header-avatar-img");
+          if (hImg) hImg.src = u.avatarUrl;
+        }
+
+        // Bio / Discord
+        if (bioInput)     bioInput.value     = u.bio || "";
         if (discordInput) discordInput.value = (u.socialLinks && u.socialLinks.discord) || "";
+
+        // Saldos actualizados
+        if (wVal) wVal.textContent = `${(u.wallet || 0).toLocaleString()} NC`;
+        if (bVal) bVal.textContent = `${(u.bank   || 0).toLocaleString()} NC`;
+
+        // Rango y título
+        const tierBadge   = document.getElementById("profile-tier-badge");
+        const activeTitle = document.getElementById("profile-active-title");
+        const titlesCount = document.getElementById("profile-titles-count");
+        const stats       = u.stats || {};
+        if (tierBadge)   tierBadge.textContent   = u.equippedRank || stats.equippedRank || stats.tier || "NOVICIO";
+        if (activeTitle) activeTitle.textContent = `Título: [${u.selectedTitle || stats.activeTitle || "Novato"}]`;
+        if (titlesCount) titlesCount.textContent = `${stats.unlockedCount || 0} / 34 Títulos`;
+
+        // Stats de juego
+        const setPvp  = document.getElementById("profile-stat-pvp");
+        const setMobs = document.getElementById("profile-stat-mobs");
+        const setDia  = document.getElementById("profile-stat-diamond");
+        const setMin  = document.getElementById("profile-stat-mined");
+        if (setPvp)  setPvp.textContent  = (stats.killsPvp      || 0).toLocaleString();
+        if (setMobs) setMobs.textContent = (stats.killsTotalMobs || 0).toLocaleString();
+        if (setDia)  setDia.textContent  = (stats.minedDiamond   || 0).toLocaleString();
+        if (setMin)  setMin.textContent  = (stats.minedTotal     || 0).toLocaleString();
       }
     } catch (err) {}
 
     pendingAvatarFile = null;
-    pendingAvatarUrl = null;
-    openModal("modal-profile");
+    pendingAvatarUrl  = null;
     return;
   }
 

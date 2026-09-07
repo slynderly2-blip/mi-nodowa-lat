@@ -244,12 +244,14 @@ export function showPurchaseReceipt(receipt) {
   const srPlayer  = document.getElementById('sr-player');
   const srStatus  = document.getElementById('sr-status');
   const srBalance = document.getElementById('sr-balance');
+  const srBalanceRow = document.getElementById('sr-balance-row');
   const srDate    = document.getElementById('sr-date');
   if (srItem)    srItem.textContent    = item;
   if (srPrice)   srPrice.textContent   = price;
   if (srPlayer)  srPlayer.textContent  = player;
   if (srStatus)  srStatus.textContent  = status;
   if (srBalance) srBalance.textContent = receipt.balanceFormatted || "—";
+  if (srBalanceRow) srBalanceRow.style.display = receipt.balanceFormatted ? "" : "none";
   if (srDate)    srDate.textContent    = date;
 
   showToast(`🧾 Recibo #${folio} de ${item} (${status})`);

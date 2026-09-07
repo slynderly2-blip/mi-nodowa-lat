@@ -127,3 +127,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('❌ [Nodowa] Error durante la inicialización:', err);
   }
 });
+
+// ── Menú "Más" móvil ──────────────────────────────────────────────────────
+window.toggleMobileMore = () => {
+  const panel   = document.getElementById('mobile-more-panel');
+  const overlay = document.getElementById('mobile-more-overlay');
+  const btn     = document.getElementById('btn-mobile-more');
+  const open    = panel && panel.style.display !== 'none';
+  if (panel)   panel.style.display   = open ? 'none' : 'block';
+  if (overlay) overlay.style.display = open ? 'none' : 'block';
+  if (btn)     btn.classList.toggle('active', !open);
+};
+
+window.closeMobileMore = () => {
+  const panel   = document.getElementById('mobile-more-panel');
+  const overlay = document.getElementById('mobile-more-overlay');
+  const btn     = document.getElementById('btn-mobile-more');
+  if (panel)   panel.style.display   = 'none';
+  if (overlay) overlay.style.display = 'none';
+  if (btn)     btn.classList.remove('active');
+};
