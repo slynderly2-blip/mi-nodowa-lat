@@ -5,6 +5,7 @@ import { loadUserShop } from './user-shop.js';
 import { loadMarket } from './market.js';
 import { loadSocial } from './social.js';
 import { loadTransactions } from './wallet.js';
+import { loadDeliveries } from './deliveries.js';
 import { loadLeaderboard } from './leaderboard.js';
 
 const KNOWN_ROUTES = {
@@ -95,6 +96,9 @@ function loadTabContent(tab) {
         break;
       case 'wallet':
         loadTransactions();
+        break;
+      case 'deliveries':
+        loadDeliveries();
         break;
       case 'leaderboard':
         loadLeaderboard();

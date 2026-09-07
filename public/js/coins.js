@@ -145,40 +145,32 @@ export function renderCoinsCenter() {
   const container = document.getElementById('coins-container');
   if (!container) return;
 
-  const walletAmount = (state.userData && state.userData.wallet) ? Number(state.userData.wallet).toLocaleString() : '0';
   const pendingOrdersCount = mySellerOrders.filter(o => o.status === 'PENDING_SELLER_APPROVAL').length;
 
   container.innerHTML = `
-    <!-- Banner Principal con Saldo y Selector -->
-    <div class="coins-banner">
+    <!-- Header Minimalista de Monedas -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
       <div>
-        <div class="coins-banner-title">✨ Centro de Monedas Nodowa (NC)</div>
-        <div class="coins-banner-desc">
-          Recarga créditos oficiales del servidor o comercia P2P con tus propios métodos de cobro y aprobación.
-        </div>
+        <h1 class="section-title">Centro de Monedas NC</h1>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.15rem;">
+          Recarga paquetes oficiales o comercia P2P con otros jugadores.
+        </p>
       </div>
-      <div style="text-align: right;">
-        <span style="font-size: 0.78rem; font-weight: 700; color: #b45309; text-transform: uppercase;">Tu Saldo en Mano</span>
-        <div style="font-size: 1.9rem; font-weight: 800; color: #92400e;">${walletAmount} NC</div>
+
+      <!-- Pestañas de Navegación Compactas -->
+      <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+        <button class="btn ${activeCoinsTab === 'official' ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="window.switchCoinsTab('official')">
+          Oficiales
+        </button>
+
+        <button class="btn ${activeCoinsTab === 'p2p' ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="window.switchCoinsTab('p2p')">
+          Mercado P2P (${ncListings.length})
+        </button>
+
+        <button class="btn ${activeCoinsTab === 'seller_panel' ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="window.switchCoinsTab('seller_panel')">
+          Panel Vendedor ${pendingOrdersCount > 0 ? `<span class="badge badge-red" style="padding:1px 5px; font-size:0.68rem; margin-left:2px;">${pendingOrdersCount}</span>` : ''}
+        </button>
       </div>
-    </div>
-
-    <!-- Pestañas de Navegación: Oficiales | Mercado P2P | Mi Panel de Vendedor -->
-    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; flex-wrap: wrap;">
-      <button class="btn ${activeCoinsTab === 'official' ? 'btn-amber' : 'btn-outline'}" onclick="window.switchCoinsTab('official')" style="font-size: 0.92rem; padding: 0.55rem 1.25rem;">
-        👑 Paquetes Oficiales del Servidor
-        <span class="badge ${activeCoinsTab === 'official' ? 'badge-primary' : 'badge-amber'}" style="margin-left: 4px;">Recomendado</span>
-      </button>
-
-      <button class="btn ${activeCoinsTab === 'p2p' ? 'btn-amber' : 'btn-outline'}" onclick="window.switchCoinsTab('p2p')" style="font-size: 0.92rem; padding: 0.55rem 1.25rem;">
-        🤝 Comprar NC a Jugadores (P2P)
-        <span class="badge badge-neutral" style="margin-left: 4px;">${ncListings.length} ofertas</span>
-      </button>
-
-      <button class="btn ${activeCoinsTab === 'seller_panel' ? 'btn-amber' : 'btn-outline'}" onclick="window.switchCoinsTab('seller_panel')" style="font-size: 0.92rem; padding: 0.55rem 1.25rem;">
-        💼 Mi Panel de Vendedor (Aprobar / Cobrar)
-        ${pendingOrdersCount > 0 ? `<span class="badge badge-red" style="margin-left: 4px; animation: pulse 2s infinite;">${pendingOrdersCount} por aprobar</span>` : ''}
-      </button>
     </div>
 
     <!-- Contenido Dinámico de la Pestaña -->
@@ -194,66 +186,48 @@ export function renderCoinsCenter() {
 function renderOfficialPacksHtml() {
   if (officialCoinPacks.length === 0) {
     return `
-      <div class="card" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
-        <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🪙</div>
-        <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--text);">Cargando paquetes de monedas oficiales...</h4>
-        <p style="font-size: 0.85rem; margin-top: 0.25rem;">Configura paquetes de monedas con categoría "coins" desde el panel de administración.</p>
+      <div class="card" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+        <h4 style="font-size: 1rem; font-weight: 800; color: var(--text);">No hay paquetes de monedas configurados</h4>
+        <p style="font-size: 0.82rem; margin-top: 0.25rem;">Configura paquetes de monedas desde el panel de administración.</p>
       </div>
     `;
   }
 
   return `
-    <div>
-      <div style="margin-bottom: 1.25rem;">
-        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
-          👑 Recarga Oficial de Nodocoins
-        </h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted);">
-          Acreditación directa a tu cuenta web y de Minecraft Bedrock. Pago seguro en USDT vía Binance Pay.
-        </p>
-      </div>
+    <div class="products-grid">
+      ${officialCoinPacks.map(pack => {
+        const coinsAmt = Number(pack.giveCoins || 0).toLocaleString();
+        const priceUsdt = Number(pack.priceUsdt || 0).toFixed(2);
+        const badge = pack.badge || (pack.giveCoins >= 5000 ? 'Bonus' : 'Oficial');
 
-      <div class="products-grid">
-        ${officialCoinPacks.map(pack => {
-          const coinsAmt = Number(pack.giveCoins || 0).toLocaleString();
-          const priceUsdt = Number(pack.priceUsdt || 0).toFixed(2);
-          const badge = pack.badge || (pack.giveCoins >= 5000 ? 'Super Bonus' : 'Oficial');
-
-          return `
-            <div class="card product-card" style="border: 2px solid var(--border); transition: all 0.2s ease;">
-              <div>
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.85rem;">
-                  <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: var(--amber-light); color: var(--amber); display: grid; place-items: center; font-size: 1.5rem;">
-                    🪙
-                  </div>
-                  <span class="badge badge-amber">${escapeHtml(badge)}</span>
-                </div>
-
-                <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.25rem; color: var(--text);">
-                  ${coinsAmt} NC
-                </h3>
-                <div style="font-size: 0.82rem; font-weight: 700; color: var(--amber); margin-bottom: 0.5rem;">
-                  ${escapeHtml(pack.name)}
-                </div>
-
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.4;">
-                  ${escapeHtml(pack.description || 'Recarga de monedas oficial sincronizada con Minecraft Bedrock.')}
-                </p>
+        return `
+          <div class="card product-card" style="border: 1px solid var(--border);">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                <span class="badge badge-amber">${escapeHtml(badge)}</span>
+                <span style="font-size: 1.15rem; font-weight: 800; color: var(--emerald);">$${priceUsdt} <small style="font-size: 0.72rem; color:var(--text-muted);">USDT</small></span>
               </div>
 
-              <div class="product-footer" style="border-top: 1px solid var(--border); padding-top: 0.85rem;">
-                <div>
-                  <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">Precio Binance:</span>
-                  <span style="font-size: 1.2rem; font-weight: 800; color: var(--emerald);">$${priceUsdt} <small style="font-size: 0.75rem;">USDT</small></span>
-                </div>
-                <button class="btn btn-amber btn-sm" onclick="window.startOfficialCoinsCheckout('${pack.id}')">
-                  Recargar Ahora
-                </button>
+              <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 0.2rem; color: var(--amber);">
+                ${coinsAmt} NC
+              </h3>
+              <div style="font-size: 0.82rem; font-weight: 700; margin-bottom: 0.4rem;">
+                ${escapeHtml(pack.name)}
               </div>
+
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.35;">
+                ${escapeHtml(pack.description || 'Recarga de saldo oficial.')}
+              </p>
             </div>
-          `;
-        }).join('')}
-      </div>
+
+            <div class="product-footer" style="border-top: 1px solid var(--border); padding-top: 0.65rem;">
+              <button class="btn btn-primary btn-sm btn-block" onclick="window.startOfficialCoinsCheckout('${pack.id}')">
+                Recargar
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('')}
     </div>
   `;
 }
@@ -264,15 +238,15 @@ function renderOfficialPacksHtml() {
 function renderP2PMarketHtml() {
   return `
     <div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
         <div>
-          <h3 style="font-size: 1.25rem; font-weight: 800;">🤝 Ofertas de Monedas de la Comunidad (P2P)</h3>
-          <p style="font-size: 0.85rem; color: var(--text-muted);">
-            Compra monedas a otros jugadores con transferencia directa, WhatsApp y Binance Pay con custodia garantizada.
+          <h3 style="font-size: 1.1rem; font-weight: 800;">Ofertas de Monedas P2P</h3>
+          <p style="font-size: 0.82rem; color: var(--text-muted);">
+            Compra monedas a otros jugadores con custodia de saldo garantizada.
           </p>
         </div>
         <button class="btn btn-primary btn-sm" onclick="window.switchCoinsTab('seller_panel')">
-          💸 Vender Mis Propias Monedas
+          + Vender Mis Monedas
         </button>
       </div>
 
@@ -286,11 +260,10 @@ function renderP2PMarketHtml() {
 function renderNcListingsHtml() {
   if (ncListings.length === 0) {
     return `
-      <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
-        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🪙</div>
-        <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin-bottom: 0.25rem;">No hay ofertas P2P activas en este momento</h4>
-        <p style="font-size: 0.85rem; margin-bottom: 1.25rem;">Sé el primero en vender tus monedas a otros jugadores con tus propios métodos de cobro.</p>
-        <button class="btn btn-amber btn-sm" onclick="window.switchCoinsTab('seller_panel')">Publicar Oferta de Monedas</button>
+      <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+        <h4 style="font-size: 1rem; font-weight: 800; color: var(--text); margin-bottom: 0.25rem;">No hay ofertas activas</h4>
+        <p style="font-size: 0.82rem; margin-bottom: 1rem;">Sé el primero en vender monedas a otros jugadores.</p>
+        <button class="btn btn-primary btn-sm" onclick="window.switchCoinsTab('seller_panel')">Publicar Oferta</button>
       </div>
     `;
   }
@@ -301,38 +274,38 @@ function renderNcListingsHtml() {
     const priceFormatted = l.priceUsd ? `$${Number(l.priceUsd).toFixed(2)} USDT` : 'A convenir';
 
     return `
-      <div class="card product-card" style="border: 2px solid var(--border); transition: all 0.2s ease;">
+      <div class="card product-card" style="border: 1px solid var(--border);">
         <div>
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.85rem;">
-            <div style="display: flex; align-items: center; gap: 0.6rem;">
-              <img src="${avatar}" alt="${escapeHtml(l.seller)}" style="width: 40px; height: 40px; border-radius: var(--radius-sm); object-fit: cover;">
+          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <img src="${avatar}" alt="${escapeHtml(l.seller)}" style="width: 36px; height: 36px; border-radius: var(--radius-sm); object-fit: cover;">
               <div>
-                <div style="font-weight: 800; font-size: 0.95rem;">${escapeHtml(l.sellerDisplayName || l.seller)}</div>
-                <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(l.sellerRank || 'NOVICIO')}</div>
+                <div style="font-weight: 800; font-size: 0.9rem;">${escapeHtml(l.sellerDisplayName || l.seller)}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted);">${escapeHtml(l.sellerRank || 'NOVICIO')}</div>
               </div>
             </div>
             ${isMine ? `<span class="badge badge-neutral">Tu Oferta</span>` : `<span class="badge badge-emerald">Disponible</span>`}
           </div>
 
-          <div style="font-size: 1.4rem; font-weight: 800; color: var(--amber); margin-bottom: 0.25rem;">
+          <div style="font-size: 1.3rem; font-weight: 800; color: var(--amber); margin-bottom: 0.2rem;">
             ${Number(l.amount).toLocaleString()} NC
           </div>
 
-          <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            ${l.sellerBinanceId ? `💳 Binance ID: <strong>${escapeHtml(l.sellerBinanceId)}</strong>` : '💳 Acepta Binance / Transferencia'}
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+            ${l.sellerBinanceId ? `Binance ID: <strong>${escapeHtml(l.sellerBinanceId)}</strong>` : 'Binance / Transferencia'}
           </div>
 
           ${l.sellerWhatsapp ? `
-            <div style="font-size: 0.78rem; color: #15803d; font-weight: 700; margin-bottom: 0.5rem;">
-              📱 WhatsApp: ${escapeHtml(l.sellerCountryCode || '')} ${escapeHtml(l.sellerWhatsapp)}
+            <div style="font-size: 0.76rem; color: #15803d; font-weight: 700; margin-bottom: 0.4rem;">
+              WhatsApp: ${escapeHtml(l.sellerCountryCode || '')} ${escapeHtml(l.sellerWhatsapp)}
             </div>
           ` : ''}
         </div>
 
-        <div class="product-footer" style="border-top: 1px solid var(--border); padding-top: 0.85rem; margin-top: 0.75rem;">
+        <div class="product-footer" style="border-top: 1px solid var(--border); padding-top: 0.65rem; margin-top: 0.5rem;">
           <div>
-            <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">Precio:</span>
-            <span style="font-size: 1.15rem; font-weight: 800; color: var(--emerald);">${priceFormatted}</span>
+            <span style="font-size: 0.7rem; color: var(--text-muted); display: block;">Precio:</span>
+            <span style="font-size: 1.1rem; font-weight: 800; color: var(--emerald);">${priceFormatted}</span>
           </div>
 
           ${isMine ? `
@@ -340,8 +313,8 @@ function renderNcListingsHtml() {
               Cancelar
             </button>
           ` : `
-            <button class="btn btn-amber btn-sm" onclick="window.openBuyP2pNcModal('${l.id}')">
-              Comprar NC
+            <button class="btn btn-primary btn-sm" onclick="window.openBuyP2pNcModal('${l.id}')">
+              Comprar
             </button>
           `}
         </div>
@@ -356,15 +329,14 @@ function renderNcListingsHtml() {
 function renderSellerPanelHtml() {
   if (!state.currentUser) {
     return `
-      <div class="card" style="text-align: center; padding: 3rem 1.5rem; color: var(--text-muted);">
-        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔒</div>
-        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text); margin-bottom: 0.35rem;">
+      <div class="card" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+        <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin-bottom: 0.25rem;">
           Inicia Sesión para Vender Monedas
         </h3>
-        <p style="font-size: 0.85rem; max-width: 440px; margin: 0 auto 1.25rem;">
-          Configura tus métodos de cobro personales (Binance Pay, QR, WhatsApp) y aprueba las órdenes de compra que te envíen otros jugadores.
+        <p style="font-size: 0.82rem; max-width: 400px; margin: 0 auto 1rem;">
+          Configura tus métodos de cobro y aprueba las órdenes de compra que te envíen otros jugadores.
         </p>
-        <button class="btn btn-primary" onclick="window.openModal('modal-login')">Iniciar Sesión</button>
+        <button class="btn btn-primary btn-sm" onclick="window.openModal('modal-login')">Iniciar Sesión</button>
       </div>
     `;
   }
@@ -374,58 +346,57 @@ function renderSellerPanelHtml() {
   const finishedOrders = mySellerOrders.filter(o => o.status !== 'PENDING_SELLER_APPROVAL');
 
   return `
-    <div style="display: grid; grid-template-columns: 1.1fr 1fr; gap: 1.5rem; align-items: start;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; align-items: start;">
       
       <!-- Columna Izquierda: Órdenes Recibidas por Aprobar + Historial -->
       <div>
         <!-- Órdenes Pendientes de Revisión -->
-        <div class="card" style="margin-bottom: 1.5rem; border: 2px solid ${pendingOrders.length > 0 ? 'var(--amber)' : 'var(--border)'};">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div class="card" style="margin-bottom: 1rem; border: 1px solid ${pendingOrders.length > 0 ? 'var(--amber)' : 'var(--border)'};">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
             <div>
-              <h3 style="font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 0.4rem;">
-                📋 Órdenes de Compra Recibidas
-                ${pendingOrders.length > 0 ? `<span class="badge badge-red">${pendingOrders.length} Pendientes</span>` : ''}
+              <h3 style="font-size: 1.05rem; font-weight: 800; display: flex; align-items: center; gap: 0.4rem;">
+                Órdenes de Compra Recibidas
+                ${pendingOrders.length > 0 ? `<span class="badge badge-red">${pendingOrders.length}</span>` : ''}
               </h3>
-              <p style="font-size: 0.8rem; color: var(--text-muted);">
-                Verifica el pago en tu Binance / banco y presiona <strong>"Aprobar"</strong> para liberar las monedas al comprador.
+              <p style="font-size: 0.78rem; color: var(--text-muted);">
+                Verifica el pago y presiona <strong>Aprobar</strong> para liberar las monedas al comprador.
               </p>
             </div>
-            <button class="btn btn-outline btn-sm" onclick="window.loadCoinsCenter('seller_panel')">🔄 Actualizar</button>
+            <button class="btn btn-outline btn-sm" onclick="window.loadCoinsCenter('seller_panel')">Actualizar</button>
           </div>
 
           ${pendingOrders.length === 0 ? `
-            <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.85rem;">
-              <div style="font-size: 2rem; margin-bottom: 0.4rem;">✨</div>
+            <div style="text-align: center; padding: 1.5rem 1rem; color: var(--text-muted); font-size: 0.82rem;">
               No tienes órdenes pendientes de aprobación en este momento.
             </div>
           ` : `
-            <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+            <div style="display: flex; flex-direction: column; gap: 0.65rem;">
               ${pendingOrders.map(ord => `
-                <div style="background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.85rem;">
-                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                <div style="background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.4rem;">
                     <div>
-                      <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Comprador</span>
-                      <div style="font-size: 0.95rem; font-weight: 800;">👤 ${escapeHtml(ord.buyer)}</div>
+                      <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Comprador</span>
+                      <div style="font-size: 0.9rem; font-weight: 800;">${escapeHtml(ord.buyer)}</div>
                     </div>
                     <div style="text-align: right;">
-                      <div style="font-size: 1.15rem; font-weight: 800; color: var(--amber);">${Number(ord.amount).toLocaleString()} NC</div>
-                      <div style="font-size: 0.8rem; font-weight: 700; color: var(--emerald);">${ord.priceUsd ? `$${Number(ord.priceUsd).toFixed(2)} USDT` : 'Acordado'}</div>
+                      <div style="font-size: 1.05rem; font-weight: 800; color: var(--amber);">${Number(ord.amount).toLocaleString()} NC</div>
+                      <div style="font-size: 0.76rem; font-weight: 700; color: var(--emerald);">${ord.priceUsd ? `$${Number(ord.priceUsd).toFixed(2)} USDT` : 'Acordado'}</div>
                     </div>
                   </div>
 
-                  <div style="background: var(--bg-card); padding: 0.5rem 0.65rem; border-radius: var(--radius-sm); font-size: 0.8rem; margin-bottom: 0.75rem; border: 1px dashed var(--border);">
+                  <div style="background: var(--bg-card); padding: 0.4rem 0.5rem; border-radius: var(--radius-sm); font-size: 0.76rem; margin-bottom: 0.6rem; border: 1px dashed var(--border);">
                     <div><strong>TXID:</strong> <code style="color: var(--primary);">${escapeHtml(ord.txid || 'Sin TXID')}</code></div>
-                    <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Fecha: ${new Date(ord.createdAt).toLocaleString()}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 1px;">Fecha: ${new Date(ord.createdAt).toLocaleString()}</div>
                   </div>
 
-                  <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                  <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
                     ${ord.receiptImage ? `
                       <button class="btn btn-outline btn-sm" onclick="window.viewReceiptImage('${escapeHtml(ord.receiptImage)}', 'Comprobante de ${escapeHtml(ord.buyer)}')">
-                        🖼️ Ver Captura
+                        Ver Captura
                       </button>
                     ` : ''}
                     <button class="btn btn-emerald btn-sm" style="flex: 1;" onclick="window.approveP2pOrder('${ord.id}')">
-                      ✓ Aprobar y Liberar Monedas
+                      ✓ Aprobar y Liberar
                     </button>
                     <button class="btn btn-danger-soft btn-sm" onclick="window.rejectP2pOrder('${ord.id}')">
                       ✕ Rechazar
@@ -435,6 +406,140 @@ function renderSellerPanelHtml() {
               `).join('')}
             </div>
           `}
+        </div>
+
+        <!-- Mis Ofertas Activas -->
+        <div class="card" style="margin-bottom: 1rem;">
+          <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.4rem;">Mis Ofertas Publicadas</h4>
+          ${myActiveOffers.length === 0 ? `
+            <div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0;">No tienes ofertas de monedas activas en venta.</div>
+          ` : `
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+              ${myActiveOffers.map(o => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.82rem;">
+                  <div>
+                    <strong style="color: var(--amber); font-size: 0.9rem;">${Number(o.amount).toLocaleString()} NC</strong>
+                    <span style="color: var(--text-muted); font-size: 0.75rem;"> • ${o.priceUsd ? `$${Number(o.priceUsd).toFixed(2)} USDT` : 'Acordado'}</span>
+                  </div>
+                  <button class="btn btn-danger-soft btn-sm" onclick="window.cancelNcListing('${o.id}')">
+                    ✕ Cancelar
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+
+        <!-- Historial de Órdenes Pasadas -->
+        ${finishedOrders.length > 0 ? `
+          <div class="card">
+            <h4 style="font-size: 0.9rem; font-weight: 800; margin-bottom: 0.4rem; color: var(--text-muted);">Historial de Órdenes</h4>
+            <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.78rem;">
+              ${finishedOrders.slice(0, 5).map(fo => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px dashed var(--border);">
+                  <div>
+                    <strong>${Number(fo.amount).toLocaleString()} NC</strong> a ${escapeHtml(fo.buyer)}
+                  </div>
+                  <span class="badge ${fo.status === 'COMPLETED' ? 'badge-emerald' : 'badge-red'}">
+                    ${fo.status === 'COMPLETED' ? 'Aprobada' : 'Rechazada'}
+                  </span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+
+      <!-- Columna Derecha: Configuración de Cobro + Publicar NC -->
+      <div>
+        <!-- 1. Configurar Mis Métodos de Cobro -->
+        <div class="card" style="margin-bottom: 1rem;">
+          <h3 style="font-size: 1.05rem; font-weight: 800; margin-bottom: 0.25rem;">Mis Métodos de Cobro</h3>
+          <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Los compradores verán estos datos para transferirte antes de que liberes las monedas.
+          </p>
+
+          <form id="form-seller-config" onsubmit="event.preventDefault(); window.saveSellerConfig(event);">
+            <div style="margin-bottom: 0.6rem;">
+              <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">
+                Tu Binance Pay ID:
+              </label>
+              <input type="text" id="seller-binance-id" class="input" placeholder="Ej. 1255344898" value="${escapeHtml(mySellerConfig.binanceId || '')}">
+            </div>
+
+            <div style="margin-bottom: 0.6rem;">
+              <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">
+                WhatsApp de Contacto:
+              </label>
+              <div class="wa-input-group">
+                <select id="seller-wa-country" class="wa-country-select">
+                  <option value="+591" ${mySellerConfig.countryCode === '+591' ? 'selected' : ''}>+591</option>
+                  <option value="+52" ${mySellerConfig.countryCode === '+52' ? 'selected' : ''}>+52</option>
+                  <option value="+54" ${mySellerConfig.countryCode === '+54' ? 'selected' : ''}>+54</option>
+                  <option value="+57" ${mySellerConfig.countryCode === '+57' ? 'selected' : ''}>+57</option>
+                  <option value="+51" ${mySellerConfig.countryCode === '+51' ? 'selected' : ''}>+51</option>
+                  <option value="+56" ${mySellerConfig.countryCode === '+56' ? 'selected' : ''}>+56</option>
+                  <option value="+34" ${mySellerConfig.countryCode === '+34' ? 'selected' : ''}>+34</option>
+                  <option value="+1" ${mySellerConfig.countryCode === '+1' ? 'selected' : ''}>+1</option>
+                  <option value="+58" ${mySellerConfig.countryCode === '+58' ? 'selected' : ''}>+58</option>
+                  <option value="+593" ${mySellerConfig.countryCode === '+593' ? 'selected' : ''}>+593</option>
+                </select>
+                <input type="tel" id="seller-wa-number" class="wa-number-input" placeholder="Tu número WhatsApp" value="${escapeHtml(mySellerConfig.whatsapp || '')}">
+              </div>
+            </div>
+
+            <div style="margin-bottom: 0.6rem;">
+              <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">
+                Subir Código QR de Cobro:
+              </label>
+              <input type="file" id="seller-qr-file" class="input" accept="image/*">
+            </div>
+
+            <div style="margin-bottom: 0.75rem;">
+              <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">
+                Instrucciones para el comprador:
+              </label>
+              <input type="text" id="seller-instructions" class="input" placeholder="Ej. Poner mi Gamertag en la nota del pago" value="${escapeHtml(mySellerConfig.instructions || '')}">
+            </div>
+
+            <button type="submit" id="btn-save-seller-config" class="btn btn-outline btn-sm btn-block">
+              Guardar Métodos de Cobro
+            </button>
+          </form>
+        </div>
+
+        <!-- 2. Publicar Monedas a la Venta -->
+        <div class="card">
+          <h3 style="font-size: 1.05rem; font-weight: 800; margin-bottom: 0.25rem;">Publicar Monedas a la Venta</h3>
+          <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Las monedas pasarán a custodia mientras dure la oferta.
+          </p>
+
+          <form id="form-sell-nc" onsubmit="event.preventDefault(); window.createNcListing();">
+            <div style="margin-bottom: 0.6rem;">
+              <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">
+                Cantidad de NC a vender:
+              </label>
+              <input type="number" id="nc-sell-amount" class="input" placeholder="Ej. 5000" min="50" step="50" required>
+            </div>
+
+            <div style="margin-bottom: 0.75rem;">
+              <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">
+                Precio en USDT:
+              </label>
+              <input type="number" id="nc-sell-price-usd" class="input" placeholder="Ej. 0.49" min="0.01" step="0.01" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-sm btn-block">
+              Publicar Oferta
+            </button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  `;
+}
         </div>
 
         <!-- Mis Ofertas Activas -->

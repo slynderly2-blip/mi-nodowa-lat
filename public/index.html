@@ -99,7 +99,7 @@
       <div class="section-header">
         <div>
           <h1 class="section-title">
-            🛒 Catálogo de Artículos & Rangos
+            Catálogo de Artículos & Rangos
           </h1>
           <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.2rem;">
             Productos oficiales entregados automáticamente en tu cuenta de Minecraft Bedrock.
@@ -108,7 +108,7 @@
         
         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
           <button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('mi.nodowa.lat:19132').then(()=>window.showToast('¡IP copiada!'))" style="white-space: nowrap;">
-            🎮 Unirse: mi.nodowa.lat
+            Servidor: mi.nodowa.lat
           </button>
           <input type="text" id="store-search" class="input" placeholder="Buscar productos..." style="width: 200px;" oninput="window.renderStore()">
         </div>
@@ -135,7 +135,7 @@
     <section id="tab-market" class="tab-pane">
       <div class="section-header">
         <div>
-          <h1 class="section-title">🤝 Mercado Comunitario (P2P)</h1>
+          <h1 class="section-title">Mercado Comunitario (P2P)</h1>
           <p style="font-size: 0.88rem; color: var(--text-muted);">Comercia objetos, armas y bloques con otros jugadores en tiempo real.</p>
         </div>
         <button class="btn btn-primary btn-sm" onclick="window.openModal('modal-sell-p2p')">
@@ -149,15 +149,15 @@
     <section id="tab-social" class="tab-pane">
       <div class="section-header">
         <div>
-          <h1 class="section-title">💬 Comunidad Nodowa</h1>
+          <h1 class="section-title">Comunidad Nodowa</h1>
           <p style="font-size: 0.88rem; color: var(--text-muted);">Jugadores, amigos y mensajes directos.</p>
         </div>
       </div>
 
       <!-- Sub-pestañas: Jugadores | Chat -->
       <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
-        <button class="btn btn-primary active" id="subtab-players-btn" onclick="window.switchSocialSubTab('players')" style="font-size: 0.88rem; padding: 0.5rem 1rem;">👥 Jugadores</button>
-        <button class="btn btn-outline" id="subtab-chat-btn" onclick="window.switchSocialSubTab('chat')" style="font-size: 0.88rem; padding: 0.5rem 1rem;">💬 Chat <span id="subtab-chat-badge" style="display:none; background:var(--red); color:#fff; border-radius:9999px; padding:1px 6px; font-size:0.7rem; margin-left:4px;"></span></button>
+        <button class="btn btn-primary active" id="subtab-players-btn" onclick="window.switchSocialSubTab('players')" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Jugadores</button>
+        <button class="btn btn-outline" id="subtab-chat-btn" onclick="window.switchSocialSubTab('chat')" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Chat <span id="subtab-chat-badge" style="display:none; background:var(--red); color:#fff; border-radius:9999px; padding:1px 6px; font-size:0.7rem; margin-left:4px;"></span></button>
       </div>
 
       <!-- Panel: Jugadores -->
@@ -171,7 +171,7 @@
         </div>
         <!-- Solicitudes entrantes -->
         <div id="incoming-requests-box" style="display: none; margin-bottom: 1rem;">
-          <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.5rem;">📩 Solicitudes de Amistad</h4>
+          <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.5rem;">Solicitudes de Amistad</h4>
           <div id="incoming-requests-grid"></div>
         </div>
         <!-- Grid de jugadores -->
@@ -191,8 +191,7 @@
             <!-- Estado vacío -->
             <div id="chat-empty-state" style="flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); padding: 2rem;">
               <div>
-                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">💬</div>
-                <div style="font-weight: 700;">Selecciona un jugador para chatear</div>
+                <div style="font-weight: 700; font-size: 1.05rem;">Selecciona un jugador para chatear</div>
                 <div style="font-size: 0.82rem; margin-top: 0.25rem;">Elige una conversación de la lista o visita la pestaña de jugadores.</div>
               </div>
             </div>
@@ -209,7 +208,7 @@
               <div id="chat-messages-container" style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;"></div>
               <form id="chat-input-form" onsubmit="event.preventDefault();" style="display: flex; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border);">
                 <input type="text" id="chat-input" class="input" placeholder="Escribe un mensaje..." autocomplete="off" style="flex: 1;">
-                <button type="submit" class="btn btn-primary" id="btn-send-chat">Enviar</button>
+                <button type="submit" class="btn btn-primary btn-sm" id="btn-send-chat">Enviar</button>
               </form>
             </div>
           </div>
@@ -221,34 +220,34 @@
     <section id="tab-wallet" class="tab-pane">
       <div class="section-header">
         <div>
-          <h1 class="section-title">💳 Mi Billetera & Banco de Intereses</h1>
+          <h1 class="section-title">Mi Billetera & Rendimientos</h1>
           <p style="font-size: 0.88rem; color: var(--text-muted);">Administra tu saldo disponible en mano y tu cuenta de ahorro con rendimiento diario.</p>
         </div>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
         <!-- Card Wallet -->
-        <div class="card">
-          <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Saldo en Mano (Wallet)</span>
-          <div style="font-size: 2rem; font-weight: 800; color: var(--amber); margin: 0.35rem 0;" id="wallet-balance-amount">0 NC</div>
+        <div class="card" style="padding: 1.25rem;">
+          <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Saldo Disponible</span>
+          <div style="font-size: 1.8rem; font-weight: 800; color: var(--amber); margin: 0.25rem 0;" id="wallet-balance-amount">0 NC</div>
           <button class="btn btn-amber btn-sm btn-block" onclick="window.openModal('modal-quick-transfer')">
-            Transferir Saldo Rápido
+            Transferir a Jugador
           </button>
         </div>
         <!-- Card Banco -->
-        <div class="card">
-          <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Banco Seguro (Genera Interés)</span>
-          <div style="font-size: 2rem; font-weight: 800; color: var(--emerald); margin: 0.35rem 0;" id="bank-balance-amount">0 NC</div>
-          <div style="display: flex; gap: 0.5rem;">
+        <div class="card" style="padding: 1.25rem;">
+          <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Banco (2% Rendimiento Diario)</span>
+          <div style="font-size: 1.8rem; font-weight: 800; color: var(--emerald); margin: 0.25rem 0;" id="bank-balance-amount">0 NC</div>
+          <div style="display: flex; gap: 0.4rem;">
             <button class="btn btn-outline btn-sm" style="flex: 1;" onclick="window.openBankActionModal('deposit')">Depositar</button>
             <button class="btn btn-outline btn-sm" style="flex: 1;" onclick="window.openBankActionModal('withdraw')">Retirar</button>
-            <button class="btn btn-primary btn-sm" onclick="window.claimBankInterest()">Cobrar Interés</button>
+            <button class="btn btn-primary btn-sm" onclick="window.claimBankInterest()">Cobrar</button>
           </div>
         </div>
       </div>
 
       <!-- Historial de Transacciones -->
-      <div class="card">
-        <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 1rem;">Movimientos Recientes</h3>
+      <div class="card" style="padding: 1.25rem;">
+        <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 0.75rem;">Movimientos Recientes</h3>
         <div id="wallet-transactions-list"></div>
       </div>
     </section>
@@ -257,49 +256,56 @@
     <section id="tab-deliveries" class="tab-pane">
       <div class="section-header">
         <div>
-          <h1 class="section-title">📬 Buzón de Reclamos en Minecraft</h1>
-          <p style="font-size: 0.88rem; color: var(--text-muted);">Consulta tus órdenes y compras pendientes de recibir en el servidor.</p>
+          <h1 class="section-title">Buzón de Entregas & Compras</h1>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Consulta tus órdenes, compras y entregas pendientes de recibir en el servidor.</p>
         </div>
+        <button class="btn btn-outline btn-sm" onclick="window.loadDeliveries ? window.loadDeliveries() : window.handleCurrentRoute()">
+          Actualizar Buzón
+        </button>
       </div>
-      <div id="deliveries-list" class="card"></div>
+      <div id="deliveries-list" class="card" style="padding: 1.25rem;"></div>
     </section>
 
     <!-- 8. TAB: TOP RICOS (LEADERBOARD) -->
     <section id="tab-leaderboard" class="tab-pane">
       <div class="section-header">
         <div>
-          <h1 class="section-title">🏆 Top Ricos de Nodowa</h1>
+          <h1 class="section-title">Top Ricos de Nodowa</h1>
           <p style="font-size: 0.88rem; color: var(--text-muted);">Los magnates y aventureros más adinerados de la red.</p>
         </div>
       </div>
-      <div id="leaderboard-table-container" class="card"></div>
+      <div id="leaderboard-table-container" class="card" style="padding: 1.25rem;"></div>
     </section>
 
   </main>
 
   <!-- ========================================================================
-       BARRA INFERIOR MÓVIL (MOBILE BOTTOM BAR)
+       BARRA INFERIOR MÓVIL (MOBILE BOTTOM BAR) COMPLETA
        ======================================================================== -->
   <nav class="mobile-bottom-nav">
     <button class="mobile-tab-btn active" data-tab="store" onclick="window.navigateTo('/')">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></svg>
       <span>Tienda</span>
     </button>
     <button class="mobile-tab-btn" data-tab="coins" onclick="window.navigateTo('/coins')">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/></svg>
       <span>Monedas</span>
     </button>
     <button class="mobile-tab-btn" data-tab="market" onclick="window.navigateTo('/market')">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
       <span>Mercado</span>
     </button>
     <button class="mobile-tab-btn" data-tab="social" onclick="window.navigateTo('/social')">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <span>Chat</span>
     </button>
     <button class="mobile-tab-btn" data-tab="wallet" onclick="window.navigateTo('/wallet')">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
       <span>Wallet</span>
+    </button>
+    <button class="mobile-tab-btn" data-tab="deliveries" onclick="window.navigateTo('/deliveries')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+      <span>Buzón</span>
     </button>
   </nav>
 
