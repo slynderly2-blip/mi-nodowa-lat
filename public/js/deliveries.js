@@ -110,6 +110,21 @@ export function initDeliveries() {
   const btn = document.getElementById("btn-refresh-deliveries");
   if (btn) btn.onclick = loadDeliveries;
 
+  // Exponer globalmente aquí también por si se llama antes del init
+  window.__showReceiptFromData = (dataStr) => {
+    try {
+      const parsed = JSON.parse(dataStr.replace(/&quot;/g, '"'));
+      if (typeof window.showPurchaseReceipt === 'function') {
+        window.showPurchaseReceipt(parsed);
+      } else {
+        // Fallback simple si showPurchaseReceipt no está listo
+        const item = parsed.itemName || "Artículo";
+        const folio = parsed.folio || "—";
+        window.showToast && window.showToast(`Recibo #${folio} — ${item}`);
+      }
+    } catch (e) {}
+  };
+
   const form = document.getElementById("report-form");
   if (form) {
     form.addEventListener("submit", async (e) => {

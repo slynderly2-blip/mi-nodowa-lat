@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initAuthListeners();
     initProfileListeners();
     initWallet();
+    initDeliveries();
     initSocial();
     initChat();
     console.log('✓ [Auth/Profile/Social/Chat] Listeners registrados');
