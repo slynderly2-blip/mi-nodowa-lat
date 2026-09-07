@@ -101,11 +101,11 @@
           </p>
         </div>
         
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <button class="btn btn-outline btn-sm" onclick="window.copyServerIp()">
-            📋 IP: mi.nodowa.lat
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('mi.nodowa.lat:19132').then(()=>window.showToast('¡IP copiada!'))" style="white-space: nowrap;">
+            🎮 Unirse: mi.nodowa.lat
           </button>
-          <input type="text" id="store-search" class="input" placeholder="Buscar productos..." style="width: 220px;" oninput="window.renderStore()">
+          <input type="text" id="store-search" class="input" placeholder="Buscar productos..." style="width: 200px;" oninput="window.renderStore()">
         </div>
       </div>
 
@@ -144,26 +144,70 @@
     <section id="tab-social" class="tab-pane">
       <div class="section-header">
         <div>
-          <h1 class="section-title">💬 Chat & Comunidad Nodowa</h1>
-          <p style="font-size: 0.88rem; color: var(--text-muted);">Conversa con otros usuarios en línea y explora sus tiendas personales.</p>
+          <h1 class="section-title">💬 Comunidad Nodowa</h1>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Jugadores, amigos y mensajes directos.</p>
         </div>
       </div>
-      <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem; align-items: start;">
-        <!-- Lista de Jugadores / Conversaciones -->
-        <div class="card" style="padding: 1rem;">
-          <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.75rem;">Jugadores Recientes</h4>
-          <div id="conversations-list" style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 480px; overflow-y: auto;"></div>
+
+      <!-- Sub-pestañas: Jugadores | Chat -->
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
+        <button class="btn btn-primary active" id="subtab-players-btn" onclick="window.switchSocialSubTab('players')" style="font-size: 0.88rem; padding: 0.5rem 1rem;">👥 Jugadores</button>
+        <button class="btn btn-outline" id="subtab-chat-btn" onclick="window.switchSocialSubTab('chat')" style="font-size: 0.88rem; padding: 0.5rem 1rem;">💬 Chat <span id="subtab-chat-badge" style="display:none; background:var(--red); color:#fff; border-radius:9999px; padding:1px 6px; font-size:0.7rem; margin-left:4px;"></span></button>
+      </div>
+
+      <!-- Panel: Jugadores -->
+      <div id="social-panel-players" class="active">
+        <!-- Filtros y búsqueda -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
+          <button class="filter-pill active" id="filter-players-all" onclick="window.setPlayersFilter('all')">Todos</button>
+          <button class="filter-pill" id="filter-players-linked" onclick="window.setPlayersFilter('linked')">Vinculados</button>
+          <button class="filter-pill" id="filter-players-friends" onclick="window.setPlayersFilter('friends')">Amigos</button>
+          <input type="text" id="players-search-input" class="input" placeholder="Buscar jugador..." style="width: 200px; margin-left: auto;">
         </div>
-        <!-- Panel de Chat -->
-        <div class="card" style="padding: 1.25rem; display: flex; flex-direction: column; height: 540px;">
-          <div id="chat-header" style="padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); font-weight: 800;">
-            Selecciona a un jugador para chatear
+        <!-- Solicitudes entrantes -->
+        <div id="incoming-requests-box" style="display: none; margin-bottom: 1rem;">
+          <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.5rem;">📩 Solicitudes de Amistad</h4>
+          <div id="incoming-requests-grid"></div>
+        </div>
+        <!-- Grid de jugadores -->
+        <div id="players-grid" class="products-grid"></div>
+      </div>
+
+      <!-- Panel: Chat / Messenger -->
+      <div id="social-panel-chat" style="display: none;">
+        <div class="messenger-container" style="display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem; align-items: stretch;">
+          <!-- Lista de conversaciones -->
+          <div class="card" style="padding: 1rem; overflow-y: auto; max-height: 560px;">
+            <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.75rem;">Conversaciones</h4>
+            <div id="conversations-list" style="display: flex; flex-direction: column; gap: 0.4rem;"></div>
           </div>
-          <div id="chat-messages" style="flex: 1; overflow-y: auto; padding: 1rem 0; display: flex; flex-direction: column; gap: 0.5rem;"></div>
-          <form id="chat-input-form" onsubmit="event.preventDefault();" style="display: flex; gap: 0.5rem; margin-top: auto;">
-            <input type="text" id="chat-input" class="input" placeholder="Escribe un mensaje..." autocomplete="off">
-            <button type="submit" class="btn btn-primary" id="btn-send-chat">Enviar</button>
-          </form>
+          <!-- Panel de chat activo -->
+          <div class="card" style="padding: 0; display: flex; flex-direction: column; height: 560px; overflow: hidden;">
+            <!-- Estado vacío -->
+            <div id="chat-empty-state" style="flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); padding: 2rem;">
+              <div>
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">💬</div>
+                <div style="font-weight: 700;">Selecciona un jugador para chatear</div>
+                <div style="font-size: 0.82rem; margin-top: 0.25rem;">Elige una conversación de la lista o visita la pestaña de jugadores.</div>
+              </div>
+            </div>
+            <!-- Chat activo (oculto por defecto) -->
+            <div id="chat-active-box" style="display: none; flex-direction: column; height: 100%;">
+              <div style="padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.75rem;">
+                <img id="chat-active-avatar" src="" alt="Avatar" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);">
+                <div>
+                  <div id="chat-active-name" style="font-weight: 800; font-size: 0.95rem;"></div>
+                  <div id="chat-active-status" style="font-size: 0.72rem; color: var(--emerald); font-weight: 600;">En línea</div>
+                </div>
+                <button class="btn btn-outline btn-sm" style="margin-left: auto;" onclick="window.closeChatMobile()">✕</button>
+              </div>
+              <div id="chat-messages-container" style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;"></div>
+              <form id="chat-input-form" onsubmit="event.preventDefault();" style="display: flex; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border);">
+                <input type="text" id="chat-input" class="input" placeholder="Escribe un mensaje..." autocomplete="off" style="flex: 1;">
+                <button type="submit" class="btn btn-primary" id="btn-send-chat">Enviar</button>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -340,7 +384,9 @@
         <div style="background: var(--surface-subtle); border: 1px solid var(--border); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 1.15rem; font-weight: 800; color: var(--primary); display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
           <span id="binance-pay-id">1255344898</span>
         </div>
-        <div style="font-size: 0.78rem; color: var(--text-subtle);" id="binance-pay-inst"></div>
+        <div style="font-size: 0.78rem; color: var(--text-subtle); margin-bottom: 0.75rem;" id="binance-pay-inst"></div>
+        <!-- QR de Binance Pay -->
+        <img id="binance-pay-qr" src="/uploads/default_qr.svg" alt="QR Binance Pay" style="max-width: 180px; border-radius: var(--radius-md); border: 1px solid var(--border); margin: 0 auto; display: block;">
       </div>
 
       <form onsubmit="window.submitBinanceOrder(event)">
