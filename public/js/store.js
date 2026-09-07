@@ -185,6 +185,7 @@ export function startCheckout(itemId) {
 
 async function buyWithCoins(itemId) {
   if (!currentUser) return;
+  const item = storeItems.find(i => i.id === itemId);
   try {
     const res = await fetch("/api/store/buy", {
       method: "POST",
@@ -199,7 +200,6 @@ async function buyWithCoins(itemId) {
     }
 
     closeModal("modal-checkout");
-    showToast(`🎉 ¡Compra completada! Reclama tu artículo en Minecraft (/buzon)`);
 
     // Actualizar saldo
     if (data.user) {
@@ -207,6 +207,23 @@ async function buyWithCoins(itemId) {
       const el = document.getElementById('user-pill-balance');
       if (el) el.textContent = `${Number(userData.wallet).toLocaleString()} NC`;
     }
+
+    // Mostrar recibo de compra de ítem
+    const now = new Date().toLocaleString('es', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const srItem    = document.getElementById('sr-item');
+    const srPrice   = document.getElementById('sr-price');
+    const srPlayer  = document.getElementById('sr-player');
+    const srStatus  = document.getElementById('sr-status');
+    const srBalance = document.getElementById('sr-balance');
+    const srDate    = document.getElementById('sr-date');
+    if (srItem)    srItem.textContent    = item ? item.name : itemId;
+    if (srPrice)   srPrice.textContent   = `${Number(item?.priceCoins || 0).toLocaleString()} NC`;
+    if (srPlayer)  srPlayer.textContent  = currentUser;
+    if (srStatus)  srStatus.textContent  = data.delivery ? 'Pendiente de recibir' : 'Completado';
+    if (srBalance) srBalance.textContent = `${Number(data.user?.wallet || 0).toLocaleString()} NC`;
+    if (srDate)    srDate.textContent    = now;
+    openModal('modal-store-receipt');
+
   } catch (err) {
     console.error("[Store] Error en compra:", err);
     showToast("Error de conexión al procesar la compra");

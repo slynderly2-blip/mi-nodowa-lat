@@ -13,7 +13,7 @@ import { loadStore, setStoreCategory, setStoreSort, copyServerIp, clearSearch, s
 import { loadCoinsCenter, createNcListing, cancelNcListing, saveSellerConfig, openBuyP2pNcModal, submitP2pOrder, approveP2pOrder, rejectP2pOrder, viewReceiptImage, startOfficialCoinsCheckout, submitBinanceOrder, switchCoinsTab } from './coins.js';
 import { loadUserShop, switchShopSubTab } from './user-shop.js';
 import { loadMarket, buyP2PListing, deleteP2PListing, listMyItemP2P } from './market.js';
-import { loadTransactions, openQuickTransfer, openBankActionModal, setBankPercentage, claimBankInterest, submitQuickTransfer } from './wallet.js';
+import { loadTransactions, openQuickTransfer, openBankActionModal, setBankPercentage, claimBankInterest, submitQuickTransfer, initWallet } from './wallet.js';
 import { openChatWith, closeChatMobile, deleteMessage, initChat } from './chat.js';
 import { sendFriendRequest, viewOtherPlayerProfile, switchSocialSubTab, setPlayersFilter, clearPlayersSearch, respondFriendRequest, removeFriend, initSocial } from './social.js';
 import { openReportModal } from './deliveries.js';
@@ -105,6 +105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 1. Listeners de autenticación, perfil, social y chat
     initAuthListeners();
     initProfileListeners();
+    initWallet();
     initSocial();
     initChat();
     console.log('✓ [Auth/Profile/Social/Chat] Listeners registrados');

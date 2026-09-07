@@ -289,11 +289,11 @@
     </button>
     <button class="mobile-tab-btn" data-tab="coins" onclick="window.navigateTo('/coins')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/></svg>
-      <span>Monedas</span>
+      <span>NC</span>
     </button>
     <button class="mobile-tab-btn" data-tab="market" onclick="window.navigateTo('/market')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
-      <span>Mercado</span>
+      <span>P2P</span>
     </button>
     <button class="mobile-tab-btn" data-tab="social" onclick="window.navigateTo('/social')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -303,9 +303,9 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
       <span>Wallet</span>
     </button>
-    <button class="mobile-tab-btn" data-tab="deliveries" onclick="window.navigateTo('/deliveries')">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
-      <span>Buzón</span>
+    <button class="mobile-tab-btn" data-tab="leaderboard" onclick="window.navigateTo('/leaderboard')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+      <span>Top</span>
     </button>
   </nav>
 
@@ -654,8 +654,176 @@
     </div>
   </div>
 
+  <!-- Modal: Depositar / Retirar Banco -->
+  <div class="modal-backdrop" id="modal-bank-action">
+    <div class="modal-box" style="max-width:440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="bank-modal-title">Depositar en Banco</h3>
+        <button class="btn-close" onclick="window.closeModal('modal-bank-action')">&times;</button>
+      </div>
+
+      <div style="background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.85rem; margin-bottom:1.25rem;">
+        <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:5px;">
+          <span style="color:var(--text-muted);">Billetera (Mano):</span>
+          <strong id="bank-modal-wallet" style="color:var(--primary);">0 NC</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+          <span style="color:var(--text-muted);">Banco Protegido:</span>
+          <strong id="bank-modal-bank" style="color:var(--emerald);">0 NC</strong>
+        </div>
+      </div>
+
+      <form id="bank-action-form">
+        <input type="hidden" id="bank-action-type" value="deposit">
+        <div class="form-group">
+          <label class="form-label" id="bank-modal-label">Cantidad a Depositar (NC)</label>
+          <div class="amount-input-wrap">
+            <input type="number" id="bank-action-amount" class="input input-lg" min="1" placeholder="Ej: 500" required autofocus>
+            <span class="amount-suffix">NC</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:0.4rem; margin-bottom:1.25rem; flex-wrap:wrap;">
+          <button type="button" class="btn-quick-nc" onclick="window.setBankPercentage(25)">25%</button>
+          <button type="button" class="btn-quick-nc" onclick="window.setBankPercentage(50)">50%</button>
+          <button type="button" class="btn-quick-nc" onclick="window.setBankPercentage(75)">75%</button>
+          <button type="button" class="btn-quick-nc" style="font-weight:800; color:var(--amber);" onclick="window.setBankPercentage(100)">Todo (100%)</button>
+        </div>
+        <div style="display:flex; gap:0.75rem;">
+          <button type="button" class="btn btn-secondary btn-block" onclick="window.closeModal('modal-bank-action')">Cancelar</button>
+          <button type="submit" id="btn-bank-submit" class="btn btn-tiktok btn-block">Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Contenedor Toast -->
   <div id="toast"></div>
+
+  <!-- =====================================================================
+       MODAL: RECIBO DE TRANSFERENCIA NC
+       ===================================================================== -->
+  <div class="modal-backdrop" id="modal-transfer-receipt">
+    <div class="modal-box" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--primary);">Recibo de Transferencia</h3>
+        <button class="modal-close" onclick="window.closeModal('modal-transfer-receipt')">&#x2715;</button>
+      </div>
+      <div style="background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 100%); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1rem;">
+        <div style="text-align: center; margin-bottom: 0.75rem;">
+          <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 0.2rem;">Transferencia NC</div>
+          <div id="tr-amount" style="font-size: 2rem; font-weight: 900; color: var(--primary); letter-spacing: -1px;">-0 NC</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.82rem;">
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed var(--border);">
+            <span style="color: var(--text-muted); font-weight: 600;">De</span>
+            <strong id="tr-from">—</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed var(--border);">
+            <span style="color: var(--text-muted); font-weight: 600;">Para</span>
+            <strong id="tr-to">—</strong>
+          </div>
+          <div id="tr-note-row" style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed var(--border);">
+            <span style="color: var(--text-muted); font-weight: 600;">Nota</span>
+            <span id="tr-note" style="color: var(--text-muted); font-style: italic;">—</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed var(--border);">
+            <span style="color: var(--text-muted); font-weight: 600;">Saldo restante</span>
+            <strong id="tr-balance" style="color: var(--emerald);">0 NC</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed var(--border);">
+            <span style="color: var(--text-muted); font-weight: 600;">Fecha</span>
+            <span id="tr-date">—</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0;">
+            <span style="color: var(--text-muted); font-weight: 600;">Ref. TX</span>
+            <code id="tr-txid" style="font-size: 0.7rem; color: var(--primary);">—</code>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block btn-sm" onclick="window.closeModal('modal-transfer-receipt')">Cerrar Recibo</button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL: RECIBO DE COMPRA DE ITEM EN TIENDA
+       ===================================================================== -->
+  <div class="modal-backdrop" id="modal-store-receipt">
+    <div class="modal-box" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--emerald);">Compra Realizada</h3>
+        <button class="modal-close" onclick="window.closeModal('modal-store-receipt')">&#x2715;</button>
+      </div>
+      <div style="background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1rem;">
+        <div style="text-align: center; margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px dashed #a7f3d0;">
+          <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #065f46; margin-bottom: 0.3rem;">Recibo de Compra NC</div>
+          <div id="sr-item" style="font-size: 1.25rem; font-weight: 900; color: var(--text);">Artículo</div>
+          <div id="sr-price" style="font-size: 1.5rem; font-weight: 900; color: var(--emerald); margin-top: 0.2rem;">0 NC</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.82rem;">
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed #a7f3d0;">
+            <span style="color: #065f46; font-weight: 600;">Jugador</span>
+            <strong id="sr-player">—</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed #a7f3d0;">
+            <span style="color: #065f46; font-weight: 600;">Estado</span>
+            <span id="sr-status" style="font-weight: 700; color: var(--emerald);">Pendiente</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed #a7f3d0;">
+            <span style="color: #065f46; font-weight: 600;">Saldo restante</span>
+            <strong id="sr-balance" style="color: var(--primary);">0 NC</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0;">
+            <span style="color: #065f46; font-weight: 600;">Fecha</span>
+            <span id="sr-date">—</span>
+          </div>
+        </div>
+      </div>
+      <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 0.6rem 0.75rem; font-size: 0.78rem; color: #92400e; margin-bottom: 0.75rem;">
+        Entra al servidor y escribe <strong>/buzon</strong> para reclamar tu artículo en Minecraft.
+      </div>
+      <button class="btn btn-primary btn-block btn-sm" onclick="window.closeModal('modal-store-receipt')">Cerrar Recibo</button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL: RECIBO DE RECARGA NC (BINANCE PAY / P2P)
+       ===================================================================== -->
+  <div class="modal-backdrop" id="modal-nc-receipt">
+    <div class="modal-box" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--amber);">Comprobante Enviado</h3>
+        <button class="modal-close" onclick="window.closeModal('modal-nc-receipt')">&#x2715;</button>
+      </div>
+      <div style="background: linear-gradient(135deg, #fffbeb 0%, #fef9c3 100%); border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1rem;">
+        <div style="text-align: center; margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px dashed #fde68a;">
+          <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #92400e; margin-bottom: 0.3rem;">Solicitud de NC</div>
+          <div id="ncr-type" style="font-size: 0.9rem; font-weight: 700; color: #92400e;">Recarga Oficial</div>
+          <div id="ncr-amount" style="font-size: 1.75rem; font-weight: 900; color: var(--amber); margin-top: 0.2rem;">0 NC</div>
+          <div id="ncr-price" style="font-size: 0.9rem; font-weight: 700; color: #d97706;">$0.00 USDT</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.82rem;">
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed #fde68a;">
+            <span style="color: #92400e; font-weight: 600;">Jugador</span>
+            <strong id="ncr-player">—</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed #fde68a;">
+            <span style="color: #92400e; font-weight: 600;">TXID</span>
+            <code id="ncr-txid" style="font-size: 0.7rem; color: var(--primary);">—</code>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed #fde68a;">
+            <span style="color: #92400e; font-weight: 600;">Estado</span>
+            <span style="font-weight: 700; color: #d97706;">Pendiente de aprobacion</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0;">
+            <span style="color: #92400e; font-weight: 600;">Fecha</span>
+            <span id="ncr-date">—</span>
+          </div>
+        </div>
+      </div>
+      <div id="ncr-note" style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-sm); padding: 0.6rem 0.75rem; font-size: 0.78rem; color: #065f46; margin-bottom: 0.75rem;"></div>
+      <button class="btn btn-amber btn-block btn-sm" onclick="window.closeModal('modal-nc-receipt')">Cerrar Recibo</button>
+    </div>
+  </div>
 
   <!-- SCRIPT MODULAR PRINCIPAL (ES6) -->
   <script type="module" src="/js/main.js"></script>

@@ -749,7 +749,24 @@ export async function submitP2pOrder(event) {
     const data = await res.json();
     if (data.ok) {
       closeModal('modal-buy-p2p-nc');
-      showToast('🎉 Comprobante enviado al vendedor. Una vez lo verifique, te liberará las monedas.');
+      // Recibo P2P
+      const listing = selectedP2pListing;
+      const now = new Date().toLocaleString('es', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+      const ncrType   = document.getElementById('ncr-type');
+      const ncrAmount = document.getElementById('ncr-amount');
+      const ncrPrice  = document.getElementById('ncr-price');
+      const ncrPlayer = document.getElementById('ncr-player');
+      const ncrTxid   = document.getElementById('ncr-txid');
+      const ncrDate   = document.getElementById('ncr-date');
+      const ncrNote   = document.getElementById('ncr-note');
+      if (ncrType)   ncrType.textContent   = `Compra P2P — Vendedor: ${listing?.seller || ''}`;
+      if (ncrAmount) ncrAmount.textContent = `${Number(listing?.amount || 0).toLocaleString()} NC`;
+      if (ncrPrice)  ncrPrice.textContent  = listing?.priceUsd ? `$${Number(listing.priceUsd).toFixed(2)} USDT` : 'A convenir';
+      if (ncrPlayer) ncrPlayer.textContent = state.currentUser;
+      if (ncrTxid)   ncrTxid.textContent   = txid || '(sin TXID)';
+      if (ncrDate)   ncrDate.textContent   = now;
+      if (ncrNote)   ncrNote.textContent   = `El vendedor ${listing?.seller || ''} verificará tu pago y liberará las monedas manualmente.`;
+      openModal('modal-nc-receipt');
       await loadCoinsCenter('p2p');
     } else {
       showToast(data.error || 'Error al enviar orden');
@@ -881,15 +898,29 @@ export async function submitBinanceOrder(event) {
       formData.append('receiptImage', fileInput.files[0]);
     }
 
-    const res = await fetch('/api/orders/create', {
-      method: 'POST',
-      body: formData
-    });
-
+    const res = await fetch('/api/orders/create', { method: 'POST', body: formData });
     const data = await res.json();
+
     if (data.ok) {
       closeModal('modal-binance-order');
-      showToast('🎉 Comprobante enviado. Tu recarga será aprobada por el Administrador.');
+      // Mostrar recibo NC oficial
+      const now = new Date().toLocaleString('es', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+      const pack = selectedOfficialPack;
+      const ncrType   = document.getElementById('ncr-type');
+      const ncrAmount = document.getElementById('ncr-amount');
+      const ncrPrice  = document.getElementById('ncr-price');
+      const ncrPlayer = document.getElementById('ncr-player');
+      const ncrTxid   = document.getElementById('ncr-txid');
+      const ncrDate   = document.getElementById('ncr-date');
+      const ncrNote   = document.getElementById('ncr-note');
+      if (ncrType)   ncrType.textContent   = 'Recarga Oficial Binance Pay';
+      if (ncrAmount) ncrAmount.textContent = `${Number(pack.giveCoins || 0).toLocaleString()} NC`;
+      if (ncrPrice)  ncrPrice.textContent  = `$${Number(pack.priceUsdt || 0).toFixed(2)} USDT`;
+      if (ncrPlayer) ncrPlayer.textContent = state.currentUser;
+      if (ncrTxid)   ncrTxid.textContent   = txid || '(sin TXID)';
+      if (ncrDate)   ncrDate.textContent   = now;
+      if (ncrNote)   ncrNote.textContent   = 'El administrador verificará tu comprobante. Recibirás las monedas en tu cuenta una vez aprobado.';
+      openModal('modal-nc-receipt');
     } else {
       showToast(data.error || 'Error al enviar orden');
     }
