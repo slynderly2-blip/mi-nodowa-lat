@@ -185,20 +185,33 @@ router.post("/profile/edit", (req, res) => {
   });
 });
 
-// Actualizar avatar de perfil
-router.post("/avatar", (req, res) => {
-  const { username, avatarUrl } = req.body;
-  if (!username || !avatarUrl) return res.status(400).json({ ok: false, error: "Datos incompletos" });
+import { upload } from "../services/uploader.js";
 
-  const uname = username.trim().toLowerCase();
-  const user = db.users[uname];
-  if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+// Actualizar avatar de perfil (soporta archivo o URL)
+router.post("/avatar", upload.single("avatarFile"), (req, res) => {
+  try {
+    const { username, avatarUrl } = req.body;
+    if (!username) return res.status(400).json({ ok: false, error: "Usuario requerido" });
 
-  user.avatarUrl = avatarUrl;
-  user.updatedAt = new Date().toISOString();
-  saveDb();
+    const uname = username.trim().toLowerCase();
+    const user = db.users[uname];
+    if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
 
-  res.json({ ok: true, avatarUrl: user.avatarUrl, message: "Foto de perfil actualizada con éxito." });
+    if (req.file) {
+      user.avatarUrl = `/uploads/${req.file.filename}`;
+    } else if (avatarUrl) {
+      user.avatarUrl = avatarUrl.trim();
+    } else {
+      return res.status(400).json({ ok: false, error: "No se proporcionó imagen ni URL" });
+    }
+
+    user.updatedAt = new Date().toISOString();
+    saveDb();
+
+    res.json({ ok: true, avatarUrl: user.avatarUrl, message: "Foto de perfil actualizada con éxito." });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 export default router;

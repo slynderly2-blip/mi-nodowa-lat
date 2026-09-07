@@ -610,23 +610,45 @@
 
   <!-- Modal: Perfil y Ajustes -->
   <div class="modal-backdrop" id="modal-profile">
-    <div class="modal-box">
+    <div class="modal-box" style="max-width: 440px;">
       <div class="modal-header">
-        <h3 class="modal-title">Mi Perfil & Ajustes</h3>
+        <h3 class="modal-title">Mi Perfil & Foto</h3>
         <button class="modal-close" onclick="window.closeModal('modal-profile')">✕</button>
       </div>
-      <form id="profile-edit-form">
-        <div style="margin-bottom: 0.85rem;">
-          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Biografía:</label>
-          <textarea id="profile-bio-input" class="textarea" rows="3" placeholder="Cuéntale a la comunidad sobre ti..."></textarea>
+
+      <form id="profile-edit-form" onsubmit="event.preventDefault(); window.saveFullProfile(event);">
+        <!-- Sección de Foto de Perfil / Avatar -->
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; background: var(--bg-subtle); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border);">
+          <img id="profile-modal-avatar-preview" src="https://mc-heads.net/avatar/steve/80" alt="Avatar" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);">
+          <div style="flex: 1;">
+            <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+              Foto de Perfil / Avatar:
+            </label>
+            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+              <label class="btn btn-outline btn-sm" style="cursor: pointer; font-size: 0.75rem; padding: 3px 8px;">
+                Subir Foto
+                <input type="file" id="profile-modal-avatar-file" accept="image/*" style="display: none;" onchange="window.previewAvatarFile(event)">
+              </label>
+              <button type="button" class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 3px 8px;" onclick="window.useMinecraftSkinAvatar()">
+                Skin Minecraft
+              </button>
+            </div>
+          </div>
         </div>
+
+        <div style="margin-bottom: 0.85rem;">
+          <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Biografía:</label>
+          <textarea id="profile-bio-input" class="textarea" rows="2" placeholder="Cuéntale a la comunidad sobre ti..."></textarea>
+        </div>
+
         <div style="margin-bottom: 1rem;">
-          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Discord / Redes:</label>
+          <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Discord / Redes:</label>
           <input type="text" id="profile-social-discord" class="input" placeholder="Usuario de Discord">
         </div>
+
         <div style="display: flex; gap: 0.5rem;">
-          <button type="submit" class="btn btn-primary" style="flex: 1;">Guardar Cambios</button>
-          <button type="button" class="btn btn-outline" id="btn-profile-logout" style="color: var(--red);">Cerrar Sesión</button>
+          <button type="submit" id="btn-save-profile" class="btn btn-primary btn-sm" style="flex: 1;">Guardar Cambios</button>
+          <button type="button" class="btn btn-danger-soft btn-sm" onclick="window.logoutUser ? window.logoutUser() : localStorage.clear(); location.reload();">Cerrar Sesión</button>
         </div>
       </form>
     </div>

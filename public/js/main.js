@@ -2,7 +2,7 @@
 import { currentUser, userData, setUserData } from './state.js';
 import { openModal, closeModal, showToast } from './utils.js';
 import { validateCurrentSession, updateAuthUI, initAuthListeners, saveAvatar } from './auth.js';
-import { openProfile, initProfileListeners } from './profile.js';
+import { openProfile, initProfileListeners, previewAvatarFile, useMinecraftSkinAvatar, saveFullProfile } from './profile.js';
 import { initWS } from './websocket.js';
 
 // Router y navegaciones SPA
@@ -26,6 +26,12 @@ window.openModal              = openModal;
 window.closeModal             = closeModal;
 window.showToast              = showToast;
 window.navigateTo             = navigateTo;
+
+// Perfil & Foto
+window.openProfile            = openProfile;
+window.previewAvatarFile      = previewAvatarFile;
+window.useMinecraftSkinAvatar = useMinecraftSkinAvatar;
+window.saveFullProfile        = saveFullProfile;
 
 // Tienda de Productos
 window.setStoreCategory       = setStoreCategory;
