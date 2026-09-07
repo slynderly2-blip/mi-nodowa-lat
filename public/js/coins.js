@@ -1,4 +1,4 @@
-// coins.js — Centro de Monedas: Paquetes Oficiales del Servidor + Mercado P2P con Panel de Vendedor
+// coins.js — Centro de Monedas: Paquetes Oficiales del Servidor + Mercado P2P + Panel de Vendedor
 import { state, currentUser, userData, setUserData } from './state.js';
 import { showToast, openModal, closeModal, escapeHtml } from './utils.js';
 
@@ -12,7 +12,10 @@ let activeCoinsTab = 'official'; // 'official' | 'p2p' | 'seller_panel'
 let selectedOfficialPack = null;
 let selectedP2pListing = null;
 
-// Cargar estado inicial de monedas
+// =========================================================================
+// 1. CARGA DE DATOS
+// =========================================================================
+
 export async function loadCoinsCenter(targetTab = null) {
   if (targetTab) activeCoinsTab = targetTab;
 
@@ -29,7 +32,6 @@ export async function loadCoinsCenter(targetTab = null) {
   renderCoinsCenter();
 }
 
-// Cargar paquetes oficiales de monedas desde la tienda del servidor
 export async function loadOfficialCoinPacks() {
   try {
     const res = await fetch('/api/store');
@@ -44,7 +46,6 @@ export async function loadOfficialCoinPacks() {
   }
 }
 
-// Cargar información de Binance Pay del servidor
 export async function loadBinanceInfo() {
   try {
     const res = await fetch('/api/orders/binance-info');
@@ -57,7 +58,6 @@ export async function loadBinanceInfo() {
   }
 }
 
-// Cargar listados de NC disponibles en el mercado P2P
 export async function loadNcListings() {
   try {
     const res = await fetch('/api/nc/listings');
@@ -70,7 +70,6 @@ export async function loadNcListings() {
   }
 }
 
-// Cargar saldo propio
 export async function loadMyNcStatus() {
   if (!state.currentUser) return;
   try {
@@ -91,7 +90,6 @@ export async function loadMyNcStatus() {
   }
 }
 
-// Cargar métodos de cobro del jugador
 export async function loadSellerConfig() {
   if (!state.currentUser) return;
   try {
@@ -105,7 +103,6 @@ export async function loadSellerConfig() {
   }
 }
 
-// Cargar órdenes recibidas para el panel de vendedor del jugador
 export async function loadSellerOrders() {
   if (!state.currentUser) return;
   try {
@@ -119,7 +116,6 @@ export async function loadSellerOrders() {
   }
 }
 
-// Cargar ventas completadas
 export async function loadMyNcSales() {
   if (!state.currentUser) return;
   try {
@@ -133,14 +129,16 @@ export async function loadMyNcSales() {
   }
 }
 
-// Cambiar sub-pestaña de monedas
 export function switchCoinsTab(tab) {
   activeCoinsTab = tab;
   renderCoinsCenter();
 }
 window.switchCoinsTab = switchCoinsTab;
 
-// Renderizar la vista principal de Monedas
+// =========================================================================
+// 2. RENDERIZADO PRINCIPAL
+// =========================================================================
+
 export function renderCoinsCenter() {
   const container = document.getElementById('coins-container');
   if (!container) return;
@@ -149,7 +147,7 @@ export function renderCoinsCenter() {
 
   container.innerHTML = `
     <!-- Header Minimalista de Monedas -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
       <div>
         <h1 class="section-title">Centro de Monedas NC</h1>
         <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.15rem;">
@@ -180,9 +178,9 @@ export function renderCoinsCenter() {
   `;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 1. SECCIÓN: PAQUETES OFICIALES DEL SERVIDOR
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// SECCIÓN 1: PAQUETES OFICIALES DEL SERVIDOR
+// ─────────────────────────────────────────────────────────────────────────
 function renderOfficialPacksHtml() {
   if (officialCoinPacks.length === 0) {
     return `
@@ -232,9 +230,9 @@ function renderOfficialPacksHtml() {
   `;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. SECCIÓN: MERCADO P2P ENTRE JUGADORES
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// SECCIÓN 2: MERCADO P2P ENTRE JUGADORES
+// ─────────────────────────────────────────────────────────────────────────
 function renderP2PMarketHtml() {
   return `
     <div>
@@ -323,9 +321,9 @@ function renderNcListingsHtml() {
   }).join('');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 3. SECCIÓN: MI PANEL DE VENDEDOR (Configurar Métodos de Cobro + Aprobar/Rechazar)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// SECCIÓN 3: MI PANEL DE VENDEDOR (Configurar Métodos de Cobro + Aprobar/Rechazar)
+// ─────────────────────────────────────────────────────────────────────────
 function renderSellerPanelHtml() {
   if (!state.currentUser) {
     return `
@@ -540,147 +538,11 @@ function renderSellerPanelHtml() {
     </div>
   `;
 }
-        </div>
 
-        <!-- Mis Ofertas Activas -->
-        <div class="card" style="margin-bottom: 1.5rem;">
-          <h4 style="font-size: 1.05rem; font-weight: 800; margin-bottom: 0.5rem;">🪙 Mis Ofertas Publicadas</h4>
-          ${myActiveOffers.length === 0 ? `
-            <div style="color: var(--text-muted); font-size: 0.82rem; padding: 1rem 0;">No tienes ofertas de monedas activas en venta.</div>
-          ` : `
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-              ${myActiveOffers.map(o => `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem;">
-                  <div>
-                    <strong style="color: var(--amber); font-size: 0.95rem;">${Number(o.amount).toLocaleString()} NC</strong>
-                    <span style="color: var(--text-muted); font-size: 0.78rem;"> • ${o.priceUsd ? `$${Number(o.priceUsd).toFixed(2)} USDT` : 'Acordado'}</span>
-                  </div>
-                  <button class="btn btn-danger-soft btn-sm" onclick="window.cancelNcListing('${o.id}')">
-                    ✕ Cancelar y Recuperar Monedas
-                  </button>
-                </div>
-              `).join('')}
-            </div>
-          `}
-        </div>
+// =========================================================================
+// 3. ACCIONES Y CONTROLADORES P2P
+// =========================================================================
 
-        <!-- Historial de Órdenes Pasadas -->
-        ${finishedOrders.length > 0 ? `
-          <div class="card">
-            <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-muted);">📜 Historial de Órdenes Procesadas</h4>
-            <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.8rem;">
-              ${finishedOrders.slice(0, 5).map(fo => `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px dashed var(--border);">
-                  <div>
-                    <strong>${Number(fo.amount).toLocaleString()} NC</strong> a ${escapeHtml(fo.buyer)}
-                  </div>
-                  <span class="badge ${fo.status === 'COMPLETED' ? 'badge-emerald' : 'badge-red'}">
-                    ${fo.status === 'COMPLETED' ? '✓ Aprobada' : '✕ Rechazada'}
-                  </span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- Columna Derecha: Configuración de Cobro + Publicar NC -->
-      <div>
-        <!-- 1. Configurar Mis Métodos de Cobro -->
-        <div class="card" style="margin-bottom: 1.5rem;">
-          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.35rem;">⚙️ Mis Métodos de Cobro</h3>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-            Los compradores verán estos datos para transferirte el dinero antes de que liberes las monedas.
-          </p>
-
-          <form id="form-seller-config" onsubmit="event.preventDefault(); window.saveSellerConfig(event);">
-            <div style="margin-bottom: 0.75rem;">
-              <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
-                Tu Binance Pay ID (o Billetera Crypto):
-              </label>
-              <input type="text" id="seller-binance-id" class="input" placeholder="Ej. 1255344898" value="${escapeHtml(mySellerConfig.binanceId || '')}">
-            </div>
-
-            <div style="margin-bottom: 0.75rem;">
-              <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
-                📱 Tu WhatsApp para Coordinar Pago:
-              </label>
-              <div class="wa-input-group">
-                <select id="seller-wa-country" class="wa-country-select">
-                  <option value="+591" ${mySellerConfig.countryCode === '+591' ? 'selected' : ''}>🇧🇴 +591</option>
-                  <option value="+52" ${mySellerConfig.countryCode === '+52' ? 'selected' : ''}>🇲🇽 +52</option>
-                  <option value="+54" ${mySellerConfig.countryCode === '+54' ? 'selected' : ''}>🇦🇷 +54</option>
-                  <option value="+57" ${mySellerConfig.countryCode === '+57' ? 'selected' : ''}>🇨🇴 +57</option>
-                  <option value="+51" ${mySellerConfig.countryCode === '+51' ? 'selected' : ''}>🇵🇪 +51</option>
-                  <option value="+56" ${mySellerConfig.countryCode === '+56' ? 'selected' : ''}>🇨🇱 +56</option>
-                  <option value="+34" ${mySellerConfig.countryCode === '+34' ? 'selected' : ''}>🇪🇸 +34</option>
-                  <option value="+1" ${mySellerConfig.countryCode === '+1' ? 'selected' : ''}>🇺🇸 +1</option>
-                  <option value="+58" ${mySellerConfig.countryCode === '+58' ? 'selected' : ''}>🇻🇪 +58</option>
-                  <option value="+593" ${mySellerConfig.countryCode === '+593' ? 'selected' : ''}>🇪🇨 +593</option>
-                </select>
-                <input type="tel" id="seller-wa-number" class="wa-number-input" placeholder="Tu número WhatsApp" value="${escapeHtml(mySellerConfig.whatsapp || '')}">
-              </div>
-            </div>
-
-            <div style="margin-bottom: 0.75rem;">
-              <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
-                Subir tu Código QR de Cobro (Opcional):
-              </label>
-              <input type="file" id="seller-qr-file" class="input" accept="image/*">
-              ${mySellerConfig.qrImage ? `
-                <div style="font-size: 0.72rem; color: var(--emerald); margin-top: 3px;">✓ Tienes un QR activo guardado</div>
-              ` : ''}
-            </div>
-
-            <div style="margin-bottom: 1rem;">
-              <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
-                Instrucciones adicionales para el comprador:
-              </label>
-              <input type="text" id="seller-instructions" class="input" placeholder="Ej. Enviar comprobante y poner mi Gamertag en la nota" value="${escapeHtml(mySellerConfig.instructions || '')}">
-            </div>
-
-            <button type="submit" id="btn-save-seller-config" class="btn btn-outline btn-block">
-              💾 Guardar Mis Métodos de Cobro
-            </button>
-          </form>
-        </div>
-
-        <!-- 2. Publicar Monedas a la Venta -->
-        <div class="card">
-          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.35rem;">💸 Publicar Monedas a la Venta</h3>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-            Las monedas pasarán a custodia segura mientras dure la venta. Puedes cancelarla cuando quieras.
-          </p>
-
-          <form id="form-sell-nc" onsubmit="event.preventDefault(); window.createNcListing();">
-            <div style="margin-bottom: 0.75rem;">
-              <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
-                Cantidad de NC a vender:
-              </label>
-              <input type="number" id="nc-sell-amount" class="input" placeholder="Ej. 5000" min="50" step="50" required>
-            </div>
-
-            <div style="margin-bottom: 1rem;">
-              <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
-                Precio en USDT / USD:
-              </label>
-              <input type="number" id="nc-sell-price-usd" class="input" placeholder="Ej. 0.49" min="0.01" step="0.01" required>
-            </div>
-
-            <button type="submit" class="btn btn-amber btn-block">
-              🚀 Publicar Oferta de Monedas
-            </button>
-          </form>
-        </div>
-
-      </div>
-    </div>
-  `;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 4. ACCIONES P2P: VENDER, CANCELAR Y COMPRAR CON COMPROBANTE
-// ─────────────────────────────────────────────────────────────────────────────
 export async function saveSellerConfig(event) {
   if (event) event.preventDefault();
   if (!state.currentUser) return;
@@ -724,7 +586,6 @@ export async function saveSellerConfig(event) {
 }
 window.saveSellerConfig = saveSellerConfig;
 
-// Publicar oferta de monedas
 export async function createNcListing() {
   if (!state.currentUser) {
     showToast('Inicia sesión para poner NC a la venta');
@@ -776,7 +637,6 @@ export async function createNcListing() {
 }
 window.createNcListing = createNcListing;
 
-// Cancelar oferta de monedas y recuperar fondos
 export async function cancelNcListing(listingId) {
   if (!state.currentUser) return;
   if (!confirm('¿Deseas cancelar esta oferta y recuperar tus monedas?')) return;
@@ -800,7 +660,6 @@ export async function cancelNcListing(listingId) {
 }
 window.cancelNcListing = cancelNcListing;
 
-// Abrir modal de compra P2P (para el comprador)
 export function openBuyP2pNcModal(listingId) {
   if (!state.currentUser) {
     showToast('Inicia sesión para comprar');
@@ -818,7 +677,6 @@ export function openBuyP2pNcModal(listingId) {
   document.getElementById('p2p-buy-coins-amount').textContent = `${Number(listing.amount).toLocaleString()} NC`;
   document.getElementById('p2p-buy-price-usd').textContent = listing.priceUsd ? `$${Number(listing.priceUsd).toFixed(2)} USDT` : 'A convenir';
 
-  // Binance info
   const binanceBox = document.getElementById('p2p-buy-binance-box');
   const binanceIdEl = document.getElementById('p2p-buy-binance-id');
   if (listing.sellerBinanceId) {
@@ -829,7 +687,6 @@ export function openBuyP2pNcModal(listingId) {
     binanceBox.style.display = 'flex';
   }
 
-  // QR info
   const qrBox = document.getElementById('p2p-buy-qr-box');
   const qrImg = document.getElementById('p2p-buy-qr-img');
   if (listing.sellerQrImage) {
@@ -839,7 +696,6 @@ export function openBuyP2pNcModal(listingId) {
     qrBox.style.display = 'none';
   }
 
-  // WhatsApp link
   const waBox = document.getElementById('p2p-buy-wa-box');
   const waLink = document.getElementById('p2p-buy-wa-link');
   if (listing.sellerWhatsapp) {
@@ -851,11 +707,9 @@ export function openBuyP2pNcModal(listingId) {
     waBox.style.display = 'none';
   }
 
-  // Instrucciones
   const instEl = document.getElementById('p2p-buy-instructions');
   instEl.textContent = listing.sellerInstructions ? `Nota del vendedor: ${listing.sellerInstructions}` : '';
 
-  // Limpiar campos
   const txInput = document.getElementById('p2p-order-txid');
   const fileInput = document.getElementById('p2p-order-file');
   if (txInput) txInput.value = '';
@@ -865,7 +719,6 @@ export function openBuyP2pNcModal(listingId) {
 }
 window.openBuyP2pNcModal = openBuyP2pNcModal;
 
-// Enviar orden de compra P2P (Comprador sube TXID y captura)
 export async function submitP2pOrder(event) {
   if (event) event.preventDefault();
   if (!state.currentUser || !selectedP2pListing) return;
@@ -909,7 +762,6 @@ export async function submitP2pOrder(event) {
 }
 window.submitP2pOrder = submitP2pOrder;
 
-// Vendedor aprueba la orden y libera las monedas al comprador
 export async function approveP2pOrder(orderId) {
   if (!state.currentUser) return;
   if (!confirm('¿Has verificado el pago en tu cuenta? Las monedas se transferirán automáticamente al comprador.')) return;
@@ -934,7 +786,6 @@ export async function approveP2pOrder(orderId) {
 }
 window.approveP2pOrder = approveP2pOrder;
 
-// Vendedor rechaza la orden
 export async function rejectP2pOrder(orderId) {
   if (!state.currentUser) return;
   const reason = prompt('Motivo del rechazo (ej. Comprobante no válido, TXID duplicado, pago no recibido):');
@@ -960,7 +811,6 @@ export async function rejectP2pOrder(orderId) {
 }
 window.rejectP2pOrder = rejectP2pOrder;
 
-// Visor de imagen de comprobantes
 export function viewReceiptImage(imgUrl, title = 'Comprobante') {
   const titleEl = document.getElementById('image-preview-title');
   const srcEl = document.getElementById('image-preview-src');
@@ -970,9 +820,10 @@ export function viewReceiptImage(imgUrl, title = 'Comprobante') {
 }
 window.viewReceiptImage = viewReceiptImage;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 5. CHECKOUT DE PAQUETE OFICIAL CON BINANCE PAY
-// ─────────────────────────────────────────────────────────────────────────────
+// =========================================================================
+// 4. CHECKOUT OFICIAL BINANCE PAY
+// =========================================================================
+
 export function startOfficialCoinsCheckout(packId) {
   if (!state.currentUser) {
     showToast('Inicia sesión para recargar monedas');
@@ -1010,7 +861,6 @@ export function startOfficialCoinsCheckout(packId) {
 }
 window.startOfficialCoinsCheckout = startOfficialCoinsCheckout;
 
-// Enviar orden de compra Binance
 export async function submitBinanceOrder(event) {
   if (event) event.preventDefault();
   if (!state.currentUser || !selectedOfficialPack) return;
