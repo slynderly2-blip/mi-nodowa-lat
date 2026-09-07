@@ -62,5 +62,7 @@ export function applyDailyBankInterests() {
   }
 }
 
-// Ejecutar revisión de intereses periódicamente (cada 30 minutos)
-setInterval(applyDailyBankInterests, 1800000);
+// Ejecutar revisión de intereses periódicamente (cada hora)
+setInterval(applyDailyBankInterests, 60 * 60 * 1000);
+// También al arrancar el servidor
+applyDailyBankInterests();

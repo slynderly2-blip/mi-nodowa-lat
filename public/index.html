@@ -155,23 +155,23 @@
       </div>
 
       <!-- Sub-pestañas: Jugadores | Chat -->
-      <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
-        <button class="btn btn-primary active" id="subtab-players-btn" onclick="window.switchSocialSubTab('players')" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Jugadores</button>
-        <button class="btn btn-outline" id="subtab-chat-btn" onclick="window.switchSocialSubTab('chat')" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Chat <span id="subtab-chat-badge" style="display:none; background:var(--red); color:#fff; border-radius:9999px; padding:1px 6px; font-size:0.7rem; margin-left:4px;"></span></button>
+      <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem; border-bottom:2px solid var(--border); padding-bottom:0.5rem; flex-wrap:wrap;">
+        <button class="btn btn-primary active" id="subtab-players-btn" onclick="window.switchSocialSubTab('players')" style="font-size:0.85rem; padding:0.45rem 0.9rem;">Jugadores</button>
+        <button class="btn btn-outline" id="subtab-chat-btn" onclick="window.switchSocialSubTab('chat')" style="font-size:0.85rem; padding:0.45rem 0.9rem;">Chat <span id="subtab-chat-badge" style="display:none; background:var(--red); color:#fff; border-radius:9999px; padding:1px 6px; font-size:0.7rem; margin-left:4px;"></span></button>
       </div>
 
       <!-- Panel: Jugadores -->
       <div id="social-panel-players" class="active">
         <!-- Filtros y búsqueda -->
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
+        <div style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center;">
           <button class="filter-pill active" id="filter-players-all" onclick="window.setPlayersFilter('all')">Todos</button>
           <button class="filter-pill" id="filter-players-linked" onclick="window.setPlayersFilter('linked')">Vinculados</button>
           <button class="filter-pill" id="filter-players-friends" onclick="window.setPlayersFilter('friends')">Amigos</button>
-          <input type="text" id="players-search-input" class="input" placeholder="Buscar jugador..." style="width: 200px; margin-left: auto;">
+          <input type="text" id="players-search-input" class="input" placeholder="Buscar jugador..." style="flex:1; min-width:120px; max-width:220px;">
         </div>
         <!-- Solicitudes entrantes -->
-        <div id="incoming-requests-box" style="display: none; margin-bottom: 1rem;">
-          <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.5rem;">Solicitudes de Amistad</h4>
+        <div id="incoming-requests-box" style="display:none; margin-bottom:1rem;">
+          <h4 style="font-size:0.95rem; font-weight:800; margin-bottom:0.5rem;">Solicitudes de Amistad</h4>
           <div id="incoming-requests-grid"></div>
         </div>
         <!-- Grid de jugadores -->
@@ -179,36 +179,51 @@
       </div>
 
       <!-- Panel: Chat / Messenger -->
-      <div id="social-panel-chat" style="display: none;">
-        <div class="messenger-container" style="display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem; align-items: stretch;">
-          <!-- Lista de conversaciones -->
-          <div class="card" style="padding: 1rem; overflow-y: auto; max-height: 560px;">
-            <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.75rem;">Conversaciones</h4>
-            <div id="conversations-list" style="display: flex; flex-direction: column; gap: 0.4rem;"></div>
+      <div id="social-panel-chat" style="display:none;">
+        <div class="messenger-container" id="messenger-container">
+          <!-- Lista de conversaciones (sidebar) -->
+          <div class="messenger-sidebar" id="messenger-sidebar">
+            <div class="messenger-sidebar-header">
+              <span class="messenger-title">Conversaciones</span>
+            </div>
+            <div id="conversations-list" class="conversations-list"></div>
           </div>
           <!-- Panel de chat activo -->
-          <div class="card" style="padding: 0; display: flex; flex-direction: column; height: 560px; overflow: hidden;">
+          <div class="messenger-chat-area" id="messenger-chat-area">
             <!-- Estado vacío -->
-            <div id="chat-empty-state" style="flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); padding: 2rem;">
-              <div>
-                <div style="font-weight: 700; font-size: 1.05rem;">Selecciona un jugador para chatear</div>
-                <div style="font-size: 0.82rem; margin-top: 0.25rem;">Elige una conversación de la lista o visita la pestaña de jugadores.</div>
+            <div id="chat-empty-state" class="messenger-empty-state">
+              <div class="messenger-empty-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               </div>
+              <div style="font-weight:700; font-size:1rem; color:var(--text); margin-bottom:0.3rem;">Selecciona un chat</div>
+              <div style="font-size:0.82rem; color:var(--text-muted);">Elige una conversación o busca un jugador.</div>
             </div>
-            <!-- Chat activo (oculto por defecto) -->
-            <div id="chat-active-box" style="display: none; flex-direction: column; height: 100%;">
-              <div style="padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.75rem;">
-                <img id="chat-active-avatar" src="" alt="Avatar" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);">
-                <div>
-                  <div id="chat-active-name" style="font-weight: 800; font-size: 0.95rem;"></div>
-                  <div id="chat-active-status" style="font-size: 0.72rem; color: var(--emerald); font-weight: 600;">En línea</div>
+            <!-- Chat activo -->
+            <div id="chat-active-box" class="messenger-active-chat" style="display:none;">
+              <div class="messenger-chat-header">
+                <div class="messenger-header-user">
+                  <button class="chat-back-btn" id="chat-mobile-back" onclick="window.closeChatMobile()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
+                  <img id="chat-active-avatar" src="" alt="Avatar" class="chat-header-avatar">
+                  <div>
+                    <div id="chat-active-name" class="chat-header-name"></div>
+                    <div id="chat-active-status" class="chat-header-status">En línea</div>
+                  </div>
                 </div>
-                <button class="btn btn-outline btn-sm" style="margin-left: auto;" onclick="window.closeChatMobile()">✕</button>
+                <div class="messenger-header-actions">
+                  <button class="btn btn-secondary btn-sm" id="btn-view-chat-profile">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span class="hide-xs">Perfil</span>
+                  </button>
+                </div>
               </div>
-              <div id="chat-messages-container" style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;"></div>
-              <form id="chat-input-form" onsubmit="event.preventDefault();" style="display: flex; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border);">
-                <input type="text" id="chat-input" class="input" placeholder="Escribe un mensaje..." autocomplete="off" style="flex: 1;">
-                <button type="submit" class="btn btn-primary btn-sm" id="btn-send-chat">Enviar</button>
+              <div id="chat-messages-container" class="messenger-messages-body"></div>
+              <form id="chat-input-form" class="messenger-input-form" onsubmit="event.preventDefault();">
+                <input type="text" id="chat-input" class="messenger-input" placeholder="Escribe un mensaje..." autocomplete="off">
+                <button type="submit" class="messenger-send-btn" id="btn-send-chat">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
               </form>
             </div>
           </div>
@@ -220,34 +235,48 @@
     <section id="tab-wallet" class="tab-pane">
       <div class="section-header">
         <div>
-          <h1 class="section-title">Mi Billetera & Rendimientos</h1>
-          <p style="font-size: 0.88rem; color: var(--text-muted);">Administra tu saldo disponible en mano y tu cuenta de ahorro con rendimiento diario.</p>
-        </div>
-      </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
-        <!-- Card Wallet -->
-        <div class="card" style="padding: 1.25rem;">
-          <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Saldo Disponible</span>
-          <div style="font-size: 1.8rem; font-weight: 800; color: var(--amber); margin: 0.25rem 0;" id="wallet-balance-amount">0 NC</div>
-          <button class="btn btn-amber btn-sm btn-block" onclick="window.openModal('modal-quick-transfer')">
-            Transferir a Jugador
-          </button>
-        </div>
-        <!-- Card Banco -->
-        <div class="card" style="padding: 1.25rem;">
-          <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Banco (2% Rendimiento Diario)</span>
-          <div style="font-size: 1.8rem; font-weight: 800; color: var(--emerald); margin: 0.25rem 0;" id="bank-balance-amount">0 NC</div>
-          <div style="display: flex; gap: 0.4rem;">
-            <button class="btn btn-outline btn-sm" style="flex: 1;" onclick="window.openBankActionModal('deposit')">Depositar</button>
-            <button class="btn btn-outline btn-sm" style="flex: 1;" onclick="window.openBankActionModal('withdraw')">Retirar</button>
-            <button class="btn btn-primary btn-sm" onclick="window.claimBankInterest()">Cobrar</button>
-          </div>
+          <h1 class="section-title">Mi Billetera & Banco</h1>
+          <p style="font-size:0.88rem; color:var(--text-muted);">Administra tu saldo, deposita en el banco y gana 2% diario automático.</p>
         </div>
       </div>
 
+      <!-- Tarjetas de saldo -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem;">
+
+        <!-- Billetera -->
+        <div class="card" style="padding:1.25rem; border-top:3px solid var(--primary);">
+          <div style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.4rem;">Saldo en Mano</div>
+          <div style="font-size:2rem; font-weight:800; color:var(--primary); letter-spacing:-1px; margin-bottom:0.75rem;" id="wallet-balance-amount">0 NC</div>
+          <button class="btn btn-tiktok btn-sm btn-block" onclick="window.openModal('modal-quick-transfer')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Transferir
+          </button>
+        </div>
+
+        <!-- Banco -->
+        <div class="card" style="padding:1.25rem; border-top:3px solid var(--emerald);">
+          <div style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.4rem;">Banco · +2% / día</div>
+          <div style="font-size:2rem; font-weight:800; color:var(--emerald); letter-spacing:-1px; margin-bottom:0.75rem;" id="bank-balance-amount">0 NC</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.4rem;">
+            <button class="btn btn-secondary btn-sm" onclick="window.openBankActionModal('deposit')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m5 12 7 7 7-7"/></svg>
+              Depositar
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="window.openBankActionModal('withdraw')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+              Retirar
+            </button>
+          </div>
+          <div style="margin-top:0.6rem; font-size:0.75rem; color:var(--emerald); font-weight:600; text-align:center;">
+            Intereses se aplican automáticamente cada día
+          </div>
+        </div>
+
+      </div>
+
       <!-- Historial de Transacciones -->
-      <div class="card" style="padding: 1.25rem;">
-        <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 0.75rem;">Movimientos Recientes</h3>
+      <div class="card" style="padding:1.25rem;">
+        <h3 style="font-size:1rem; font-weight:800; margin-bottom:0.75rem;">Movimientos Recientes</h3>
         <div id="wallet-transactions-list"></div>
       </div>
     </section>

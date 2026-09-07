@@ -16,17 +16,23 @@ export function updateAuthUI() {
       `https://mc-heads.net/avatar/${encodeURIComponent(state.currentUser)}/64`;
     container.innerHTML = `
       <div class="user-pill">
-        <div style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;" id="btn-header-profile" title="Ver mi perfil">
+        <div style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;" id="btn-header-profile" title="Ver mi perfil">
           <img id="header-avatar-img" src="${avatar}" alt="Avatar" class="user-pill-avatar">
           <span class="user-pill-name">${state.currentUser}</span>
-          <span id="header-coins-pill" style="font-size:0.75rem; font-weight:800; color:var(--primary); white-space:nowrap;">${state.userData.wallet.toLocaleString()} NC</span>
         </div>
+        <button type="button" id="header-coins-pill" style="background:var(--primary-light); border:none; border-radius:var(--radius-full); padding:3px 10px; font-size:0.75rem; font-weight:800; color:var(--primary); cursor:pointer; white-space:nowrap; font-family:inherit;" title="Ir al Centro de Monedas">
+          ${state.userData.wallet.toLocaleString()} NC
+        </button>
       </div>
     `;
 
     document.getElementById('btn-header-profile').onclick = () => {
       if (window.openProfile) window.openProfile(state.currentUser);
       else if (window.navigateTo) window.navigateTo('/' + encodeURIComponent(state.currentUser));
+    };
+
+    document.getElementById('header-coins-pill').onclick = () => {
+      if (window.navigateTo) window.navigateTo('/coins');
     };
 
     // Cargar datos iniciales del usuario
