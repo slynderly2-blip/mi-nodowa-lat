@@ -16,12 +16,13 @@
       "username": "slynderly",
       "displayName": "slynderly",
       "pin": null,
-      "wallet": 1989,
-      "bank": 884,
+      "wallet": 1489,
+      "bank": 900,
       "linked": true,
       "xuid": null,
       "createdAt": "2026-09-01T04:21:21.314Z",
-      "lastActive": "2026-09-01T19:00:00.000Z"
+      "lastActive": "2026-09-01T19:00:00.000Z",
+      "lastInterestDate": "2026-09-07T18:41:19.070Z"
     }
   },
   "storeItems": [
@@ -138,8 +139,68 @@
   "orders": [],
   "deliveries": [],
   "deliveryIssues": [],
-  "transactions": [],
-  "linkTokens": {},
+  "transactions": [
+    {
+      "id": "tx_1788806479092_lx6t",
+      "from": "BANK_INTEREST",
+      "to": "slynderly",
+      "amount": 8,
+      "type": "INTEREST",
+      "note": "+1% interés diario bancario (+8 NC)",
+      "createdAt": "2026-09-07T18:41:19.097Z"
+    },
+    {
+      "id": "tx_1788643126912_dq2a",
+      "from": "BANK_INTEREST",
+      "to": "slynderly",
+      "amount": 8,
+      "type": "INTEREST",
+      "note": "+1% interés diario bancario (+8 NC)",
+      "createdAt": "2026-09-05T21:18:46.916Z"
+    }
+  ],
+  "linkTokens": {
+    "702859": {
+      "username": "slynderly",
+      "displayName": "slynderly",
+      "sessionToken": "sess_1788809973571_njesdxp9",
+      "expiresAt": 1788810873573
+    },
+    "880209": {
+      "username": "slynderly",
+      "displayName": "slynderly",
+      "sessionToken": "sess_1788811430633_mbe2imov",
+      "expiresAt": 1788812330637
+    }
+  },
   "ratings": [],
-  "usedTxids": {}
+  "usedTxids": {},
+  "sessions": {
+    "sess_1788809973571_njesdxp9": {
+      "username": "slynderly",
+      "pending": true,
+      "code": "702859",
+      "createdAt": "2026-09-07T19:39:33.571Z"
+    },
+    "sess_1788811430633_mbe2imov": {
+      "username": "slynderly",
+      "pending": true,
+      "code": "880209",
+      "createdAt": "2026-09-07T20:03:50.634Z"
+    }
+  },
+  "friends": {},
+  "friendRequests": [],
+  "chats": {},
+  "ncListings": [
+    {
+      "id": "lc_1788812495682_en3w",
+      "seller": "slynderly",
+      "amount": 500,
+      "priceUsd": 1.5,
+      "status": "active",
+      "createdAt": "2026-09-07T20:21:35.682Z"
+    }
+  ],
+  "ncTransactions": []
 }

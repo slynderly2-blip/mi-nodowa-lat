@@ -1,0 +1,97 @@
+/* ==========================================================================
+   HEADER & BRAND
+   ========================================================================== */
+.header { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
+.header-inner { max-width: 1160px; margin: 0 auto; padding: 0.7rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; font-weight: 800; font-size: 1.2rem; color: var(--text); letter-spacing: -0.4px; flex-shrink: 0; }
+.brand-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; background: var(--primary); color: #fff; border-radius: var(--radius-sm); box-shadow: 0 2px 8px rgba(124,58,237,0.35); flex-shrink: 0; transition: box-shadow 0.2s; }
+.brand:hover .brand-icon { box-shadow: 0 4px 14px rgba(124,58,237,0.5); }
+.brand-badge { background: var(--primary-light); color: var(--primary); font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-full); letter-spacing: 0.3px; text-transform: uppercase; }
+.admin-badge-crown { background: var(--amber-light); color: var(--amber); border: 1px solid rgba(180,83,9,0.25); font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-full); }
+.brand-text-block { display: flex; flex-direction: column; line-height: 1.2; }
+.brand-title { font-size: 1.1rem; font-weight: 800; color: var(--text); }
+.brand-subtitle { font-size: 0.62rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ==========================================================================
+   NAVEGACION DESKTOP
+   ========================================================================== */
+.desktop-nav { display: flex; align-items: center; gap: 0.25rem; }
+.nav-tab-btn { background: transparent; border: none; padding: 0.5rem 0.9rem; border-radius: var(--radius-full); font-size: 0.86rem; font-weight: 600; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem; transition: all 0.18s ease; white-space: nowrap; font-family: inherit; }
+.nav-tab-btn:hover { background: var(--tiktok-gray); color: var(--text); }
+.nav-tab-btn.active { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(124,58,237,0.28); }
+.nav-tab-btn.active svg { stroke: #fff; }
+.nav-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.tab-btn { background: var(--tiktok-gray); border: 1px solid var(--border); color: var(--text-muted); padding: 0.45rem 0.9rem; border-radius: var(--radius-full); font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+.tab-btn:hover { color: var(--text); border-color: var(--border-hover); }
+.tab-btn.active { background: var(--primary); color: #fff; border-color: transparent; box-shadow: 0 2px 8px rgba(124,58,237,0.28); }
+
+/* ==========================================================================
+   NAVEGACION MOVIL
+   ========================================================================== */
+.mobile-bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 64px; background: rgba(255,255,255,0.94); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid var(--border); z-index: 90; padding: 0 0.35rem env(safe-area-inset-bottom,6px); justify-content: space-between; align-items: center; box-shadow: 0 -4px 20px rgba(0,0,0,0.05); }
+.mobile-tab-btn { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent !important; border: none !important; box-shadow: none !important; color: var(--text-muted) !important; font-family: inherit; font-size: 0.68rem; font-weight: 600; gap: 2px; padding: 6px 2px; cursor: pointer; transition: all 0.18s ease; position: relative; border-radius: 0 !important; outline: none !important; -webkit-tap-highlight-color: transparent; }
+.mobile-tab-btn svg { width: 20px; height: 20px; stroke: var(--text-muted); fill: none; transition: stroke 0.15s, transform 0.15s; flex-shrink: 0; }
+.mobile-tab-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.mobile-tab-btn:active { transform: scale(0.92); }
+.mobile-tab-btn.active { background: transparent !important; color: var(--primary) !important; font-weight: 800; box-shadow: none !important; }
+.mobile-tab-btn.active svg { stroke: var(--primary) !important; fill: none !important; transform: translateY(-1px); }
+
+/* Badge flotante movil */
+.nav-badge-floating { position: absolute; top: 3px; right: calc(50% - 14px); background: var(--red); color: #ffffff; font-size: 0.6rem; font-weight: 800; min-width: 15px; height: 15px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; padding: 0 3px; border: 1.5px solid #fff; box-shadow: 0 1px 4px rgba(220,38,38,0.4); pointer-events: none; z-index: 10; animation: pulseBadge 2s infinite ease-in-out; }
+@keyframes pulseBadge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+/* ==========================================================================
+   WIDGET DE USUARIO EN HEADER
+   ========================================================================== */
+.user-widget { display: flex; align-items: center; gap: 0.5rem; }
+.profile-header-btn { background: var(--primary-light); border: 1px solid var(--border-hover); border-radius: var(--radius-full); padding: 3px 10px 3px 4px; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+.profile-header-btn:hover { background: #ddd6fe; border-color: var(--border-strong); }
+.avatar-circle { width: 30px; height: 30px; border-radius: 50%; overflow: hidden; background: var(--border); flex-shrink: 0; position: relative; }
+.avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+.online-indicator { width: 8px; height: 8px; background: var(--emerald); border: 2px solid #fff; border-radius: 50%; position: absolute; bottom: 0; right: 0; }
+.profile-header-name { font-size: 0.8rem; font-weight: 700; color: var(--text); max-width: 88px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.profile-header-coins { font-size: 0.7rem; font-weight: 800; color: var(--emerald); }
+.profile-header-info { display: flex; flex-direction: column; line-height: 1.15; }
+.admin-header-actions { display: flex; align-items: center; gap: 0.6rem; }
+
+/* ==========================================================================
+   MODAL DE AUTENTICACION /link
+   ========================================================================== */
+.auth-code-box { background: var(--tiktok-gray); border: 1px solid var(--border-hover); border-radius: var(--radius-md); padding: 1.2rem; text-align: center; margin: 1.2rem 0; }
+.auth-code-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+.auth-command-display { font-family: ui-monospace, 'Consolas', monospace; font-size: 1.45rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; justify-content: center; gap: 0.65rem; padding: 0.4rem; }
+.auth-waiting-indicator { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.83rem; font-weight: 600; color: var(--text); margin-top: 0.7rem; }
+.auth-steps-list { background: var(--surface-hover); border-radius: var(--radius-sm); padding: 0.8rem 1rem; font-size: 0.84rem; color: var(--text-muted); text-align: left; line-height: 1.6; margin-bottom: 1rem; }
+.auth-steps-list strong { color: var(--text); }
+.pulse-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--primary); animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(124,58,237,0.6); } 70% { box-shadow: 0 0 0 7px rgba(124,58,237,0); } 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); } }
+
+/* ==========================================================================
+   PERFIL DE JUGADOR (modal)
+   ========================================================================== */
+.profile-modal-box { background: var(--surface); border-radius: var(--radius-lg); width: 100%; max-width: 520px; max-height: 92vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-lg); }
+.profile-cover { height: 105px; background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, var(--amber-mid) 100%); position: relative; }
+.profile-close-btn { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.35); color: #fff; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+.profile-close-btn:hover { background: rgba(0,0,0,0.6); }
+.profile-avatar-wrap { margin-top: -46px; text-align: center; position: relative; display: inline-block; }
+.profile-avatar-img { width: 88px; height: 88px; border-radius: 50%; border: 4px solid var(--surface); box-shadow: 0 4px 12px rgba(0,0,0,0.12); object-fit: cover; }
+.avatar-edit-badge { position: absolute; bottom: 4px; right: 2px; background: var(--primary); color: #fff; border: 2px solid var(--surface); width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s; }
+.avatar-edit-badge:hover { background: var(--primary-hover); }
+.profile-body { padding: 0.65rem 1.4rem 1.6rem; text-align: center; overflow-y: auto; flex: 1; }
+.profile-name { font-size: 1.3rem; font-weight: 800; color: var(--text); margin-bottom: 0.2rem; }
+.profile-badges-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1.1rem; }
+.chip { font-size: 0.73rem; font-weight: 700; padding: 3px 9px; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 0.3rem; }
+.chip-linked { background: var(--emerald-light); color: var(--emerald); }
+.chip-tier   { background: var(--amber-light);   color: var(--amber); }
+.chip-title  { background: var(--tiktok-gray);   color: var(--text); }
+.profile-balances { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin-bottom: 1.1rem; }
+.profile-balance-card { background: var(--surface-hover); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.8rem; }
+.profile-balance-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+.profile-balance-val { font-size: 1.2rem; font-weight: 800; color: var(--text); margin-top: 2px; }
+.stats-header-title { font-size: 0.82rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.4px; text-align: left; margin-bottom: 0.6rem; display: flex; align-items: center; justify-content: space-between; }
+.stats-grid-profile { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1.1rem; }
+.stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.7rem; display: flex; align-items: center; gap: 0.65rem; }
+.stat-box-icon { width: 34px; height: 34px; border-radius: var(--radius-sm); background: var(--tiktok-gray); color: var(--text); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.stat-box-num { font-size: 1.05rem; font-weight: 800; color: var(--text); line-height: 1.1; }
+.stat-box-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; }
+.profile-actions-list { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.9rem; }

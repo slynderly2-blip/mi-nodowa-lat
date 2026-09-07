@@ -3,1156 +3,454 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nodowa Network - Tienda Oficial</title>
+  <title>Nodowa Network — Plataforma & Tienda Bedrock</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>">
   <script>
-    // Inmunidad ante timing o clics tempranos antes de cargar app.js
-    window.setSearchTag = window.setSearchTag || function(tag) {
-      const input = document.getElementById('store-search');
-      if (input) {
-        input.value = tag;
-        if (typeof window.renderStore === 'function') window.renderStore();
-        else input.dispatchEvent(new Event('input'));
-      }
+    // Fallbacks inmediatos para evitar errores ante clics tempranos
+    window.openModal = window.openModal || function(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); };
+    window.closeModal = window.closeModal || function(id) { const el = document.getElementById(id); if (el) el.classList.remove('open'); };
+    window.copyServerIp = window.copyServerIp || function() {
+      navigator.clipboard.writeText("mi.nodowa.lat:19132");
     };
-    window.clearSearch = window.clearSearch || function() {
-      const input = document.getElementById('store-search');
-      if (input) {
-        input.value = '';
-        if (typeof window.renderStore === 'function') window.renderStore();
-        else input.dispatchEvent(new Event('input'));
-      }
+    window.navigateTo = window.navigateTo || function(path) {
+      window.__pendingNav = path;
+      if (window.history && window.history.pushState) window.history.pushState({}, '', path);
+      const name = path.replace(/^\/+|\/+$/g, '') || 'store';
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById('tab-' + name);
+      if (target) target.classList.add('active');
     };
   </script>
 </head>
 <body>
 
-  <!-- Header -->
+  <!-- ========================================================================
+       BARRA DE NAVEGACIÓN SUPERIOR (DESKTOP)
+       ======================================================================== -->
   <header class="header">
     <div class="header-inner">
-      <a href="/" class="brand">
-        <span class="brand-icon">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <text x="2" y="14" font-family="Arial Black, Arial" font-size="15" font-weight="900" fill="white">N</text>
-          </svg>
-        </span>
+      <!-- Marca -->
+      <div class="brand" onclick="window.navigateTo('/')">
+        <div class="brand-icon">N</div>
         <span>Nodowa</span>
         <span class="brand-badge">Bedrock</span>
-      </a>
+      </div>
 
-      <!-- Desktop Navigation Tabs (Solo visible en pantallas medianas y grandes) -->
+      <!-- Pestañas Desktop -->
       <nav class="desktop-nav">
-        <button class="nav-tab-btn tab-btn active" data-tab="store">
+        <button class="nav-tab-btn active" data-tab="store" onclick="window.navigateTo('/')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg>
+          <span>Productos</span>
+        </button>
+
+        <button class="nav-tab-btn badge-coins" data-tab="coins" onclick="window.navigateTo('/coins')">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>
-          <span>Monedas</span>
+          <span>Monedas NC</span>
         </button>
-        <button class="nav-tab-btn tab-btn" data-tab="market">
+
+        <button class="nav-tab-btn" data-tab="market" onclick="window.navigateTo('/market')">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
-          <span>Mercado</span>
+          <span>Mercado P2P</span>
         </button>
-        <button class="nav-tab-btn tab-btn" data-tab="social">
+
+        <button class="nav-tab-btn" data-tab="social" onclick="window.navigateTo('/social')">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span>Comunidad</span>
-          <span id="badge-social" class="badge danger" style="display:none; font-size:0.7rem; padding:1px 6px;">0</span>
         </button>
-        <button class="nav-tab-btn tab-btn" data-tab="wallet">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
+
+        <button class="nav-tab-btn" data-tab="wallet" onclick="window.navigateTo('/wallet')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
           <span>Billetera</span>
         </button>
-        <button class="nav-tab-btn tab-btn" data-tab="deliveries">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+
+        <button class="nav-tab-btn" data-tab="deliveries" onclick="window.navigateTo('/deliveries')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
           <span>Buzón</span>
-          <span id="badge-deliveries" class="badge danger" style="display:none; font-size:0.7rem; padding:1px 6px;">0</span>
         </button>
-        <button class="nav-tab-btn tab-btn" data-tab="leaderboard">
+
+        <button class="nav-tab-btn" data-tab="leaderboard" onclick="window.navigateTo('/leaderboard')">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
           <span>Top Ricos</span>
         </button>
       </nav>
 
+      <!-- Widget de Usuario -->
       <div class="user-widget" id="user-widget">
-        <button class="btn btn-primary btn-sm" id="btn-login">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <span>Iniciar Sesión</span>
+        <button class="btn btn-primary btn-sm" id="btn-login" onclick="window.openModal('modal-login')">
+          Iniciar Sesión
         </button>
       </div>
     </div>
   </header>
 
-  <!-- Mobile Bottom Navigation (Barra ergonómica estilo App) -->
-  <nav class="mobile-bottom-nav">
-    <button class="mobile-tab-btn active" data-tab="store">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>
-      <span>Tienda</span>
-    </button>
-    <button class="mobile-tab-btn" data-tab="market">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
-      <span>Mercado</span>
-    </button>
-    <button class="mobile-tab-btn" data-tab="social">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span>Chat</span>
-      <span id="badge-social-mobile" class="nav-badge-floating" style="display:none;">0</span>
-    </button>
-    <button class="mobile-tab-btn" data-tab="wallet">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
-      <span>Billetera</span>
-    </button>
-    <button class="mobile-tab-btn" data-tab="deliveries">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
-      <span>Buzón</span>
-      <span id="badge-deliveries-mobile" class="nav-badge-floating" style="display:none;">0</span>
-    </button>
-    <button class="mobile-tab-btn" data-tab="leaderboard">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-      <span>Top</span>
-    </button>
-  </nav>
-
-  <!-- Main Container -->
+  <!-- ========================================================================
+       CONTENIDO PRINCIPAL (SPA TABS)
+       ======================================================================== -->
   <main class="main-container">
 
-    <!-- 1. Tienda / Monedas -->
-    <section class="tab-view active" id="view-store">
-
-      <!-- Banner servidor + buscador compacto -->
-      <div class="store-topbar">
-        <div class="store-topbar-server">
-          <div class="server-live-dot"></div>
-          <span class="store-topbar-name">Nodowa Network</span>
-          <span class="store-topbar-ip">mi.nodowa.lat:19132</span>
-          <span class="server-status-pill" style="margin-left:0.25rem;">
-            <span>Última Versión</span>
-          </span>
-          <a href="minecraft://?addExternalServer=Nodowa|mi.nodowa.lat:19132" class="btn btn-tiktok btn-sm" style="margin-left:auto;" title="Unirse a Minecraft">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span>Unirse</span>
-          </a>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="copyServerIp()">Copiar IP</button>
-        </div>
-
-        <div class="search-box" style="margin-top:0.75rem;">
-          <span class="search-icon-svg">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          </span>
-          <input type="text" id="store-search" class="search-input" placeholder="Buscar producto, rango, llave, kit..." autocomplete="off">
-          <button id="search-clear-btn" class="search-clear-btn" onclick="clearSearch()" title="Limpiar búsqueda">&times;</button>
-        </div>
-
-        <div class="category-filters-container" id="store-category-filters" style="margin-top:0.6rem;"></div>
-      </div>
-
+    <!-- 1. TAB: CATÁLOGO DE PRODUCTOS (SIN MONEDAS) -->
+    <section id="tab-store" class="tab-pane active">
       <div class="section-header">
         <div>
-          <h2 class="section-title" id="store-title">Catálogo Completo</h2>
-          <p class="section-subtitle" id="store-subtitle">Acreditación instantánea sincronizada en tiempo real con tu cuenta de Minecraft Bedrock.</p>
+          <h1 class="section-title">
+            🛒 Catálogo de Artículos & Rangos
+          </h1>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Productos oficiales entregados automáticamente en tu cuenta de Minecraft Bedrock.
+          </p>
         </div>
-        <div class="store-sort-wrapper" style="display:flex; align-items:center; gap:0.45rem;">
-          <label for="store-sort-select" style="font-size:0.78rem; font-weight:700; color:var(--text-muted); white-space:nowrap;">Ordenar:</label>
-          <select id="store-sort-select" class="input" style="padding:0.4rem 0.8rem; font-size:0.82rem; font-weight:700; border-radius:var(--radius-full); cursor:pointer; width:auto; background:var(--surface);" onchange="setStoreSort(this.value)">
-            <option value="default">⭐ Destacados</option>
-            <option value="newest">✨ Más Recientes</option>
-            <option value="oldest">⏳ Más Antiguos</option>
-            <option value="price-asc">💵 Menor Precio</option>
-            <option value="price-desc">💎 Mayor Precio</option>
-            <option value="name-asc">🔤 Nombre (A - Z)</option>
-          </select>
+        
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button class="btn btn-outline btn-sm" onclick="window.copyServerIp()">
+            📋 IP: mi.nodowa.lat
+          </button>
+          <input type="text" id="store-search" class="input" placeholder="Buscar productos..." style="width: 220px;" oninput="window.renderStore()">
         </div>
       </div>
 
-      <div class="card-grid" id="store-grid">
-        <!-- Renderizado dinámicamente -->
-      </div>
+      <!-- Filtros de categoría -->
+      <div class="filter-bar" id="store-category-filters"></div>
+
+      <!-- Grid de Productos -->
+      <div class="products-grid" id="store-grid"></div>
     </section>
 
-    <!-- 2. Mercado P2P -->
-    <section class="tab-view" id="view-market">
+    <!-- 2. TAB: CENTRO DE MONEDAS & NC EXCHANGE -->
+    <section id="tab-coins" class="tab-pane">
+      <div id="coins-container"></div>
+    </section>
+
+    <!-- 3. TAB: PANEL Y TIENDA PERSONAL DE USUARIO (/:username) -->
+    <section id="tab-user-shop" class="tab-pane">
+      <div id="user-shop-container" class="user-shop-container"></div>
+    </section>
+
+    <!-- 4. TAB: MERCADO P2P DE ÍTEMS -->
+    <section id="tab-market" class="tab-pane">
       <div class="section-header">
         <div>
-          <h1 class="section-title">Mercado de Jugadores</h1>
-          <p class="section-subtitle">Intercambia ítems y monedas con otros jugadores de manera segura.</p>
+          <h1 class="section-title">🤝 Mercado Comunitario (P2P)</h1>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Comercia objetos, armas y bloques con otros jugadores en tiempo real.</p>
         </div>
-        <button class="btn btn-tiktok btn-sm" id="btn-create-p2p">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <span>Publicar Oferta</span>
+        <button class="btn btn-primary btn-sm" onclick="window.openModal('modal-sell-p2p')">
+          + Vender un Ítem
         </button>
       </div>
-
-      <!-- Buscador y Filtros P2P -->
-      <div class="search-box" style="margin-bottom: 1.25rem;">
-        <span class="search-icon-svg">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        </span>
-        <input type="text" id="market-search" class="search-input" placeholder="Buscar por ítem, vendedor o descripción..." autocomplete="off">
-        <button id="market-clear-btn" class="search-clear-btn" onclick="clearMarketSearch()" title="Limpiar">&times;</button>
-      </div>
-
-      <div class="search-tags" style="margin-bottom: 1.5rem;">
-        <button class="search-tag-pill active" id="btn-market-filter-all" onclick="setMarketFilter('all')">Todas las Ofertas</button>
-        <button class="search-tag-pill" id="btn-market-filter-mine" onclick="setMarketFilter('mine')">Mis Publicaciones</button>
-      </div>
-
-      <div class="card-grid" id="market-grid">
-        <!-- Renderizado dinámico -->
-      </div>
+      <div id="p2p-market-grid" class="products-grid" style="margin-top: 1rem;"></div>
     </section>
 
-    <!-- 3. Comunidad & Messenger -->
-    <section class="tab-view" id="view-social">
-      <div class="section-header" style="margin-bottom: 1.25rem;">
+    <!-- 5. TAB: COMUNIDAD Y CHAT -->
+    <section id="tab-social" class="tab-pane">
+      <div class="section-header">
         <div>
-          <h1 class="section-title">Comunidad & Jugadores</h1>
-          <p class="section-subtitle">Conecta con jugadores de Nodowa, gestiona amistades y chatea en tiempo real.</p>
-        </div>
-        <div class="subtabs-nav">
-          <button class="subtab-btn active" id="subtab-players-btn" onclick="switchSocialSubTab('players')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <span>Jugadores</span>
-          </button>
-          <button class="subtab-btn" id="subtab-chat-btn" onclick="switchSocialSubTab('chat')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span>Messenger</span>
-            <span id="subtab-chat-badge" class="badge danger" style="display:none; font-size:0.65rem; padding:1px 5px;">0</span>
-          </button>
+          <h1 class="section-title">💬 Chat & Comunidad Nodowa</h1>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Conversa con otros usuarios en línea y explora sus tiendas personales.</p>
         </div>
       </div>
-
-      <!-- Sub-pestaña 1: Directorio de Jugadores & Amistades -->
-      <div class="social-panel active" id="social-panel-players">
-        <!-- Buscador de Jugadores -->
-        <div class="search-box" style="margin-bottom: 1.25rem;">
-          <span class="search-icon-svg">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          </span>
-          <input type="text" id="players-search-input" class="search-input" placeholder="Buscar jugador por Gamertag..." autocomplete="off">
-          <button id="players-clear-btn" class="search-clear-btn" onclick="clearPlayersSearch()" title="Limpiar">&times;</button>
+      <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem; align-items: start;">
+        <!-- Lista de Jugadores / Conversaciones -->
+        <div class="card" style="padding: 1rem;">
+          <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.75rem;">Jugadores Recientes</h4>
+          <div id="conversations-list" style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 480px; overflow-y: auto;"></div>
         </div>
-
-        <!-- Banner Explicativo de Amistades & Red Social -->
-        <div class="community-info-banner" style="background:linear-gradient(135deg, rgba(124,58,237,0.08), rgba(254,44,85,0.08)); border:1px solid rgba(124,58,237,0.2); border-radius:var(--radius-md); padding:0.9rem 1.15rem; margin-bottom:1.25rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
-          <div style="display:flex; align-items:center; gap:0.75rem;">
-            <div style="width:36px; height:36px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </div>
-            <div>
-              <div style="font-weight:800; font-size:0.9rem; color:var(--text);">¿Para qué sirven las solicitudes de amistad?</div>
-              <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">Al ser amigos pueden enviarse mensajes directos en Messenger con 1 clic, ver sus perfiles completos y saber si están en el servidor de Nodowa.</div>
-            </div>
+        <!-- Panel de Chat -->
+        <div class="card" style="padding: 1.25rem; display: flex; flex-direction: column; height: 540px;">
+          <div id="chat-header" style="padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); font-weight: 800;">
+            Selecciona a un jugador para chatear
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="setPlayersFilter('friends')" style="font-size:0.78rem;">Ver Mis Amigos</button>
-        </div>
-
-        <div class="search-tags" style="margin-bottom: 1.5rem;">
-          <button class="search-tag-pill active" id="filter-players-all" onclick="setPlayersFilter('all')">Todos</button>
-          <button class="search-tag-pill" id="filter-players-linked" onclick="setPlayersFilter('linked')">Vinculados</button>
-          <button class="search-tag-pill" id="filter-players-unlinked" onclick="setPlayersFilter('unlinked')">No Vinculados</button>
-          <button class="search-tag-pill" id="filter-players-friends" onclick="setPlayersFilter('friends')">Amigos</button>
-        </div>
-
-        <!-- Solicitudes Recibidas (se muestra si hay) -->
-        <div id="incoming-requests-box" style="display:none; margin-bottom: 1.75rem;">
-          <h3 style="font-size:0.95rem; font-weight:800; color:var(--text); margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-            <span>Solicitudes de Amistad Recibidas</span>
-          </h3>
-          <div class="card-grid" id="incoming-requests-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"></div>
-        </div>
-
-        <div class="card-grid" id="players-grid">
-          <!-- Renderizado dinámico de jugadores -->
-        </div>
-      </div>
-
-      <!-- Sub-pestaña 2: Messenger Chat -->
-      <div class="social-panel" id="social-panel-chat">
-        <div class="messenger-container">
-          <!-- Lista de conversaciones (Sidebar) -->
-          <div class="messenger-sidebar" id="messenger-sidebar">
-            <div class="messenger-sidebar-header">
-              <span class="messenger-title">Conversaciones</span>
-              <button class="btn btn-secondary btn-sm" onclick="switchSocialSubTab('players')" title="Nuevo chat">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                <span>Buscar</span>
-              </button>
-            </div>
-            <div class="conversations-list" id="conversations-list">
-              <div class="messenger-empty-threads">Cargando chats...</div>
-            </div>
-          </div>
-
-          <!-- Área de Chat Activo -->
-          <div class="messenger-chat-area" id="messenger-chat-area">
-            <!-- Estado vacío sin conversación abierta -->
-            <div class="messenger-empty-state" id="chat-empty-state">
-              <div class="messenger-empty-icon">
-                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              </div>
-              <h3 style="font-size:1.15rem; font-weight:800; color:var(--text); margin-bottom:0.4rem;">Tus Mensajes en Nodowa</h3>
-              <p style="font-size:0.88rem; color:var(--text-muted); max-width:340px; line-height:1.5;">Selecciona un chat o busca un jugador para coordinar partidas, negociar ítems o hablar en tiempo real.</p>
-            </div>
-
-            <!-- Caja de chat activa -->
-            <div class="messenger-active-chat" id="chat-active-box" style="display:none;">
-              <div class="messenger-chat-header">
-                <div class="messenger-header-user">
-                  <button class="chat-back-btn" id="chat-mobile-back" onclick="closeChatMobile()" title="Volver">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                  </button>
-                  <img id="chat-active-avatar" class="chat-header-avatar" src="https://mc-heads.net/avatar/Steve/40" alt="Avatar">
-                  <div>
-                    <div class="chat-header-name" id="chat-active-name">Steve</div>
-                    <div class="chat-header-status" id="chat-active-status">Jugador de Nodowa</div>
-                  </div>
-                </div>
-                <div class="messenger-header-actions">
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-view-chat-profile" title="Ver Perfil">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    <span>Perfil</span>
-                  </button>
-                  <button type="button" class="btn btn-danger-soft btn-sm" id="btn-clear-active-chat" title="Borrar conversación completa">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    <span>Borrar Chat</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Historial de mensajes -->
-              <div class="messenger-messages-body" id="chat-messages-container">
-                <!-- Burbujas renderizadas dinámicamente -->
-              </div>
-
-              <!-- Input y envío -->
-              <form class="messenger-input-form" id="chat-send-form">
-                <input type="text" id="chat-text-input" class="messenger-input" placeholder="Escribe un mensaje..." autocomplete="off" maxlength="1000" required>
-                <button type="submit" class="messenger-send-btn" id="btn-submit-message" title="Enviar mensaje">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 3. Billetera -->
-    <section class="tab-view" id="view-wallet">
-      <div class="wallet-page">
-
-        <div class="section-header">
-          <div>
-            <h1 class="section-title">Billetera & Banco</h1>
-            <p class="section-subtitle">Gestiona tu dinero, guarda en el banco y genera rendimientos automáticos.</p>
-          </div>
-        </div>
-
-        <!-- ── Saldos ─────────────────────────────────────── -->
-        <div class="wallet-balances-grid">
-
-          <!-- Billetera -->
-          <div class="wallet-card">
-            <div class="wallet-card-icon purple">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
-            </div>
-            <span class="wallet-card-label">
-              Saldo en Mano
-            </span>
-            <div class="wallet-card-amount purple" id="wallet-balance">0 NC</div>
-            <span class="wallet-card-hint">Disponible para la tienda y el mercado P2P</span>
-            <button type="button" class="btn btn-tiktok btn-sm" onclick="openBankActionModal('deposit')">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m5 12 7 7 7-7"/></svg>
-              Depositar al Banco
-            </button>
-          </div>
-
-          <!-- Banco -->
-          <div class="wallet-card">
-            <div class="wallet-card-icon green">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><rect x="5" y="10" width="4" height="12"/><rect x="10" y="6" width="4" height="16"/><rect x="15" y="14" width="4" height="8"/><path d="M3 6 L12 2 L21 6"/></svg>
-            </div>
-            <span class="wallet-card-label">
-              Banco Seguro
-            </span>
-            <div class="wallet-card-amount green" id="bank-balance">0 NC</div>
-            <span class="wallet-card-hint">Protegido y generando +2.0% de interés diario</span>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="openBankActionModal('withdraw')">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
-              Retirar a Billetera
-            </button>
-          </div>
-
-        </div>
-
-        <!-- ── Banco: Rendimiento e Intereses ────────────── -->
-        <div class="bank-yield-card">
-          <div class="byc-title-row">
-            <div class="byc-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-            </div>
-            <span class="byc-title">Rendimiento del Banco</span>
-            <span class="byc-rate-badge">+2.0% diario</span>
-          </div>
-          <p class="byc-desc">Cada día, tus Nodocoins guardados en el banco generan intereses automáticos. Cuanto más deposites, más ganas sin hacer nada.</p>
-
-          <!-- Beneficios explicados -->
-          <div class="byc-benefits">
-            <div class="byc-benefit-item">
-              <div class="byc-benefit-label">Ganancia estimada / día</div>
-              <div class="byc-benefit-val green" id="interest-estimated-daily">+0 NC</div>
-            </div>
-            <div class="byc-benefit-item">
-              <div class="byc-benefit-label">Intereses por cobrar</div>
-              <div class="byc-benefit-val amber" id="interest-pending-val">+0 NC</div>
-            </div>
-            <div class="byc-benefit-item">
-              <div class="byc-benefit-label">Total histórico ganado</div>
-              <div class="byc-benefit-val purple" id="interest-total-earned">0 NC</div>
-            </div>
-          </div>
-
-          <!-- Info de beneficios -->
-          <div class="byc-info-list">
-            <div class="byc-info-row">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>Protección total</strong> — tu saldo en banco no puede perderse por muerte o robo en el servidor.</span>
-            </div>
-            <div class="byc-info-row">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>+2% diario automático</strong> — el interés se acumula solo, sin necesidad de estar conectado.</span>
-            </div>
-            <div class="byc-info-row">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>Retira cuando quieras</strong> — mueve tus monedas del banco a la billetera en cualquier momento.</span>
-            </div>
-            <div class="byc-info-row">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>Reclamar rendimiento</strong> — presiona el botón de abajo para cobrar tus intereses acumulados.</span>
-            </div>
-          </div>
-
-          <button type="button" id="btn-claim-interest" class="btn btn-success btn-block" onclick="claimBankInterest()">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
-            Reclamar Rendimiento Ganado
-          </button>
-        </div>
-
-        <!-- ── Transferir Monedas ─────────────────────────── -->
-        <div class="card">
-          <div style="display:flex; align-items:center; gap:0.65rem; margin-bottom:1.25rem;">
-            <div style="width:34px; height:34px; border-radius:var(--radius-sm); background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </div>
-            <div>
-              <div style="font-size:1rem; font-weight:800; color:var(--text);">Transferir Monedas</div>
-              <div style="font-size:0.78rem; color:var(--text-muted);">Envía NC directamente a otro jugador de Nodowa.</div>
-            </div>
-          </div>
-          <form id="transfer-form">
-            <div class="form-group">
-              <label class="form-label">Gamertag del Destinatario</label>
-              <input type="text" id="transfer-to" class="input" placeholder="Ej: Steve o Alex" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Monto a Enviar (NC)</label>
-              <input type="number" id="transfer-amount" class="input" min="1" placeholder="Ej: 500" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Nota o Concepto (opcional)</label>
-              <input type="text" id="transfer-note" class="input" placeholder="Ej: Pago de armadura o recompensa">
-            </div>
-            <button type="submit" class="btn btn-tiktok btn-block">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              <span>Enviar Transferencia</span>
-            </button>
+          <div id="chat-messages" style="flex: 1; overflow-y: auto; padding: 1rem 0; display: flex; flex-direction: column; gap: 0.5rem;"></div>
+          <form id="chat-input-form" onsubmit="event.preventDefault();" style="display: flex; gap: 0.5rem; margin-top: auto;">
+            <input type="text" id="chat-input" class="input" placeholder="Escribe un mensaje..." autocomplete="off">
+            <button type="submit" class="btn btn-primary" id="btn-send-chat">Enviar</button>
           </form>
         </div>
-
-        <!-- ── Historial de Transacciones ───────────────── -->
-        <div class="card" style="margin-top:1rem;">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:0.65rem; margin-bottom:1rem; flex-wrap:wrap;">
-            <div style="display:flex; align-items:center; gap:0.6rem;">
-              <div style="width:34px; height:34px; border-radius:var(--radius-sm); background:var(--tiktok-gray); color:var(--text-muted); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-              </div>
-              <div>
-                <div style="font-size:1rem; font-weight:800; color:var(--text);">Historial de Transacciones</div>
-                <div style="font-size:0.78rem; color:var(--text-muted);">Últimos 100 movimientos de tu cuenta.</div>
-              </div>
-            </div>
-            <button class="btn btn-secondary btn-sm" onclick="loadTransactions()">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-              Actualizar
-            </button>
-          </div>
-          <div class="table-wrap" style="margin-top:0;">
-            <table>
-              <thead>
-                <tr>
-                  <th>Tipo</th>
-                  <th>Descripción</th>
-                  <th>Monto</th>
-                  <th>Fecha</th>
-                </tr>
-              </thead>
-              <tbody id="transactions-tbody">
-                <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:2rem;">Cargando historial...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
       </div>
     </section>
 
-    <!-- 4. Buzón / Entregas -->
-    <section class="tab-view" id="view-deliveries">
+    <!-- 6. TAB: BILLETERA & BANCO -->
+    <section id="tab-wallet" class="tab-pane">
       <div class="section-header">
         <div>
-          <h1 class="section-title">Buzón de Entregas</h1>
-          <p class="section-subtitle">Historial de artículos y comandos despachados a tu cuenta en Minecraft Bedrock.</p>
+          <h1 class="section-title">💳 Mi Billetera & Banco de Intereses</h1>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Administra tu saldo disponible en mano y tu cuenta de ahorro con rendimiento diario.</p>
         </div>
-        <button class="btn btn-secondary btn-sm" id="btn-refresh-deliveries">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-          <span>Actualizar</span>
-        </button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+        <!-- Card Wallet -->
+        <div class="card">
+          <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Saldo en Mano (Wallet)</span>
+          <div style="font-size: 2rem; font-weight: 800; color: var(--amber); margin: 0.35rem 0;" id="wallet-balance-amount">0 NC</div>
+          <button class="btn btn-amber btn-sm btn-block" onclick="window.openModal('modal-quick-transfer')">
+            Transferir Saldo Rápido
+          </button>
+        </div>
+        <!-- Card Banco -->
+        <div class="card">
+          <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Banco Seguro (Genera Interés)</span>
+          <div style="font-size: 2rem; font-weight: 800; color: var(--emerald); margin: 0.35rem 0;" id="bank-balance-amount">0 NC</div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-outline btn-sm" style="flex: 1;" onclick="window.openBankActionModal('deposit')">Depositar</button>
+            <button class="btn btn-outline btn-sm" style="flex: 1;" onclick="window.openBankActionModal('withdraw')">Retirar</button>
+            <button class="btn btn-primary btn-sm" onclick="window.claimBankInterest()">Cobrar Interés</button>
+          </div>
+        </div>
       </div>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Artículo</th>
-              <th>Fecha</th>
-              <th>Estado</th>
-              <th>Soporte / Reclamo</th>
-            </tr>
-          </thead>
-          <tbody id="deliveries-tbody">
-            <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:2rem;">Inicia sesión para ver tu buzón.</td></tr>
-          </tbody>
-        </table>
+      <!-- Historial de Transacciones -->
+      <div class="card">
+        <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 1rem;">Movimientos Recientes</h3>
+        <div id="wallet-transactions-list"></div>
       </div>
     </section>
 
-    <!-- 5. Top Ricos -->
-    <section class="tab-view" id="view-leaderboard">
+    <!-- 7. TAB: BUZÓN DE ENTREGAS -->
+    <section id="tab-deliveries" class="tab-pane">
       <div class="section-header">
         <div>
-          <h1 class="section-title">Clasificación General</h1>
-          <p class="section-subtitle">Jugadores con mayor fortuna acumulada en Nodowa Network.</p>
+          <h1 class="section-title">📬 Buzón de Reclamos en Minecraft</h1>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Consulta tus órdenes y compras pendientes de recibir en el servidor.</p>
         </div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:60px;">#</th>
-              <th>Jugador</th>
-              <th>Billetera</th>
-              <th>Banco</th>
-              <th>Fortuna Total</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboard-tbody">
-            <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:2rem;">Cargando clasificación...</td></tr>
-          </tbody>
-        </table>
+      <div id="deliveries-list" class="card"></div>
+    </section>
+
+    <!-- 8. TAB: TOP RICOS (LEADERBOARD) -->
+    <section id="tab-leaderboard" class="tab-pane">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title">🏆 Top Ricos de Nodowa</h1>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Los magnates y aventureros más adinerados de la red.</p>
+        </div>
       </div>
+      <div id="leaderboard-table-container" class="card"></div>
     </section>
 
   </main>
 
-  <!-- Modal: Login con Comando /link -->
+  <!-- ========================================================================
+       BARRA INFERIOR MÓVIL (MOBILE BOTTOM BAR)
+       ======================================================================== -->
+  <nav class="mobile-bottom-nav">
+    <button class="mobile-tab-btn active" data-tab="store" onclick="window.navigateTo('/')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></svg>
+      <span>Tienda</span>
+    </button>
+    <button class="mobile-tab-btn" data-tab="coins" onclick="window.navigateTo('/coins')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/></svg>
+      <span>Monedas</span>
+    </button>
+    <button class="mobile-tab-btn" data-tab="market" onclick="window.navigateTo('/market')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
+      <span>Mercado</span>
+    </button>
+    <button class="mobile-tab-btn" data-tab="social" onclick="window.navigateTo('/social')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Chat</span>
+    </button>
+    <button class="mobile-tab-btn" data-tab="wallet" onclick="window.navigateTo('/wallet')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+      <span>Wallet</span>
+    </button>
+  </nav>
+
+  <!-- ========================================================================
+       MODALES
+       ======================================================================== -->
+
+  <!-- Modal: Autenticación / Vinculación -->
   <div class="modal-backdrop" id="modal-login">
     <div class="modal-box">
       <div class="modal-header">
-        <h3 class="modal-title">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <span>Vincular Cuenta</span>
-        </h3>
-        <button class="btn-close" onclick="closeModal('modal-login')">&times;</button>
+        <h3 class="modal-title">Vincular Cuenta Nodowa</h3>
+        <button class="modal-close" onclick="window.closeModal('modal-login')">✕</button>
       </div>
 
-      <!-- Paso 1: Ingresar Gamertag -->
+      <!-- Paso 1: Gamertag -->
       <div id="auth-step-1">
-        <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:1.25rem;">
-          Inicia sesión de forma segura vinculando tu Gamertag dentro de Minecraft Bedrock.
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Ingresa tu Gamertag exacto de Minecraft Bedrock para generar tu código seguro de acceso:
         </p>
         <form id="login-form">
-          <div class="form-group">
-            <label class="form-label">Gamertag de Minecraft Bedrock</label>
-            <input type="text" id="login-username" class="input" placeholder="Ej: Steve o Alex" required autofocus>
+          <div style="margin-bottom: 1rem;">
+            <input type="text" id="login-username" class="input" placeholder="Ej. slynderly" required autocomplete="username">
           </div>
-          <button type="submit" class="btn btn-tiktok btn-block" id="btn-request-link">
-            <span>Generar Código /link</span>
+          <button type="submit" class="btn btn-primary btn-block" id="btn-request-link">
+            Generar Código de Acceso
           </button>
         </form>
       </div>
 
-      <!-- Paso 2: Ejecutar Comando en Minecraft -->
-      <div id="auth-step-2" style="display:none;">
-        <div class="auth-steps-list">
-          1. Entra a <strong>Nodowa Network</strong> con la cuenta <strong id="auth-target-player" style="color:var(--tiktok-red);">Steve</strong>.<br>
-          2. Abre el chat y escribe el comando que ves abajo.<br>
-          3. La web detectará la vinculación y entrará automáticamente.
+      <!-- Paso 2: Comando en juego -->
+      <div id="auth-step-2" style="display: none; text-align: center;">
+        <p style="font-size: 0.88rem; margin-bottom: 0.75rem;">
+          Ingresa a <strong>mi.nodowa.lat</strong> con tu cuenta <strong><span id="auth-target-player"></span></strong> y escribe en el chat:
+        </p>
+        <div style="background: var(--surface-subtle); border: 2px dashed var(--primary); padding: 0.9rem; border-radius: var(--radius-md); font-family: monospace; font-size: 1.25rem; font-weight: 800; color: var(--primary); margin-bottom: 1rem;" id="auth-code-text">
+          /link 123456
         </div>
-
-        <div class="auth-code-box">
-          <div class="auth-code-label">Comando para el chat de Minecraft</div>
-          <div class="auth-command-display">
-            <span id="auth-code-text">/link ------</span>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-code" title="Copiar comando">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-              <span>Copiar</span>
-            </button>
-          </div>
-          <div class="auth-waiting-indicator">
-            <span class="pulse-dot"></span>
-            <span>Esperando confirmación en el servidor...</span>
-          </div>
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+          <button type="button" class="btn btn-outline btn-sm" id="btn-copy-code" style="flex: 1;">Copiar Comando</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-link" style="flex: 1;">Cancelar</button>
         </div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem;">
-          <span id="auth-timer-countdown" style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">Expira en: 15:00</span>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-link">Cambiar Gamertag</button>
+        <div style="font-size: 0.8rem; color: var(--amber); font-weight: 600;" id="auth-timer-countdown">
+          Expira en: 05:00
         </div>
       </div>
-
     </div>
   </div>
 
-  <!-- Modal: Perfil del Jugador (Estilo Facebook / TikTok) -->
-  <div class="modal-backdrop" id="modal-profile">
-    <div class="profile-modal-box">
-      <div class="profile-cover">
-        <button class="profile-close-btn" onclick="closeModal('modal-profile')">&times;</button>
+  <!-- Modal: Checkout de Producto -->
+  <div class="modal-backdrop" id="modal-checkout">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Confirmar Compra</h3>
+        <button class="modal-close" onclick="window.closeModal('modal-checkout')">✕</button>
       </div>
-
-      <div class="profile-avatar-wrap">
-        <img id="profile-avatar-img" class="profile-avatar-img" src="https://mc-heads.net/avatar/Steve/100" alt="Avatar">
-        <button class="avatar-edit-badge" id="btn-open-avatar-modal" title="Cambiar foto de perfil">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      <div>
+        <h4 id="checkout-item-title" style="font-size: 1.2rem; font-weight: 800; margin-bottom: 0.35rem;"></h4>
+        <p id="checkout-item-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;"></p>
+        <button class="btn btn-primary btn-block" id="btn-pay-coins">
+          Confirmar Compra con NC
         </button>
       </div>
-
-      <div class="profile-body">
-        <h2 class="profile-name" id="profile-gamertag">Steve</h2>
-        <div class="profile-badges-row">
-          <span class="chip chip-linked" id="profile-chip-linked">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            <span id="profile-linked-text">Vinculado</span>
-          </span>
-          <span class="chip chip-tier" id="profile-tier-badge">NOVICIO</span>
-          <span class="chip chip-title" id="profile-active-title">Título: [Novato]</span>
-        </div>
-
-        <!-- Biografía del Jugador -->
-        <div class="profile-bio-box" id="profile-bio-box" style="margin-bottom:1.15rem; background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 1rem; text-align:left;">
-          <div style="font-size:0.72rem; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:0.35rem; display:flex; justify-content:space-between; align-items:center;">
-            <span>Biografía</span>
-            <button class="btn btn-secondary btn-sm" id="btn-edit-bio-shortcut" style="padding:1px 8px; font-size:0.7rem; display:none;">Editar</button>
-          </div>
-          <p id="profile-bio-text" style="font-size:0.88rem; color:var(--text); line-height:1.4; margin:0; word-break:break-word;">
-            <em>Sin biografía todavía.</em>
-          </p>
-        </div>
-
-        <!-- Redes Sociales del Jugador -->
-        <div class="profile-socials-row" id="profile-socials-row" style="display:flex; justify-content:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.25rem;">
-          <!-- Enlaces dinámicos a Discord, YouTube, TikTok, etc. -->
-        </div>
-
-        <!-- Balances Financieros -->
-        <div class="profile-balances">
-          <div class="profile-balance-card">
-            <div class="profile-balance-label">Billetera</div>
-            <div class="profile-balance-val" id="profile-wallet-val">0 NC</div>
-          </div>
-          <div class="profile-balance-card">
-            <div class="profile-balance-label">Banco Protegido</div>
-            <div class="profile-balance-val" id="profile-bank-val" style="color:var(--emerald);">0 NC</div>
-          </div>
-        </div>
-
-        <!-- Estadísticas Conectadas con Addon de Títulos de Minecraft -->
-        <div class="stats-header-title">
-          <span>Estadísticas de Aventura</span>
-          <span id="profile-titles-count" style="font-size:0.75rem; color:var(--tiktok-red); font-weight:700;">0 Títulos</span>
-        </div>
-
-        <div class="stats-grid-profile">
-          <div class="stat-box">
-            <div class="stat-box-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/></svg>
-            </div>
-            <div>
-              <div class="stat-box-num" id="profile-stat-pvp">0</div>
-              <div class="stat-box-label">Bajas PvP</div>
-            </div>
-          </div>
-
-          <div class="stat-box">
-            <div class="stat-box-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>
-            </div>
-            <div>
-              <div class="stat-box-num" id="profile-stat-mobs">0</div>
-              <div class="stat-box-label">Mobs Cazados</div>
-            </div>
-          </div>
-
-          <div class="stat-box">
-            <div class="stat-box-icon" style="color:#0ea5e9;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 18 3 22 9 12 22 2 9"/></svg>
-            </div>
-            <div>
-              <div class="stat-box-num" id="profile-stat-diamond">0</div>
-              <div class="stat-box-label">Diamantes</div>
-            </div>
-          </div>
-
-          <div class="stat-box">
-            <div class="stat-box-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 12-8.5 8.5a2.12 2.12 0 1 1-3-3L11 9"/><path d="M15 13 9 7l4-4 6 6h3l3 3"/></svg>
-            </div>
-            <div>
-              <div class="stat-box-num" id="profile-stat-mined">0</div>
-              <div class="stat-box-label">Bloques Picados</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Botones para mi propio perfil -->
-        <div class="profile-actions-list" id="profile-own-actions" style="display:none;">
-          <button type="button" class="btn btn-secondary btn-block" id="btn-open-edit-profile">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            <span>Editar Biografía y Redes Sociales</span>
-          </button>
-          <button type="button" class="btn btn-secondary btn-block" id="btn-profile-wallet">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-8 8H5a2 2 0 0 1-2-2V7"/><circle cx="18" cy="14" r="1"/></svg>
-            <span>Ir a Billetera & Transferencias</span>
-          </button>
-          <button type="button" class="btn btn-danger btn-block" id="btn-profile-logout">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            <span>Cerrar Sesión</span>
-          </button>
-        </div>
-
-        <!-- Botones si estoy viendo el perfil de OTRO jugador -->
-        <div class="profile-actions-list" id="profile-other-actions" style="display:none;">
-          <button type="button" class="btn btn-tiktok btn-block" id="btn-other-profile-chat">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span>Enviar Mensaje</span>
-          </button>
-          <button type="button" class="btn btn-amber btn-block" id="btn-other-profile-transfer">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            <span id="btn-other-transfer-label">Transferir Monedas</span>
-          </button>
-          <button type="button" class="btn btn-secondary btn-block" id="btn-other-profile-friend">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-            <span id="btn-other-friend-label">Añadir a Amigos</span>
-          </button>
-        </div>
-
-      </div>
     </div>
   </div>
 
-  <!-- Modal: Transferencia Rápida desde Perfil -->
-  <div class="modal-backdrop" id="modal-quick-transfer">
-    <div class="modal-box" style="max-width:420px;">
+  <!-- Modal: Recarga Oficial Binance Pay -->
+  <div class="modal-backdrop" id="modal-binance-order">
+    <div class="modal-box" style="max-width: 520px;">
       <div class="modal-header">
-        <h3 class="modal-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          <span>Transferir a <span id="qt-recipient-name">Jugador</span></span>
-        </h3>
-        <button class="btn-close" onclick="closeModal('modal-quick-transfer')">&times;</button>
+        <h3 class="modal-title">🪙 Recarga Oficial con Binance</h3>
+        <button class="modal-close" onclick="window.closeModal('modal-binance-order')">✕</button>
       </div>
-      <div style="display:flex; align-items:center; gap:0.75rem; background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem; margin-bottom:1.25rem;">
-        <img id="qt-recipient-avatar" src="" alt="" style="width:40px; height:40px; border-radius:50%; border:2px solid var(--border); object-fit:cover;">
+
+      <div style="background: var(--amber-light); border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 0.9rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <div style="font-size:0.95rem; font-weight:800; color:var(--text);" id="qt-recipient-display">—</div>
-          <div style="font-size:0.75rem; color:var(--text-muted);">Tu saldo: <strong id="qt-my-balance" style="color:var(--primary);">0 NC</strong></div>
+          <div style="font-weight: 800; font-size: 1.1rem; color: #92400e;" id="binance-pack-title">Paquete de Monedas</div>
+          <div style="font-size: 0.85rem; color: #b45309;">Recibirás: <strong id="binance-pack-coins">0 NC</strong></div>
         </div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: var(--emerald);" id="binance-pack-price">$0.00 USDT</div>
       </div>
-      <form id="quick-transfer-form">
-        <input type="hidden" id="qt-recipient-input">
-        <div class="form-group">
-          <label class="form-label">Monto a Enviar (NC)</label>
-          <div class="amount-input-wrap">
-            <input type="number" id="qt-amount" class="input input-lg" min="1" placeholder="Ej: 500" required autofocus>
-            <span class="amount-suffix">NC</span>
-          </div>
-        </div>
-        <div style="display:flex; gap:0.4rem; margin-bottom:1.1rem; flex-wrap:wrap;">
-          <button type="button" class="btn-quick-nc" onclick="document.getElementById('qt-amount').value=100">100</button>
-          <button type="button" class="btn-quick-nc" onclick="document.getElementById('qt-amount').value=500">500</button>
-          <button type="button" class="btn-quick-nc" onclick="document.getElementById('qt-amount').value=1000">1,000</button>
-          <button type="button" class="btn-quick-nc" onclick="document.getElementById('qt-amount').value=5000">5,000</button>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nota (opcional)</label>
-          <input type="text" id="qt-note" class="input" placeholder="Ej: pago por ítem P2P">
-        </div>
-        <div style="display:flex; gap:0.65rem; margin-top:0.5rem;">
-          <button type="button" class="btn btn-secondary btn-block" onclick="closeModal('modal-quick-transfer')">Cancelar</button>
-          <button type="submit" class="btn btn-amber btn-block">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            Enviar
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
 
-  <!-- Modal: Editar Biografía y Redes Sociales -->
-  <div class="modal-backdrop" id="modal-edit-profile">
-    <div class="modal-box" style="max-width:480px; max-height:90vh; overflow-y:auto;">
-      <div class="modal-header">
-        <h3 class="modal-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          <span>Editar Mi Perfil & Redes</span>
-        </h3>
-        <button class="btn-close" onclick="closeModal('modal-edit-profile')">&times;</button>
-      </div>
-      <form id="edit-profile-form">
-        <div class="form-group">
-          <label class="form-label">Biografía / Acerca de ti</label>
-          <textarea id="edit-profile-bio" class="input" rows="3" maxlength="300" placeholder="Escribe algo sobre ti, tu facción o tu estilo en Nodowa..."></textarea>
-          <small style="color:var(--text-subtle); font-size:0.75rem;">Máximo 300 caracteres.</small>
-        </div>
-
-        <div style="font-size:0.82rem; font-weight:800; color:var(--text); margin:1rem 0 0.5rem;">Tus Redes Sociales (Opcional)</div>
-        
-        <div class="form-group">
-          <label class="form-label">Discord (Usuario o enlace)</label>
-          <input type="text" id="edit-social-discord" class="input" placeholder="ej: Steve#1234 o enlace">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Canal de YouTube</label>
-          <input type="text" id="edit-social-youtube" class="input" placeholder="https://youtube.com/@tu_canal">
-        </div>
-        <div class="form-group">
-          <label class="form-label">TikTok</label>
-          <input type="text" id="edit-social-tiktok" class="input" placeholder="https://tiktok.com/@tu_usuario">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Twitch</label>
-          <input type="text" id="edit-social-twitch" class="input" placeholder="https://twitch.tv/tu_canal">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Instagram</label>
-          <input type="text" id="edit-social-instagram" class="input" placeholder="https://instagram.com/tu_usuario">
-        </div>
-        <div class="form-group">
-          <label class="form-label">X / Twitter</label>
-          <input type="text" id="edit-social-twitter" class="input" placeholder="https://x.com/tu_usuario">
-        </div>
-
-        <button type="submit" class="btn btn-tiktok btn-block" style="margin-top:1rem;">Guardar Cambios</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal: Comprobante / Recibo Oficial de Compra Nodowa -->
-  <div class="modal-backdrop" id="modal-receipt">
-    <div class="modal-box" style="max-width:480px; padding:0; background:transparent; border:none; box-shadow:none;">
-      <div class="receipt-card" id="receipt-printable-area">
-        <div class="receipt-header-banner">
-          <div>
-            <div class="receipt-brand-logo">
-              <span class="brand-icon" style="width:28px; height:28px; font-size:0.9rem;">N</span>
-              <span>Nodowa Network</span>
-            </div>
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Comprobante Digital Oficial</div>
-          </div>
-          <div class="receipt-stamp-verified">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            <span id="receipt-status-text">Verificado</span>
-          </div>
-        </div>
-
-        <div class="receipt-item-highlight">
-          <div>
-            <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">Artículo Adquirido</div>
-            <div class="receipt-item-name" id="receipt-item-name">-</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">Total Pagado</div>
-            <div class="receipt-item-price" id="receipt-item-price">-</div>
-          </div>
-        </div>
-
-        <div class="receipt-details-grid">
-          <div class="receipt-detail-item">
-            <span class="receipt-detail-label">Folio / TXID</span>
-            <span class="receipt-detail-value" id="receipt-folio" style="font-family:monospace; color:var(--primary);">-</span>
-          </div>
-          <div class="receipt-detail-item">
-            <span class="receipt-detail-label">Jugador / Gamertag</span>
-            <span class="receipt-detail-value" id="receipt-player">-</span>
-          </div>
-          <div class="receipt-detail-item">
-            <span class="receipt-detail-label">Fecha y Hora</span>
-            <span class="receipt-detail-value" id="receipt-date" style="font-size:0.8rem;">-</span>
-          </div>
-          <div class="receipt-detail-item">
-            <span class="receipt-detail-label">Método de Pago</span>
-            <span class="receipt-detail-value" id="receipt-method">-</span>
-          </div>
-        </div>
-
-        <div class="receipt-instructions-box">
-          <div class="receipt-instructions-title">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span>Reclamo en Minecraft Bedrock</span>
-          </div>
-          <div style="font-size:0.82rem; color:#e2e8f0; line-height:1.45;">
-            Conéctate a <strong>mi.nodowa.lat:19132</strong>. Si ya estás en el servidor, escribe en el chat:
-          </div>
-          <div style="margin-top:0.5rem; background:#000; padding:0.4rem 0.7rem; border-radius:4px; font-family:monospace; color:#34d399; display:flex; justify-content:space-between; align-items:center;">
-            <span>/buzon</span>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('/buzon'); showToast('Comando /buzon copiado');" style="padding:1px 6px; font-size:0.7rem; background:#222; color:#fff; border:none;">Copiar</button>
-          </div>
-        </div>
-
-        <div class="receipt-actions-row">
-          <button type="button" class="btn btn-secondary btn-sm btn-block" onclick="window.printReceipt()" style="flex:1;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
-            <span>Imprimir / PDF</span>
-          </button>
-          <button type="button" class="btn btn-secondary btn-sm btn-block" onclick="window.copyReceiptSummary()" style="flex:1;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-            <span>Copiar Datos</span>
-          </button>
-          <button type="button" class="btn btn-primary btn-sm btn-block" onclick="closeModal('modal-receipt'); const bTab=document.querySelector(`.tab-btn[data-tab='deliveries']`); if(bTab) bTab.click();" style="flex:1;">
-            <span>Ver Buzón</span>
-          </button>
-        </div>
-        <div style="text-align:center; margin-top:0.75rem;">
-          <button type="button" class="link-btn" onclick="closeModal('modal-receipt')" style="font-size:0.8rem; color:var(--text-muted);">Cerrar Comprobante</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Modificar Foto de Perfil -->
-  <div class="modal-backdrop" id="modal-avatar">
-    <div class="modal-box" style="max-width:420px;">
-      <div class="modal-header">
-        <h3 class="modal-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span>Modificar Foto</span>
-        </h3>
-        <button class="btn-close" onclick="closeModal('modal-avatar')">&times;</button>
-      </div>
-      <form id="avatar-form">
-        <div class="form-group">
-          <label class="form-label">Subir Imagen desde el Dispositivo</label>
-          <input type="file" id="avatar-file-input" class="input" accept="image/*">
-        </div>
-        <div class="form-group">
-          <label class="form-label">O Ingresar URL de Imagen</label>
-          <input type="url" id="avatar-url-input" class="input" placeholder="https://ejemplo.com/mifoto.png">
-        </div>
-        <div style="display:flex; gap:0.5rem; margin-top:1.25rem;">
-          <button type="button" class="btn btn-secondary btn-block" id="btn-avatar-minecraft">Usar Skin MC</button>
-          <button type="submit" class="btn btn-tiktok btn-block">Guardar Foto</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal: Comprar Artículo -->
-  <div class="modal-backdrop" id="modal-checkout">
-    <div class="modal-box" style="max-width:500px;">
-      <div class="modal-header">
-        <h3 class="modal-title" id="checkout-item-title">Comprar Artículo</h3>
-        <button class="btn-close" onclick="closeModal('modal-checkout')">&times;</button>
-      </div>
-      <div id="checkout-body">
-        <p id="checkout-item-desc" style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1.25rem;"></p>
-        
-        <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem;">
-          <button class="btn btn-tiktok btn-block" id="btn-pay-coins">Pagar con Monedas</button>
-          <button class="btn btn-secondary btn-block" id="btn-pay-binance">Pagar con USDT</button>
-        </div>
-
-        <!-- Sección Pago Binance -->
-        <div id="binance-pay-section" style="display:none; border-top:1px solid var(--border); padding-top:1.25rem;">
-          <div style="text-align:center; margin-bottom:1.25rem;">
-            <img id="binance-qr" src="/uploads/default_qr.svg" alt="QR Binance" style="width:140px; height:140px; border-radius:12px; border:1px solid var(--border);">
-            <div style="font-size:0.9rem; color:var(--text); margin-top:0.5rem; font-weight:700;">
-              Binance Pay ID: <span id="binance-payid" style="color:var(--tiktok-red);">847291039</span>
-            </div>
-            <div style="font-size:0.8rem; color:var(--text-muted); word-break:break-all; margin-top:2px;">
-              <span id="binance-wallet">0x71C...b84F (USDT TRC20)</span>
-            </div>
-          </div>
-          <form id="binance-order-form">
-            <div class="form-group">
-              <label class="form-label">ID de Transacción (TXID) / Código</label>
-              <input type="text" id="order-txid" class="input" placeholder="Ej: 9482710394..." required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Comprobante de Pago (Captura)</label>
-              <input type="file" id="order-receipt" class="input" accept="image/*" required>
-            </div>
-            <button type="submit" class="btn btn-success btn-block">Enviar Comprobante</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Publicar Oferta P2P -->
-  <div class="modal-backdrop" id="modal-p2p">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3 class="modal-title">Nueva Oferta en Mercado</h3>
-        <button class="btn-close" onclick="closeModal('modal-p2p')">&times;</button>
-      </div>
-      <form id="p2p-form">
-        <div class="form-group">
-          <label class="form-label">Título del Artículo o Lote</label>
-          <input type="text" id="p2p-title" class="input" placeholder="Ej: 64 Bloques de Diamante" required>
-        </div>
-        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:0.75rem;">
-          <div class="form-group">
-            <label class="form-label">Identificador Minecraft</label>
-            <input type="text" id="p2p-item-type" class="input" placeholder="diamond_block, elytra, etc." required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Cantidad</label>
-            <input type="number" id="p2p-quantity" class="input" min="1" value="1" placeholder="1" required>
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Precio en Nodocoins (NC)</label>
-          <input type="number" id="p2p-price" class="input" min="1" placeholder="Ej: 1500" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Descripción o Punto de Entrega</label>
-          <textarea id="p2p-desc" class="input" rows="2" placeholder="Ej: Entrega en Spawn o cofre seguro"></textarea>
-        </div>
-        <button type="submit" class="btn btn-tiktok btn-block">Publicar Oferta</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal: Reclamo Entrega ("No recibí mi producto") -->
-  <div class="modal-backdrop" id="modal-report">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3 class="modal-title">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <span>Reportar Entrega</span>
-        </h3>
-        <button class="btn-close" onclick="closeModal('modal-report')">&times;</button>
-      </div>
-      <form id="report-form">
-        <input type="hidden" id="report-delivery-id">
-        <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1rem;">
-          Si compraste un artículo y no lo recibiste en el servidor de Minecraft, envía este reporte. Le llegará inmediatamente al Administrador para revisión y despacho prioritario.
+      <div style="text-align: center; margin-bottom: 1.25rem;">
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+          Transfiere el monto exacto vía <strong>Binance Pay</strong> al siguiente ID oficial:
         </p>
-        <div class="form-group">
-          <label class="form-label">Detalles del problema</label>
-          <textarea id="report-note" class="input" rows="3" placeholder="Ej: Estaba desconectado cuando compré, o mi inventario estaba lleno." required></textarea>
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 1.15rem; font-weight: 800; color: var(--primary); display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+          <span id="binance-pay-id">1255344898</span>
         </div>
-        <button type="submit" class="btn btn-danger btn-block">Enviar Reporte al Administrador</button>
+        <div style="font-size: 0.78rem; color: var(--text-subtle);" id="binance-pay-inst"></div>
+      </div>
+
+      <form onsubmit="window.submitBinanceOrder(event)">
+        <div style="margin-bottom: 0.85rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">
+            ID de Transacción Binance (TXID):
+          </label>
+          <input type="text" id="binance-order-txid" class="input" placeholder="Ej. 2948192847192" required>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">
+            Comprobante de Pago (Captura):
+          </label>
+          <input type="file" id="binance-order-file" class="input" accept="image/*" style="padding: 0.4rem;">
+        </div>
+
+        <button type="submit" class="btn btn-amber btn-block" id="btn-submit-binance-order">
+          Enviar Comprobante al Administrador
+        </button>
       </form>
     </div>
   </div>
 
-  <!-- Modal: Depositar / Retirar Banco -->
-  <div class="modal-backdrop" id="modal-bank-action">
-    <div class="modal-box" style="max-width:440px;">
+  <!-- Modal: Transferencia Rápida -->
+  <div class="modal-backdrop" id="modal-quick-transfer">
+    <div class="modal-box">
       <div class="modal-header">
-        <h3 class="modal-title" id="bank-modal-title">🏦 Depositar en Cuenta Bancaria</h3>
-        <button class="btn-close" onclick="closeModal('modal-bank-action')">&times;</button>
+        <h3 class="modal-title">Transferir Nodocoins</h3>
+        <button class="modal-close" onclick="window.closeModal('modal-quick-transfer')">✕</button>
       </div>
-      <div style="background:var(--surface-hover); border-radius:var(--radius-sm); padding:0.85rem; margin-bottom:1.25rem; border:1px solid var(--border);">
-        <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:5px;">
-          <span style="color:var(--text-muted);">Billetera (Mano):</span>
-          <strong id="bank-modal-wallet" style="color:var(--primary);">0 NC</strong>
+      <form id="form-quick-transfer" onsubmit="event.preventDefault(); window.openQuickTransfer();">
+        <div style="margin-bottom: 0.85rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">Destinatario (Gamertag):</label>
+          <input type="text" id="transfer-recipient" class="input" placeholder="Nombre de usuario" required>
         </div>
-        <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
-          <span style="color:var(--text-muted);">Banco Protegido:</span>
-          <strong id="bank-modal-bank" style="color:var(--emerald);">0 NC</strong>
+        <div style="margin-bottom: 1.25rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">Monto de NC:</label>
+          <input type="number" id="transfer-amount" class="input" placeholder="Cantidad de NC" min="1" required>
         </div>
+        <button type="submit" class="btn btn-amber btn-block">
+          Enviar Transferencia
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Publicar Ítem en Mercado P2P -->
+  <div class="modal-backdrop" id="modal-sell-p2p">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Publicar Artículo en Mercado P2P</h3>
+        <button class="modal-close" onclick="window.closeModal('modal-sell-p2p')">✕</button>
       </div>
-      <form id="bank-action-form">
-        <input type="hidden" id="bank-action-type" value="deposit">
-        
-        <div class="form-group">
-          <label class="form-label" id="bank-modal-label">Cantidad a Depositar (NC)</label>
-          <div class="amount-input-wrap">
-            <input type="number" id="bank-action-amount" class="input input-lg" min="1" placeholder="Ej: 500" required autofocus>
-            <span class="amount-suffix">NC</span>
+      <form id="form-sell-p2p" onsubmit="event.preventDefault(); window.listMyItemP2P();">
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Título del Artículo:</label>
+          <input type="text" id="p2p-title" class="input" placeholder="Ej. Espada Netherite Filo V" required>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Tipo / Categoría:</label>
+            <input type="text" id="p2p-type" class="input" placeholder="Arma, Bloque..." required>
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Cantidad:</label>
+            <input type="number" id="p2p-qty" class="input" value="1" min="1" required>
           </div>
         </div>
-
-        <div style="display:flex; gap:0.4rem; margin-bottom:1.25rem;">
-          <button type="button" class="btn-quick-nc" onclick="setBankPercentage(25)">25%</button>
-          <button type="button" class="btn-quick-nc" onclick="setBankPercentage(50)">50%</button>
-          <button type="button" class="btn-quick-nc" onclick="setBankPercentage(75)">75%</button>
-          <button type="button" class="btn-quick-nc" style="font-weight:800; color:#fbbf24;" onclick="setBankPercentage(100)">Todo (100%)</button>
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Precio en NC:</label>
+          <input type="number" id="p2p-price" class="input" placeholder="Ej. 800" min="1" required>
         </div>
+        <div style="margin-bottom: 1.25rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Descripción:</label>
+          <textarea id="p2p-desc" class="textarea" rows="2" placeholder="Detalles de encantamientos o condición"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Publicar en el Mercado</button>
+      </form>
+    </div>
+  </div>
 
-        <div style="display:flex; gap:0.75rem;">
-          <button type="button" class="btn btn-secondary btn-block" onclick="closeModal('modal-bank-action')">Cancelar</button>
-          <button type="submit" id="btn-bank-submit" class="btn btn-primary btn-block">Confirmar Depósito</button>
+  <!-- Modal: Perfil y Ajustes -->
+  <div class="modal-backdrop" id="modal-profile">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Mi Perfil & Ajustes</h3>
+        <button class="modal-close" onclick="window.closeModal('modal-profile')">✕</button>
+      </div>
+      <form id="profile-edit-form">
+        <div style="margin-bottom: 0.85rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Biografía:</label>
+          <textarea id="profile-bio-input" class="textarea" rows="3" placeholder="Cuéntale a la comunidad sobre ti..."></textarea>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Discord / Redes:</label>
+          <input type="text" id="profile-social-discord" class="input" placeholder="Usuario de Discord">
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="submit" class="btn btn-primary" style="flex: 1;">Guardar Cambios</button>
+          <button type="button" class="btn btn-outline" id="btn-profile-logout" style="color: var(--red);">Cerrar Sesión</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Modal: Recibo de Transferencia -->
-  <div class="modal-backdrop" id="modal-transfer-receipt">
-    <div class="modal-box" style="max-width:400px; text-align:center;">
-
-      <div style="width:56px; height:56px; border-radius:50%; background:var(--emerald-light); color:var(--emerald); display:flex; align-items:center; justify-content:center; margin:0 auto 1rem;">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      </div>
-
-      <div style="font-size:1.25rem; font-weight:800; color:var(--text); margin-bottom:0.2rem;">Transferencia Exitosa</div>
-      <div style="font-size:2rem; font-weight:800; color:var(--primary); margin-bottom:1.25rem;" id="tr-amount">0 NC</div>
-
-      <div style="background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-md); padding:1rem; text-align:left; margin-bottom:1.25rem;">
-
-        <div style="display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">
-          <span style="color:var(--text-muted);">De</span>
-          <strong id="tr-from" style="color:var(--text);">—</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">
-          <span style="color:var(--text-muted);">Para</span>
-          <strong id="tr-to" style="color:var(--text);">—</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;" id="tr-note-row">
-          <span style="color:var(--text-muted);">Nota</span>
-          <span id="tr-note" style="color:var(--text); max-width:200px; text-align:right; word-break:break-word;">—</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">
-          <span style="color:var(--text-muted);">Saldo restante</span>
-          <strong id="tr-balance" style="color:var(--primary);">0 NC</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">
-          <span style="color:var(--text-muted);">Fecha</span>
-          <span id="tr-date" style="color:var(--text-subtle); font-size:0.78rem;">—</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; padding:0.45rem 0; font-size:0.78rem;">
-          <span style="color:var(--text-muted);">ID</span>
-          <span id="tr-txid" style="color:var(--text-subtle); font-family:monospace; font-size:0.75rem;">—</span>
-        </div>
-
-      </div>
-
-      <button type="button" class="btn btn-tiktok btn-block" onclick="closeModal('modal-transfer-receipt')">Cerrar</button>
-    </div>
-  </div>
-
-  <!-- Toast Notificaciones -->
+  <!-- Contenedor Toast -->
   <div id="toast"></div>
 
-  <script src="/js/app.js?v=2.2.0"></script>
+  <!-- SCRIPT MODULAR PRINCIPAL (ES6) -->
+  <script type="module" src="/js/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,34 @@
+/* ==========================================================================
+   BILLETERA
+   ========================================================================== */
+.wallet-page { max-width: 720px; margin: 0 auto; }
+.wallet-balances-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.wallet-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.35rem; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 0.35rem; transition: box-shadow 0.2s, border-color 0.2s; }
+.wallet-card:hover { box-shadow: var(--shadow-md); border-color: var(--border-hover); }
+.wallet-card-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem; }
+.wallet-card-amount { font-size: 2rem; font-weight: 800; letter-spacing: -1px; line-height: 1.1; margin: 0.2rem 0 0.1rem; }
+.wallet-card-amount.purple { color: var(--primary); }
+.wallet-card-amount.green  { color: var(--emerald); }
+.wallet-card-hint { font-size: 0.76rem; color: var(--text-subtle); margin-bottom: 0.75rem; }
+.wallet-card-icon { width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; margin-bottom: 0.3rem; }
+.wallet-card-icon.purple { background: var(--primary-light); color: var(--primary); }
+.wallet-card-icon.green  { background: var(--emerald-light); color: var(--emerald); }
+
+/* Banco */
+.bank-yield-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--emerald); border-radius: var(--radius-md); padding: 1.35rem; box-shadow: var(--shadow-sm); margin-bottom: 1rem; }
+.byc-title-row { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.3rem; flex-wrap: wrap; }
+.byc-icon { width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--emerald-light); color: var(--emerald); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.byc-title { font-size: 1rem; font-weight: 800; color: var(--text); }
+.byc-rate-badge { background: var(--emerald-light); color: var(--emerald); border: 1px solid rgba(5,150,105,0.25); font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: var(--radius-full); }
+.byc-desc { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.45; }
+.byc-benefits { display: grid; grid-template-columns: repeat(3,1fr); gap: 0.75rem; margin-bottom: 1rem; }
+.byc-benefit-item { background: var(--surface-hover); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem; text-align: center; }
+.byc-benefit-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.25rem; }
+.byc-benefit-val { font-size: 1.2rem; font-weight: 800; }
+.byc-benefit-val.green  { color: var(--emerald); }
+.byc-benefit-val.amber  { color: var(--amber-mid); }
+.byc-benefit-val.purple { color: var(--primary); }
+.byc-info-list { background: var(--surface-hover); border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.byc-info-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--text-muted); }
+.byc-info-row svg { color: var(--emerald); flex-shrink: 0; }
+.byc-info-row strong { color: var(--text); }

@@ -1,0 +1,111 @@
+/* ==========================================================================
+   SECTION HEADER
+   ========================================================================== */
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem; }
+.section-title { font-size: 1.3rem; font-weight: 800; color: var(--text); letter-spacing: -0.4px; }
+.section-subtitle { color: var(--text-muted); font-size: 0.86rem; margin-top: 2px; }
+.link-btn { background: none; border: none; color: var(--primary); font-weight: 700; cursor: pointer; text-decoration: underline; font-size: 0.84rem; }
+
+/* ==========================================================================
+   CARDS & GRID
+   ========================================================================== */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.2rem; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.35rem; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; transition: transform 0.2s ease, box-shadow 0.2s, border-color 0.2s; }
+.card:hover { transform: translateY(-3px); border-color: var(--border-hover); box-shadow: var(--shadow-md); }
+.card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.card-icon-pill { width: 42px; height: 42px; border-radius: var(--radius-sm); background: var(--tiktok-gray); color: var(--text); display: flex; align-items: center; justify-content: center; }
+.coin-card .card-icon-pill { background: var(--amber-light); color: var(--amber); }
+.card-content { flex-grow: 1; margin-bottom: 1.2rem; }
+.card-title { font-size: 1.05rem; font-weight: 800; color: var(--text); margin-bottom: 0.3rem; letter-spacing: -0.2px; }
+.card-desc { font-size: 0.84rem; color: var(--text-muted); line-height: 1.45; }
+.card-footer { border-top: 1px solid var(--border); padding-top: 1rem; }
+.card-prices { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.8rem; }
+.price-coins { font-size: 1.15rem; font-weight: 800; color: var(--text); }
+.price-coins small { font-size: 0.73rem; font-weight: 700; color: var(--text-muted); margin-left: 2px; }
+.price-usdt { font-size: 0.9rem; color: var(--emerald); font-weight: 700; }
+.price-usdt small { font-size: 0.73rem; color: var(--text-muted); margin-left: 2px; }
+
+/* ==========================================================================
+   BADGES
+   ========================================================================== */
+.badge { font-size: 0.73rem; font-weight: 700; padding: 2px 9px; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 0.25rem; }
+.badge-tiktok  { background: var(--primary-light); color: var(--primary); }
+.badge-coins   { background: var(--amber-light);   color: var(--amber); }
+.badge.success { background: var(--emerald-light); color: var(--emerald); }
+.badge.warning { background: var(--amber-light);   color: var(--amber); }
+.badge.danger  { background: var(--red-light);     color: var(--red); }
+
+/* ==========================================================================
+   BOTONES
+   ========================================================================== */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.6rem 1.15rem; font-size: 0.86rem; font-weight: 700; border-radius: var(--radius-full); cursor: pointer; border: 1px solid transparent; transition: all 0.18s ease; font-family: inherit; }
+.btn:active { transform: scale(0.97); }
+.btn-primary, .btn-tiktok { background: var(--primary); color: #fff; }
+.btn-primary:hover, .btn-tiktok:hover { background: var(--primary-hover); }
+.btn-secondary { background: var(--tiktok-gray); color: var(--text); border-color: var(--border); }
+.btn-secondary:hover { background: var(--surface-hover); border-color: var(--border-hover); }
+.btn-success { background: var(--emerald); color: #fff; }
+.btn-success:hover { filter: brightness(0.93); }
+.btn-danger { background: var(--red-light); color: var(--red); border: 1px solid rgba(220,38,38,0.2); }
+.btn-danger:hover { background: var(--red); color: #fff; }
+.btn-danger-soft { background: var(--red-light); color: var(--red); border: 1px solid rgba(220,38,38,0.18); }
+.btn-danger-soft:hover { background: var(--red); color: #fff; }
+.btn-amber { background: var(--amber-mid); color: #fff; }
+.btn-amber:hover { background: var(--amber); }
+.btn-sm { padding: 0.32rem 0.75rem; font-size: 0.78rem; }
+.btn-block { width: 100%; }
+
+/* ==========================================================================
+   ESTADO VACIO
+   ========================================================================== */
+.empty-state { grid-column: 1 / -1; text-align: center; padding: 3.5rem 1.5rem; background: var(--surface); border: 1px dashed var(--border-strong); border-radius: var(--radius-md); }
+.empty-icon { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; background: var(--tiktok-gray); color: var(--text-muted); margin-bottom: 0.8rem; }
+.empty-state h3 { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
+.empty-state p { color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.2rem; }
+
+/* ==========================================================================
+   FORMULARIOS
+   ========================================================================== */
+.form-group { margin-bottom: 1.05rem; text-align: left; }
+.form-label { display: block; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 0.3px; }
+.input { width: 100%; padding: 0.65rem 0.9rem; font-size: 0.9rem; font-weight: 500; border: 1px solid var(--border-hover); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); outline: none; transition: border-color 0.18s, box-shadow 0.18s; font-family: inherit; }
+.input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124,58,237,0.1); }
+
+/* ==========================================================================
+   TABLAS
+   ========================================================================== */
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); overflow-x: auto; box-shadow: var(--shadow-sm); }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; text-align: left; }
+th { background: var(--surface-hover); padding: 0.8rem 1rem; font-weight: 700; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid var(--border); }
+td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface-hover); }
+
+/* ==========================================================================
+   MODALES
+   ========================================================================== */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(24,17,46,0.5); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 150; padding: 1rem; overflow-y: auto; }
+.modal-backdrop.open { display: flex; animation: modalFade 0.18s ease; }
+@keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
+.modal-box { background: var(--surface); border-radius: var(--radius-lg); width: 100%; max-width: 480px; padding: 1.65rem; box-shadow: var(--shadow-lg); animation: modalScale 0.18s ease; }
+@keyframes modalScale { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; }
+.modal-title { font-size: 1.15rem; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 0.45rem; }
+.btn-close { background: var(--tiktok-gray); border: none; width: 30px; height: 30px; border-radius: 50%; font-size: 1.1rem; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.btn-close:hover { background: var(--red-light); color: var(--red); }
+
+/* ==========================================================================
+   TOAST
+   ========================================================================== */
+#toast { position: fixed; bottom: 24px; right: 24px; padding: 0.8rem 1.3rem; background: var(--primary); color: #fff; border-radius: var(--radius-full); font-size: 0.88rem; font-weight: 600; box-shadow: 0 6px 20px rgba(124,58,237,0.35); display: none; z-index: 250; animation: toastIn 0.18s ease; }
+@keyframes toastIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ==========================================================================
+   SUBTABS
+   ========================================================================== */
+.subtabs-nav { display: inline-flex; background: var(--tiktok-gray); padding: 4px; border-radius: var(--radius-full); gap: 3px; }
+.subtab-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.42rem 0.9rem; border-radius: var(--radius-full); border: none; background: transparent; color: var(--text-muted); font-size: 0.83rem; font-weight: 700; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+.subtab-btn:hover { color: var(--text); }
+.subtab-btn.active { background: var(--surface); color: var(--primary); box-shadow: var(--shadow-sm); }
+.social-panel { display: none; }
+.social-panel.active { display: block; }

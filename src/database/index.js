@@ -41,6 +41,8 @@ export function loadDb() {
     if (!Array.isArray(db.deliveryIssues)) db.deliveryIssues = [];
     if (!Array.isArray(db.transactions)) db.transactions = [];
     if (!Array.isArray(db.ratings)) db.ratings = [];
+    if (!Array.isArray(db.ncListings)) db.ncListings = [];
+    if (!Array.isArray(db.ncTransactions)) db.ncTransactions = [];
     if (typeof db.users !== "object" || db.users === null) db.users = {};
     if (typeof db.linkTokens !== "object" || db.linkTokens === null) db.linkTokens = {};
     if (typeof db.sessions !== "object" || db.sessions === null) db.sessions = {};
@@ -118,3 +120,7 @@ process.on("SIGTERM", () => {
 
 // Carga inicial
 loadDb();
+
+// Inicializar colecciones NC (solo si no existen)
+if (typeof db.ncListings === "undefined") db.ncListings = [];
+if (typeof db.ncTransactions === "undefined") db.ncTransactions = [];
