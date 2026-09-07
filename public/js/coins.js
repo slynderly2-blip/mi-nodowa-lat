@@ -370,7 +370,7 @@ function renderSellerPanelHtml() {
             <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">WhatsApp:</label>
             <div style="display: flex; gap: 0.4rem;">
               <select id="seller-wa-country" class="input" style="width: 90px; flex-shrink: 0;">
-                ${['+591','+52','+54','+57','+51','+56','+34','+1','+58','+593'].map(c =>
+                ${['+591','+52','+54','+57','+51','+56','+593','+58','+595','+598','+502','+506','+504','+503','+505','+507','+501','+55','+53','+509','+592','+597','+1','+34','+351','+39','+49','+33','+44','+63','+91'].map(c =>
                   `<option value="${c}" ${mySellerConfig.countryCode === c ? 'selected' : ''}>${c}</option>`
                 ).join('')}
               </select>

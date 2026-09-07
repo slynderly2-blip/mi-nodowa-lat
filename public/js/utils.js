@@ -7,7 +7,7 @@ export function showToast(msg) {
   t.textContent = msg;
   t.style.display = "block";
   clearTimeout(t._timer);
-  t._timer = setTimeout(() => { t.style.display = "none"; }, 3500);
+  t._timer = setTimeout(() => { t.style.display = "none"; }, 2200);
 }
 
 // ── Modales ────────────────────────────────────────────────────────────────

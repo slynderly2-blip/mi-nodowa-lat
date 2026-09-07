@@ -105,13 +105,17 @@
             Productos oficiales entregados automáticamente en tu cuenta de Minecraft Bedrock.
           </p>
         </div>
-        
-        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-          <a href="minecraft://?addExternalServer=Nodowa%20Network|mi.nodowa.lat:19132" class="btn btn-primary btn-sm" style="white-space:nowrap; text-decoration:none;" onclick="navigator.clipboard.writeText('mi.nodowa.lat:19132')">
-            Unirse: mi.nodowa.lat
-          </a>
-          <input type="text" id="store-search" class="input" placeholder="Buscar productos..." style="width: 200px;" oninput="window.renderStore()">
-        </div>
+
+        <a href="minecraft://?addExternalServer=Nodowa%20Network|mi.nodowa.lat:19132" class="btn btn-primary btn-sm" style="white-space:nowrap; text-decoration:none;" onclick="navigator.clipboard.writeText('mi.nodowa.lat:19132')">
+          Unirse: mi.nodowa.lat
+        </a>
+      </div>
+
+      <!-- Barra de búsqueda principal -->
+      <div class="store-search-bar">
+        <svg class="store-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="store-search" class="input" placeholder="Buscar productos, rangos, llaves, kits..." oninput="window.renderStore()" autocomplete="off">
+        <button type="button" class="store-search-clear" onclick="window.clearSearch()" title="Limpiar búsqueda">&#x2715;</button>
       </div>
 
       <!-- Filtros de categoría -->
@@ -345,17 +349,13 @@
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
         <span>Mercado P2P</span>
       </button>
-      <button class="mobile-more-item" onclick="window.navigateTo('/social'); window.closeMobileMore()">
+      <button class="mobile-more-item" onclick="window.navigateTo('/social'); window.switchSocialSubTab && window.switchSocialSubTab('chat'); window.closeMobileMore()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span>Chat</span>
       </button>
       <button class="mobile-more-item" onclick="window.navigateTo('/leaderboard'); window.closeMobileMore()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
         <span>Top Ricos</span>
-      </button>
-      <button class="mobile-more-item" onclick="window.navigateTo('/social'); window.switchSocialSubTab && window.switchSocialSubTab('players'); window.closeMobileMore()">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <span>Jugadores</span>
       </button>
     </div>
   </div>
@@ -503,77 +503,91 @@
     <div class="modal-box">
       <div class="modal-header">
         <div>
-          <h3 class="modal-title">🛍️ Publicar en el Marketplace P2P</h3>
+          <h3 class="modal-title">Publicar en el Marketplace P2P</h3>
           <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Conecta directamente con otros jugadores de Bedrock para intercambiar o vender.</p>
         </div>
         <button class="modal-close" onclick="window.closeModal('modal-sell-p2p')">✕</button>
       </div>
       <form id="form-sell-p2p" onsubmit="event.preventDefault(); window.listMyItemP2P();">
         <div style="margin-bottom: 0.75rem;">
-          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">Título del Artículo:</label>
+          <label class="field-label" for="p2p-title">Título del Artículo</label>
           <input type="text" id="p2p-title" class="input" placeholder="Ej. Espada Netherite Filo V con Irrompibilidad III" required>
         </div>
+
         <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
           <div>
-            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">Categoría:</label>
+            <label class="field-label" for="p2p-type">Categoría</label>
             <select id="p2p-type" class="input">
-              <option value="Armas & PvP">⚔️ Armas & PvP</option>
-              <option value="Armaduras">🛡️ Armaduras</option>
-              <option value="Herramientas">⛏️ Herramientas</option>
-              <option value="Minerales & Riquezas">💎 Minerales & Riquezas</option>
-              <option value="Bloques & Construcción">🧱 Bloques & Construcción</option>
-              <option value="Pociones & Libros">🧪 Pociones & Libros</option>
-              <option value="Varios">✨ Varios / Otros</option>
+              <option value="Armas & PvP">Armas & PvP</option>
+              <option value="Armaduras">Armaduras</option>
+              <option value="Herramientas">Herramientas</option>
+              <option value="Minerales & Riquezas">Minerales & Riquezas</option>
+              <option value="Bloques & Construcción">Bloques & Construcción</option>
+              <option value="Pociones & Libros">Pociones & Libros</option>
+              <option value="Varios">Varios / Otros</option>
             </select>
           </div>
           <div>
-            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">Cantidad:</label>
+            <label class="field-label" for="p2p-qty">Cantidad</label>
             <input type="number" id="p2p-qty" class="input" value="1" min="1" required>
           </div>
         </div>
+
         <div style="margin-bottom: 0.75rem;">
-          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">Precio en NC (o 0 para 'A convenir'):</label>
-          <input type="number" id="p2p-price" class="input" placeholder="Ej. 800 (o 0 para convenir en juego)" min="0" value="0">
+          <label class="field-label" for="p2p-price">Precio en NC <span style="font-weight: 500; color: var(--text-subtle);">(0 = A convenir)</span></label>
+          <input type="number" id="p2p-price" class="input" placeholder="Ej. 800 (0 para acordar el precio en juego)" min="0" value="0">
         </div>
 
-        <!-- WhatsApp del Vendedor con selector de país y bandera -->
-        <div style="margin-bottom: 0.75rem;">
-          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">
-            📱 Tu WhatsApp de Contacto:
-          </label>
+        <!-- WhatsApp del Vendedor -->
+        <div class="wa-box">
+          <label class="field-label" for="p2p-wa-number">WhatsApp de Contacto</label>
           <div class="wa-input-group">
             <select id="p2p-wa-country" class="wa-country-select">
-              <option value="+591" selected>🇧🇴 +591</option>
-              <option value="+52">🇲🇽 +52</option>
-              <option value="+54">🇦🇷 +54</option>
-              <option value="+57">🇨🇴 +57</option>
-              <option value="+51">🇵🇪 +51</option>
-              <option value="+56">🇨🇱 +56</option>
-              <option value="+34">🇪🇸 +34</option>
-              <option value="+1">🇺🇸 +1</option>
-              <option value="+58">🇻🇪 +58</option>
-              <option value="+593">🇪🇨 +593</option>
-              <option value="+502">🇬🇹 +502</option>
-              <option value="+506">🇨🇷 +506</option>
-              <option value="+595">🇵🇾 +595</option>
-              <option value="+598">🇺🇾 +598</option>
-              <option value="+503">🇸🇻 +503</option>
-              <option value="+504">🇭🇳 +504</option>
-              <option value="+505">🇳🇮 +505</option>
-              <option value="+507">🇵🇦 +507</option>
+              <option value="+591" selected>+591  Bolivia</option>
+              <option value="+52">+52  México</option>
+              <option value="+54">+54  Argentina</option>
+              <option value="+57">+57  Colombia</option>
+              <option value="+51">+51  Perú</option>
+              <option value="+56">+56  Chile</option>
+              <option value="+593">+593  Ecuador</option>
+              <option value="+58">+58  Venezuela</option>
+              <option value="+595">+595  Paraguay</option>
+              <option value="+598">+598  Uruguay</option>
+              <option value="+502">+502  Guatemala</option>
+              <option value="+506">+506  Costa Rica</option>
+              <option value="+504">+504  Honduras</option>
+              <option value="+503">+503  El Salvador</option>
+              <option value="+505">+505  Nicaragua</option>
+              <option value="+507">+507  Panamá</option>
+              <option value="+501">+501  Belice</option>
+              <option value="+55">+55  Brasil</option>
+              <option value="+53">+53  Cuba</option>
+              <option value="+509">+509  Haití</option>
+              <option value="+592">+592  Guyana</option>
+              <option value="+597">+597  Surinam</option>
+              <option value="+1">+1  Estados Unidos</option>
+              <option value="+1">+1  Canadá</option>
+              <option value="+1">+1  República Dominicana</option>
+              <option value="+34">+34  España</option>
+              <option value="+351">+351  Portugal</option>
+              <option value="+39">+39  Italia</option>
+              <option value="+49">+49  Alemania</option>
+              <option value="+33">+33  Francia</option>
+              <option value="+44">+44  Reino Unido</option>
+              <option value="+63">+63  Filipinas</option>
+              <option value="+91">+91  India</option>
             </select>
-            <input type="tel" id="p2p-wa-number" class="wa-number-input" placeholder="Tu número WhatsApp (Ej. 64770568)" required>
+            <input type="tel" id="p2p-wa-number" class="wa-number-input" placeholder="Tu número (Ej. 64770568)" required>
           </div>
-          <span style="font-size: 0.72rem; color: var(--text-subtle); margin-top: 3px; display: block;">
-            Los compradores podrán tocar un botón para escribirte directamente por WhatsApp.
-          </span>
+          <span class="field-hint">Los compradores podrán tocar un botón para escribirte directamente por WhatsApp.</span>
         </div>
 
         <div style="margin-bottom: 1.25rem;">
-          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">Descripción & Detalles:</label>
-          <textarea id="p2p-desc" class="textarea" rows="2" placeholder="Detalles de encantamientos, coordenadas o condiciones de entrega"></textarea>
+          <label class="field-label" for="p2p-desc">Descripción & Detalles</label>
+          <textarea id="p2p-desc" class="textarea" rows="2" placeholder="Encantamientos, coordenadas o condiciones de entrega"></textarea>
         </div>
-        <button type="submit" class="btn btn-primary btn-block">🚀 Publicar en el Marketplace</button>
+
+        <button type="submit" class="btn btn-primary btn-block">Publicar en el Marketplace</button>
       </form>
     </div>
   </div>

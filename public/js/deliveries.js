@@ -116,11 +116,6 @@ export function initDeliveries() {
       const parsed = JSON.parse(dataStr.replace(/&quot;/g, '"'));
       if (typeof window.showPurchaseReceipt === 'function') {
         window.showPurchaseReceipt(parsed);
-      } else {
-        // Fallback simple si showPurchaseReceipt no está listo
-        const item = parsed.itemName || "Artículo";
-        const folio = parsed.folio || "—";
-        window.showToast && window.showToast(`Recibo #${folio} — ${item}`);
       }
     } catch (e) {}
   };

@@ -44,23 +44,22 @@ function renderCategoryFilters() {
   });
 
   const categoryMeta = {
-    all:    { label: "Todos",     icon: "🔥" },
-    ranks:  { label: "Rangos",    icon: "👑" },
-    crates: { label: "Llaves",    icon: "🗝️" },
-    kits:   { label: "Kits PvP",  icon: "⚔️" },
-    other:  { label: "Objetos",   icon: "📦" }
+    all:    { label: "Todos" },
+    ranks:  { label: "Rangos" },
+    crates: { label: "Llaves" },
+    kits:   { label: "Kits PvP" },
+    other:  { label: "Objetos" }
   };
 
   const categories = Object.keys(categoryCounts);
   if (!categories.includes(currentStoreCategory)) currentStoreCategory = "all";
 
   container.innerHTML = categories.map(cat => {
-    const meta = categoryMeta[cat] || { label: cat.charAt(0).toUpperCase() + cat.slice(1), icon: "📦" };
+    const meta = categoryMeta[cat] || { label: cat.charAt(0).toUpperCase() + cat.slice(1) };
     const count = categoryCounts[cat] || 0;
     const isActive = currentStoreCategory === cat;
     return `
       <button type="button" class="filter-pill ${isActive ? 'active' : ''}" onclick="window.setStoreCategory('${cat}')">
-        <span>${meta.icon}</span>
         <span>${meta.label}</span>
         <span class="badge badge-neutral" style="font-size:0.7rem; padding:1px 5px;">${count}</span>
       </button>
@@ -113,7 +112,6 @@ export function renderStore() {
   if (itemsToDisplay.length === 0) {
     grid.innerHTML = `
       <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
-        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
         <h4 style="font-size: 1.1rem; font-weight: 800; color: var(--text);">No se encontraron productos</h4>
         <p style="font-size: 0.85rem; margin-top: 0.3rem;">Intenta con otro término o restablece los filtros.</p>
       </div>
@@ -232,7 +230,6 @@ async function buyWithCoins(itemId) {
 
 export function showPurchaseReceipt(receipt) {
   if (!receipt) return;
-  const folio = receipt.folio || receipt.id || "NDW-TX-001";
   const player = receipt.player || receipt.username || currentUser || "Jugador";
   const item = receipt.itemName || receipt.itemTitle || "Artículo";
   const price = receipt.priceFormatted || "Gratis";
@@ -254,7 +251,6 @@ export function showPurchaseReceipt(receipt) {
   if (srBalanceRow) srBalanceRow.style.display = receipt.balanceFormatted ? "" : "none";
   if (srDate)    srDate.textContent    = date;
 
-  showToast(`🧾 Recibo #${folio} de ${item} (${status})`);
   openModal('modal-store-receipt');
 }
 window.showPurchaseReceipt = showPurchaseReceipt;
