@@ -14,12 +14,14 @@ export async function loadBalance() {
       state.userData.bank   = data.user.bank   || 0;
       const { wallet, bank } = state.userData;
 
-      const pill       = document.getElementById("pill-coins");
-      const headerCoins= document.getElementById("header-coins-pill");
-      const pW         = document.getElementById("profile-wallet-val");
-      const pB         = document.getElementById("profile-bank-val");
-      const wBal       = document.getElementById("wallet-balance");
-      const bBal       = document.getElementById("bank-balance");
+      const pill        = document.getElementById("pill-coins");
+      const headerCoins = document.getElementById("header-coins-pill");
+      const pW          = document.getElementById("profile-wallet-val");
+      const pB          = document.getElementById("profile-bank-val");
+      const wBal        = document.getElementById("wallet-balance");
+      const bBal        = document.getElementById("bank-balance");
+      const wBalAmt     = document.getElementById("wallet-balance-amount");
+      const bBalAmt     = document.getElementById("bank-balance-amount");
 
       if (pill)        pill.textContent        = `${wallet.toLocaleString()} NC`;
       if (headerCoins) headerCoins.textContent = `${wallet.toLocaleString()} NC`;
@@ -27,6 +29,8 @@ export async function loadBalance() {
       if (pB)          pB.textContent          = `${bank.toLocaleString()} NC`;
       if (wBal)        wBal.textContent        = `${wallet.toLocaleString()} NC`;
       if (bBal)        bBal.textContent        = `${bank.toLocaleString()} NC`;
+      if (wBalAmt)     wBalAmt.textContent     = `${wallet.toLocaleString()} NC`;
+      if (bBalAmt)     bBalAmt.textContent     = `${bank.toLocaleString()} NC`;
 
       loadBankInterest();
     }

@@ -24,6 +24,8 @@
   --primary-light:  #eef2ff;
   
   --amber:          #f59e0b;
+  --amber-mid:      #d97706;
+  --amber-dark:     #b45309;
   --amber-hover:    #d97706;
   --amber-light:    #fffbeb;
 
@@ -267,18 +269,21 @@ button, input, select, textarea {
 }
 
 .btn-amber {
-  background: var(--amber);
-  color: white;
+  background: #d97706 !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  border: 1px solid #b45309;
 }
 .btn-amber:hover {
-  background: var(--amber-hover);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+  background: #b45309 !important;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
 }
 
 .btn-outline {
-  background: white;
+  background: #ffffff;
   border: 1px solid var(--border);
   color: var(--text);
+  font-weight: 700;
 }
 .btn-outline:hover {
   border-color: var(--primary);
