@@ -16,7 +16,7 @@ import { loadMarket, buyP2PListing, deleteP2PListing, listMyItemP2P } from './ma
 import { loadTransactions, openQuickTransfer, openBankActionModal, setBankPercentage, claimBankInterest, submitQuickTransfer, initWallet } from './wallet.js';
 import { openChatWith, closeChatMobile, deleteMessage, initChat } from './chat.js';
 import { sendFriendRequest, viewOtherPlayerProfile, switchSocialSubTab, setPlayersFilter, clearPlayersSearch, respondFriendRequest, removeFriend, initSocial } from './social.js';
-import { openReportModal } from './deliveries.js';
+import { openReportModal, initDeliveries } from './deliveries.js';
 import { loadLeaderboard } from './leaderboard.js';
 
 // ==========================================

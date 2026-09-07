@@ -725,6 +725,27 @@
     </div>
   </div>
 
+  <!-- Modal: Reportar Problema de Entrega -->
+  <div class="modal-backdrop" id="modal-report">
+    <div class="modal-box" style="max-width:440px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Reportar Problema de Entrega</h3>
+        <button class="btn-close" onclick="window.closeModal('modal-report')">&times;</button>
+      </div>
+      <form id="report-form">
+        <input type="hidden" id="report-delivery-id">
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
+          Si compraste un artículo y no lo recibiste en el servidor, envía este reporte. El administrador lo revisará con prioridad.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Detalles del problema</label>
+          <textarea id="report-note" class="input" rows="3" placeholder="Ej: Estaba desconectado cuando compré, o mi inventario estaba lleno." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-danger btn-block">Enviar Reporte al Administrador</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Contenedor Toast -->
   <div id="toast"></div>
 
