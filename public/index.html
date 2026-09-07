@@ -386,7 +386,7 @@
         </div>
         <div style="font-size: 0.78rem; color: var(--text-subtle); margin-bottom: 0.75rem;" id="binance-pay-inst"></div>
         <!-- QR de Binance Pay -->
-        <img id="binance-pay-qr" src="/uploads/default_qr.svg" alt="QR Binance Pay" style="max-width: 180px; border-radius: var(--radius-md); border: 1px solid var(--border); margin: 0 auto; display: block;">
+        <img id="binance-pay-qr" src="/uploads/default_qr.svg" alt="QR Binance Pay" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=250x250&amp;data=1255344898'" style="max-width: 180px; border-radius: var(--radius-md); border: 1px solid var(--border); margin: 0 auto; display: block;">
       </div>
 
       <form onsubmit="window.submitBinanceOrder(event)">
@@ -418,7 +418,7 @@
         <h3 class="modal-title">Transferir Nodocoins</h3>
         <button class="modal-close" onclick="window.closeModal('modal-quick-transfer')">✕</button>
       </div>
-      <form id="form-quick-transfer" onsubmit="event.preventDefault(); window.openQuickTransfer();">
+      <form id="form-quick-transfer" onsubmit="window.submitQuickTransfer(event)">
         <div style="margin-bottom: 0.85rem;">
           <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">Destinatario (Gamertag):</label>
           <input type="text" id="transfer-recipient" class="input" placeholder="Nombre de usuario" required>

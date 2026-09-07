@@ -384,4 +384,45 @@ export function initWallet() {
   window.claimBankInterest   = claimBankInterest;
   window.openQuickTransfer   = openQuickTransfer;
   window.loadTransactions    = loadTransactions;
+  window.submitQuickTransfer = submitQuickTransfer;
 }
+
+export async function submitQuickTransfer(event) {
+  if (event) event.preventDefault();
+  const { currentUser } = state;
+  if (!currentUser) return openModal("modal-login");
+
+  const toUser = (document.getElementById("transfer-recipient")?.value || document.getElementById("qt-recipient-input")?.value || "").trim();
+  const amount = parseInt(document.getElementById("transfer-amount")?.value || document.getElementById("qt-amount")?.value || "0");
+  const note   = (document.getElementById("transfer-note")?.value || document.getElementById("qt-note")?.value || "").trim();
+
+  if (!toUser || isNaN(amount) || amount <= 0) return showToast("Por favor ingresa un destinatario y monto válido.");
+  if (toUser.toLowerCase() === currentUser.toLowerCase()) return showToast("No puedes transferirte a ti mismo.");
+
+  const btn = event?.submitter || document.querySelector("#form-quick-transfer button[type=submit]");
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch("/api/wallet/transfer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fromUser: currentUser, toUser, amount, note })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      closeModal("modal-quick-transfer");
+      loadBalance();
+      if (data.receipt) showTransferReceipt(data.receipt);
+      else showToast(data.message || `Transferencia de ${amount.toLocaleString()} NC enviada a ${toUser}.`);
+      document.getElementById("form-quick-transfer")?.reset();
+    } else {
+      showToast(data.error || "Error en la transferencia");
+    }
+  } catch (err) {
+    showToast("Error de conexión");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+window.submitQuickTransfer = submitQuickTransfer;
+

@@ -371,7 +371,13 @@ export function startOfficialCoinsCheckout(packId) {
   document.getElementById('binance-pay-inst').textContent = cfg.instruction || 'Enviar USDT y colocar Gamertag en la nota';
 
   const qrImg = document.getElementById('binance-pay-qr');
-  if (qrImg) qrImg.src = cfg.qrImage || '/uploads/default_qr.svg';
+  if (qrImg) {
+    const payId = cfg.payId || '1255344898';
+    qrImg.onerror = () => {
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(payId)}`;
+    };
+    qrImg.src = cfg.qrImage || '/uploads/default_qr.svg';
+  }
 
   const txInput = document.getElementById('binance-order-txid');
   if (txInput) txInput.value = '';

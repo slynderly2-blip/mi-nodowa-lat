@@ -247,6 +247,15 @@ export function viewOtherPlayerProfile(uname) {
   if (window.navigateTo) window.navigateTo('/' + encodeURIComponent(uname));
 }
 
+window.viewOtherPlayerProfile = viewOtherPlayerProfile;
+window.switchSocialSubTab   = switchSocialSubTab;
+window.setPlayersFilter     = setPlayersFilter;
+window.clearPlayersSearch   = clearPlayersSearch;
+window.sendFriendRequest    = sendFriendRequest;
+window.respondFriendRequest = respondFriendRequest;
+window.removeFriend         = removeFriend;
+window.loadFriendRequests   = loadFriendRequests;
+
 export function initSocial() {
   const searchInput = document.getElementById("players-search-input");
   if (searchInput) {
@@ -256,14 +265,5 @@ export function initSocial() {
       timer = setTimeout(() => { playersSearchTerm = e.target.value.trim(); loadPlayers(); }, 250);
     });
   }
-
-  window.viewOtherPlayerProfile = viewOtherPlayerProfile;
-  window.switchSocialSubTab   = switchSocialSubTab;
-  window.setPlayersFilter     = setPlayersFilter;
-  window.clearPlayersSearch   = clearPlayersSearch;
-  window.sendFriendRequest    = sendFriendRequest;
-  window.respondFriendRequest = respondFriendRequest;
-  window.removeFriend         = removeFriend;
-  window.loadFriendRequests   = loadFriendRequests;
 }
 

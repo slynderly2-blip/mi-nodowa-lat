@@ -79,6 +79,7 @@ document.querySelectorAll("[data-atab]").forEach(btn => {
     if (btn.dataset.atab === "code-catalog") loadRawCatalogEditor();
     if (btn.dataset.atab === "players") loadAdminPlayers();
     if (btn.dataset.atab === "catalog") loadAdminCatalog();
+    if (btn.dataset.atab === "config") loadAdminConfig();
   });
 });
 
@@ -798,9 +799,21 @@ async function loadAdminConfig() {
       document.getElementById("cfg-payid").value = data.binance.payId || "";
       document.getElementById("cfg-wallet").value = data.binance.walletAddress || "";
       document.getElementById("cfg-instruction").value = data.binance.instruction || "";
+      const qrEl = document.getElementById("admin-qr-preview");
+      if (qrEl) {
+        qrEl.src = data.binance.qrImage || "/uploads/default_qr.svg";
+      }
     }
   } catch (e) {}
 }
+
+document.getElementById("cfg-qr-file")?.addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    const qrEl = document.getElementById("admin-qr-preview");
+    if (qrEl) qrEl.src = URL.createObjectURL(file);
+  }
+});
 
 document.getElementById("admin-config-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -826,6 +839,10 @@ document.getElementById("admin-config-form").addEventListener("submit", async (e
     const data = await res.json();
     if (data.ok) {
       showToast("Configuración de Binance actualizada.");
+      if (data.binance?.qrImage) {
+        const qrEl = document.getElementById("admin-qr-preview");
+        if (qrEl) qrEl.src = data.binance.qrImage + "?t=" + Date.now();
+      }
     } else {
       showToast(data.error || "Error al actualizar");
     }

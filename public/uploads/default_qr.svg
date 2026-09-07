@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 370" width="100%" height="100%">
+  <defs>
+    <linearGradient id="binanceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD535"/>
+      <stop offset="100%" stop-color="#F0B90B"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <!-- Background card -->
+  <rect width="320" height="370" rx="20" fill="#FFFFFF" filter="url(#shadow)"/>
+  <rect x="1" y="1" width="318" height="368" rx="19" fill="none" stroke="#EAECEF" stroke-width="1.5"/>
+
+  <!-- Top Binance Pay Header -->
+  <rect x="0" y="0" width="320" height="60" rx="20" fill="#181A20"/>
+  <rect x="0" y="40" width="320" height="20" fill="#181A20"/>
+  
+  <!-- Binance Diamond Logo -->
+  <g transform="translate(32, 17) scale(0.9)">
+    <polygon points="14,0 28,14 23,19 14,10 5,19 0,14" fill="#F0B90B"/>
+    <polygon points="14,28 0,14 5,9 14,18 23,9 28,14" fill="#F0B90B"/>
+    <polygon points="14,7 21,14 14,21 7,14" fill="#F0B90B"/>
+  </g>
+  <text x="68" y="38" font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" font-size="17" font-weight="800" fill="#FFFFFF" letter-spacing="0.5">BINANCE <tspan fill="#F0B90B">PAY</tspan></text>
+
+  <!-- QR Pattern Area -->
+  <g transform="translate(45, 80)">
+    <!-- Finder Pattern: Top Left -->
+    <rect x="0" y="0" width="56" height="56" rx="8" fill="#181A20"/>
+    <rect x="8" y="8" width="40" height="40" rx="5" fill="#FFFFFF"/>
+    <rect x="16" y="16" width="24" height="24" rx="3" fill="#F0B90B"/>
+
+    <!-- Finder Pattern: Top Right -->
+    <rect x="174" y="0" width="56" height="56" rx="8" fill="#181A20"/>
+    <rect x="182" y="8" width="40" height="40" rx="5" fill="#FFFFFF"/>
+    <rect x="190" y="16" width="24" height="24" rx="3" fill="#F0B90B"/>
+
+    <!-- Finder Pattern: Bottom Left -->
+    <rect x="0" y="174" width="56" height="56" rx="8" fill="#181A20"/>
+    <rect x="8" y="182" width="40" height="40" rx="5" fill="#FFFFFF"/>
+    <rect x="16" y="190" width="24" height="24" rx="3" fill="#F0B90B"/>
+
+    <!-- Timing & decorative modules -->
+    <g fill="#181A20">
+      <!-- Row dots -->
+      <rect x="68" y="8" width="10" height="10" rx="2"/><rect x="86" y="8" width="10" height="10" rx="2"/><rect x="116" y="8" width="10" height="10" rx="2"/><rect x="146" y="8" width="10" height="10" rx="2"/>
+      <rect x="68" y="24" width="10" height="10" rx="2"/><rect x="104" y="24" width="10" height="10" rx="2"/><rect x="134" y="24" width="10" height="10" rx="2"/><rect x="152" y="24" width="10" height="10" rx="2"/>
+      <rect x="68" y="40" width="10" height="10" rx="2"/><rect x="86" y="40" width="10" height="10" rx="2"/><rect x="116" y="40" width="10" height="10" rx="2"/><rect x="146" y="40" width="10" height="10" rx="2"/>
+
+      <!-- Timing tracks -->
+      <rect x="24" y="68" width="10" height="10" rx="2"/><rect x="24" y="86" width="10" height="10" rx="2"/><rect x="24" y="104" width="10" height="10" rx="2"/><rect x="24" y="122" width="10" height="10" rx="2"/><rect x="24" y="140" width="10" height="10" rx="2"/><rect x="24" y="152" width="10" height="10" rx="2"/>
+      <rect x="68" y="68" width="10" height="10" rx="2"/><rect x="86" y="68" width="10" height="10" rx="2"/><rect x="104" y="68" width="10" height="10" rx="2"/><rect x="122" y="68" width="10" height="10" rx="2"/><rect x="140" y="68" width="10" height="10" rx="2"/><rect x="158" y="68" width="10" height="10" rx="2"/><rect x="194" y="68" width="10" height="10" rx="2"/>
+
+      <!-- Matrix data blocks -->
+      <rect x="42" y="86" width="10" height="10" rx="2"/><rect x="68" y="86" width="10" height="10" rx="2"/><rect x="152" y="86" width="10" height="10" rx="2"/><rect x="176" y="86" width="10" height="10" rx="2"/><rect x="210" y="86" width="10" height="10" rx="2"/>
+      <rect x="42" y="104" width="10" height="10" rx="2"/><rect x="176" y="104" width="10" height="10" rx="2"/><rect x="194" y="104" width="10" height="10" rx="2"/>
+      <rect x="42" y="122" width="10" height="10" rx="2"/><rect x="68" y="122" width="10" height="10" rx="2"/><rect x="152" y="122" width="10" height="10" rx="2"/><rect x="194" y="122" width="10" height="10" rx="2"/><rect x="210" y="122" width="10" height="10" rx="2"/>
+      <rect x="42" y="140" width="10" height="10" rx="2"/><rect x="86" y="140" width="10" height="10" rx="2"/><rect x="134" y="140" width="10" height="10" rx="2"/><rect x="176" y="140" width="10" height="10" rx="2"/>
+
+      <!-- Bottom right block -->
+      <rect x="104" y="158" width="10" height="10" rx="2"/><rect x="122" y="158" width="10" height="10" rx="2"/><rect x="152" y="158" width="10" height="10" rx="2"/><rect x="176" y="158" width="10" height="10" rx="2"/><rect x="210" y="158" width="10" height="10" rx="2"/>
+      <rect x="68" y="176" width="10" height="10" rx="2"/><rect x="104" y="176" width="10" height="10" rx="2"/><rect x="134" y="176" width="10" height="10" rx="2"/><rect x="152" y="176" width="10" height="10" rx="2"/><rect x="176" y="176" width="10" height="10" rx="2"/><rect x="194" y="176" width="10" height="10" rx="2"/>
+      <rect x="68" y="194" width="10" height="10" rx="2"/><rect x="86" y="194" width="10" height="10" rx="2"/><rect x="122" y="194" width="10" height="10" rx="2"/><rect x="152" y="194" width="10" height="10" rx="2"/><rect x="210" y="194" width="10" height="10" rx="2"/>
+      <rect x="68" y="212" width="10" height="10" rx="2"/><rect x="104" y="212" width="10" height="10" rx="2"/><rect x="134" y="212" width="10" height="10" rx="2"/><rect x="176" y="212" width="10" height="10" rx="2"/><rect x="194" y="212" width="10" height="10" rx="2"/>
+    </g>
+
+    <!-- Center Binance Pay Badge -->
+    <rect x="88" y="88" width="54" height="54" rx="12" fill="#FFFFFF" stroke="#EAECEF" stroke-width="2"/>
+    <rect x="94" y="94" width="42" height="42" rx="8" fill="#181A20"/>
+    <g transform="translate(103, 103) scale(0.85)">
+      <polygon points="14,0 28,14 23,19 14,10 5,19 0,14" fill="#F0B90B"/>
+      <polygon points="14,28 0,14 5,9 14,18 23,9 28,14" fill="#F0B90B"/>
+      <polygon points="14,7 21,14 14,21 7,14" fill="#F0B90B"/>
+    </g>
+  </g>
+
+  <!-- Bottom Info Box -->
+  <rect x="30" y="322" width="260" height="32" rx="8" fill="#F8FAFC" stroke="#E2E8F0"/>
+  <text x="160" y="343" font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#475569" text-anchor="middle">
+    Pay ID: <tspan fill="#F0B90B" font-weight="800">1255344898</tspan>
+  </text>
+</svg>
