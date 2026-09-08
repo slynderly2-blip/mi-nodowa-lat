@@ -121,12 +121,12 @@ function renderAdminMessage(msg, isGlobal) {
   return `
     <div style="display:flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid ${isRead ? "var(--border)" : "rgba(99,102,241,0.35)"}; margin-top:0.3rem;">
       <div style="width:3px; background:${isRead ? "var(--border)" : "#6366f1"}; flex-shrink:0;"></div>
-      <div style="padding:0.6rem 0.85rem; flex:1; background:${isRead ? "var(--card,#111)" : "rgba(99,102,241,0.05)"};">
+      <div style="padding:0.6rem 0.85rem; flex:1; background:${isRead ? "var(--surface-hover)" : "rgba(99,102,241,0.05)"}; color:var(--text);">
         ${!isRead ? `<span style="float:right; background:#6366f1; color:#fff; font-size:0.6rem; font-weight:800; padding:1px 5px; border-radius:999px; margin-left:0.5rem;">NUEVO</span>` : ""}
         ${accionBadge}
         <div style="font-size:0.8rem; font-weight:700; color:var(--text); margin-bottom:0.2rem;">&#128235; ${escapeHtml(msg.subject || "Respuesta del Administrador")}</div>
         <p style="font-size:0.8rem; color:var(--text-muted); margin:0 0 0.25rem; line-height:1.45;">${escapeHtml(msg.body || "")}</p>
-        <span style="font-size:0.68rem; color:var(--text-subtle,var(--text-muted));">Admin &middot; ${fecha}</span>
+        <span style="font-size:0.68rem; color:var(--text-muted);">Admin &middot; ${fecha}</span>
       </div>
     </div>`;
 }

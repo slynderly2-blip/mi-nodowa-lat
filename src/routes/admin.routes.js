@@ -430,6 +430,78 @@ router.get("/user-profile/:username", (req, res) => {
   }
 });
 
+// ─── LIMPIEZA DE USUARIOS CORRUPTOS ──────────────────────────────────────────
+
+// Listar usuarios potencialmente corruptos (sin modificar)
+router.get("/corrupt-users", (req, res) => {
+  const corrupt = [];
+  for (const [key, user] of Object.entries(db.users || {})) {
+    const isBadKey         = typeof key === "string" && key.trim().startsWith("{");
+    const isBadUsername    = typeof user.username !== "string" || user.username.trim().startsWith("{");
+    const isBadDisplayName = typeof user.displayName === "string" && user.displayName.trim().startsWith("{");
+    if (isBadKey || isBadUsername || isBadDisplayName) {
+      corrupt.push({ key, username: user.username, displayName: user.displayName, wallet: user.wallet||0, bank: user.bank||0 });
+    }
+  }
+  res.json({ ok: true, count: corrupt.length, corrupt });
+});
+
+// Limpiar usuarios corruptos — intenta recuperar el username real del JSON
+router.post("/cleanup-corrupt-users", (req, res) => {
+  try {
+    const corrupt = [];
+    const cleaned = [];
+
+    for (const [key, user] of Object.entries(db.users || {})) {
+      const isBadKey         = typeof key === "string" && key.trim().startsWith("{");
+      const isBadUsername    = typeof user.username !== "string" || user.username.trim().startsWith("{");
+      const isBadDisplayName = typeof user.displayName === "string" && user.displayName.trim().startsWith("{");
+
+      if (!isBadKey && !isBadUsername && !isBadDisplayName) continue;
+      corrupt.push({ key, username: user.username });
+
+      // Extraer username real del JSON crudo
+      let realUsername = null;
+      const jsonStr = isBadKey ? key : (isBadUsername ? user.username : user.displayName);
+      try {
+        const parsed = JSON.parse(jsonStr);
+        realUsername = (parsed.username || parsed.displayName || parsed.gamertag || "").trim().toLowerCase();
+      } catch (_) {
+        // Intentar extraer con regex si el JSON está mal formado
+        const m = jsonStr.match(/"username"\s*:\s*"([^"]+)"/i) || jsonStr.match(/"displayName"\s*:\s*"([^"]+)"/i);
+        if (m) realUsername = m[1].trim().toLowerCase();
+      }
+
+      if (realUsername && realUsername.length > 0 && !realUsername.startsWith("{")) {
+        const cleanKey = realUsername;
+
+        if (db.users[cleanKey] && !db.users[cleanKey].username?.startsWith("{")) {
+          // Fusionar: sumar saldos al usuario limpio existente
+          db.users[cleanKey].wallet = (db.users[cleanKey].wallet || 0) + (user.wallet || 0);
+          db.users[cleanKey].bank   = (db.users[cleanKey].bank   || 0) + (user.bank   || 0);
+          cleaned.push({ action: "merged_into_existing", from: key, to: cleanKey, addedWallet: user.wallet||0, addedBank: user.bank||0 });
+        } else {
+          // Mover al key limpio
+          user.username    = realUsername;
+          user.displayName = realUsername;
+          db.users[cleanKey] = user;
+          cleaned.push({ action: "moved_to_clean_key", from: key, to: cleanKey });
+        }
+        delete db.users[key];
+      } else {
+        // No recuperable — solo arreglar displayName
+        if (isBadDisplayName) user.displayName = user.username || key.slice(0, 30);
+        cleaned.push({ action: "display_fixed", key });
+      }
+    }
+
+    if (cleaned.length > 0) saveDb();
+    res.json({ ok: true, found: corrupt.length, cleaned });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Re-encolar entrega directamente sin reclamo previo (desde panel auditoría)
 router.post("/delivery-issues/redeliver-direct", (req, res) => {
   try {

@@ -931,6 +931,38 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
+// ─── Limpieza de usuarios corruptos ──────────────────────────────────────────
+window.cleanupCorruptUsers = async function() {
+  // Primero mostrar cuántos hay
+  try {
+    const checkRes = await fetch("/api/admin/corrupt-users", { headers: { "x-admin-token": adminToken } });
+    const checkData = await checkRes.json();
+
+    if (checkData.count === 0) {
+      showToast("✅ No se encontraron usuarios corruptos");
+      return;
+    }
+
+    const list = checkData.corrupt.map(u => `• ${u.key.slice(0, 60)} (billetera: ${u.wallet} NC, banco: ${u.bank} NC)`).join("\n");
+    if (!confirm(`Se encontraron ${checkData.count} usuario(s) con datos corruptos:\n\n${list}\n\n¿Intentar repararlos automáticamente?`)) return;
+
+    const res  = await fetch("/api/admin/cleanup-corrupt-users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-token": adminToken }
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(`✅ Limpieza completa: ${data.cleaned.length} registro(s) reparado(s)`);
+      loadAdminPlayers();
+      loadStats();
+    } else {
+      showToast(data.error || "Error en la limpieza");
+    }
+  } catch (e) {
+    showToast("Error de conexión");
+  }
+};
+
 // ─── Impersonacion: entrar a la app como el usuario ───────────────────────────
 window.adminImpersonate = async function(username) {
   if (!confirm(`Entrar a la app como "${username}"?\n\nSe generara un enlace temporal (30 min). Abrir en una nueva pestana manualmente si el navegador bloquea popups.`)) return;

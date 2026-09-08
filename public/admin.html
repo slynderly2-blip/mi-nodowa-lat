@@ -252,8 +252,9 @@
           <button type="button" class="filter-pill" data-filter="unlinked" onclick="filterAdminPlayers('unlinked')">⚠️ No Vinculados</button>
           <button type="button" class="filter-pill" data-filter="balance" onclick="filterAdminPlayers('balance')">🪙 Con Saldo</button>
         </div>
-        <div class="admin-tip-banner">
-          <span>💡 <strong>Tip Rápido:</strong> Toca cualquier fila de jugador o el botón <strong>💰 Ajustar Saldo</strong> para editar su balance al instante.</span>
+        <div class="admin-tip-banner" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+          <span>💡 <strong>Tip Rápido:</strong> Usa <strong>🔎 Ver Cuenta</strong> para auditar, <strong>👤 Entrar como</strong> para impersonar o <strong>💰 Ajustar Saldo</strong> para editar balance.</span>
+          <button class="btn btn-danger btn-sm" style="font-size:0.75rem;" onclick="cleanupCorruptUsers()" title="Detectar y reparar usuarios con datos JSON corruptos en su nombre">🧹 Limpiar usuarios corruptos</button>
         </div>
       </div>
 
