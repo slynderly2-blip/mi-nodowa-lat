@@ -224,18 +224,25 @@ router.post("/store/raw-json", (req, res) => {
 router.get("/players", (req, res) => {
   const list = Object.values(db.users || {})
     .filter(u => u && u.username && u.username !== "null")
-    .map(u => ({
-      username: u.username,
-      displayName: u.displayName || u.username,
-      avatarUrl: u.avatarUrl || `https://mc-heads.net/avatar/${u.displayName || u.username}/64`,
-      wallet: Math.floor(u.wallet || 0),
-      bank: Math.floor(u.bank || 0),
-      linked: !!(u.linked || u.linkedAt),
-      bio: u.bio || "",
-      selectedTitle: u.selectedTitle || (u.stats && u.stats.activeTitle) || "Novato",
-      equippedRank: u.equippedRank || (u.stats && (u.stats.equippedRank || u.stats.tier)) || "NOVICIO",
-      lastActive: u.lastActive || u.createdAt || null
-    }));
+    .map(u => {
+      // Limpiar displayName corrupto (puede tener JSON crudo si hubo un bug)
+      let displayName = u.displayName || u.username;
+      if (typeof displayName !== "string" || displayName.startsWith("{") || displayName.length > 60) {
+        displayName = u.username;
+      }
+      return {
+        username: u.username,
+        displayName,
+        avatarUrl: u.avatarUrl || `https://mc-heads.net/avatar/${encodeURIComponent(displayName)}/64`,
+        wallet: Math.floor(u.wallet || 0),
+        bank: Math.floor(u.bank || 0),
+        linked: !!(u.linked || u.linkedAt),
+        bio: u.bio || "",
+        selectedTitle: u.selectedTitle || (u.stats && u.stats.activeTitle) || "Novato",
+        equippedRank: u.equippedRank || (u.stats && (u.stats.equippedRank || u.stats.tier)) || "NOVICIO",
+        lastActive: u.lastActive || u.createdAt || null
+      };
+    });
 
   res.json({ ok: true, players: list });
 });

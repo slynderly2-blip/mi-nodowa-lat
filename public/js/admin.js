@@ -716,8 +716,14 @@ function renderAdminPlayers(list) {
   }
 
   tbody.innerHTML = list.map(p => {
-    const isSameName = !p.displayName || p.displayName.trim().toLowerCase() === (p.username || "").trim().toLowerCase();
-    const displayNameHtml = escapeHtml(p.displayName || p.username);
+    // Limpiar displayName corrupto (algunos tienen JSON crudo como displayName)
+    let cleanDisplay = p.displayName || p.username || "";
+    if (cleanDisplay.startsWith("{") || cleanDisplay.length > 40) {
+      cleanDisplay = p.username || "Jugador";
+    }
+
+    const isSameName = cleanDisplay.trim().toLowerCase() === (p.username || "").trim().toLowerCase();
+    const displayNameHtml = escapeHtml(cleanDisplay);
     const usernameHtml = escapeHtml(p.username);
     const titleHtml = escapeHtml(p.selectedTitle || 'Novato');
     const rankHtml = escapeHtml(p.equippedRank || 'NOVICIO');
@@ -927,7 +933,7 @@ function escapeHtml(str) {
 
 // ─── Impersonacion: entrar a la app como el usuario ───────────────────────────
 window.adminImpersonate = async function(username) {
-  if (!confirm(`Entrar a la app como "${username}"? La sesion dura 30 minutos y se abre en nueva pestana.`)) return;
+  if (!confirm(`Entrar a la app como "${username}"?\n\nSe generara un enlace temporal (30 min). Abrir en una nueva pestana manualmente si el navegador bloquea popups.`)) return;
   try {
     const res  = await fetch("/api/auth/admin-impersonate", {
       method: "POST",
@@ -935,15 +941,27 @@ window.adminImpersonate = async function(username) {
       body: JSON.stringify({ username, adminToken })
     });
     const data = await res.json();
-    if (data.ok && data.sessionToken) {
-      const url = `/?imp=${encodeURIComponent(data.sessionToken)}`;
-      window.open(url, "_blank");
-      showToast(`Sesion de ${username} abierta en nueva pestana (30 min)`);
+    if (!data.ok) { showToast(data.error || "Error al generar sesion"); return; }
+
+    const url = `${window.location.origin}/?imp=${encodeURIComponent(data.sessionToken)}`;
+
+    // Intentar abrir nueva pestana
+    const newWin = window.open(url, "_blank", "noopener");
+
+    if (!newWin || newWin.closed) {
+      // El navegador bloqueo el popup — mostrar enlace copiable
+      const copied = await navigator.clipboard.writeText(url).then(() => true).catch(() => false);
+      if (copied) {
+        showToast(`Popup bloqueado. Enlace copiado al portapapeles. Pegalo en una nueva pestana.`);
+      } else {
+        // Mostrar el enlace en un prompt para que lo copie manualmente
+        prompt(`Copia este enlace y abrelo en nueva pestana (valido 30 min):`, url);
+      }
     } else {
-      showToast(data.error || "Error al iniciar sesion");
+      showToast(`Sesion de ${username} abierta (30 min)`);
     }
   } catch (e) {
-    showToast("Error de conexion");
+    showToast("Error de conexion: " + e.message);
   }
 };
 
@@ -1152,7 +1170,7 @@ function _renderAuditSummary(data) {
   ];
 
   grid.innerHTML = statCards.map(c => `
-    <div style="background:var(--card,#111); border:1px solid var(--border); border-radius:var(--radius-md,8px); padding:0.75rem 1rem; display:flex; align-items:center; gap:0.6rem;">
+    <div style="background:var(--surface-hover); border:1px solid var(--border); border-radius:var(--radius-md,8px); padding:0.75rem 1rem; display:flex; align-items:center; gap:0.6rem;">
       <span style="font-size:1.4rem;">${c.icon}</span>
       <div>
         <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">${c.label}</div>
