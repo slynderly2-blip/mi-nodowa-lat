@@ -278,7 +278,7 @@ function renderAdminIssues() {
     ` : `
       <div style="display:flex; flex-direction:column; gap:0.3rem;">
         <span style="font-size:0.78rem; color:var(--text-muted);">Finalizado</span>
-        <button class="btn btn-secondary btn-sm" style="font-size:0.72rem;" onclick="openEditRecord('issue','${escapeHtml(i.id)}','${escapeHtml(i.status)}',${JSON.stringify(escapeHtml(i.adminNote||''))})">✏️ Editar</button>
+        <button class="btn btn-secondary btn-sm" style="font-size:0.72rem;" onclick="openEditRecord('issue','${escapeHtml(i.id)}','${escapeHtml(i.status)}','${escapeHtml(i.adminNote||"")}')">✏️ Editar</button>
         <button class="btn btn-primary btn-sm" style="font-size:0.72rem;" onclick="openSendMsgModal('${escapeHtml(i.player)}','${escapeHtml(i.deliveryId||i.id)}','issue','${escapeHtml(i.itemTitle||"")}')">✉️ Mensaje</button>
       </div>
     `;
@@ -1175,9 +1175,10 @@ function _renderAuditSummary(data) {
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.4rem 0.25rem; color:var(--text-muted);">Discord</td><td style="padding:0.4rem 0.25rem;">${escapeHtml((u.socialLinks && u.socialLinks.discord) || "—")}</td></tr>
       <tr><td style="padding:0.4rem 0.25rem; color:var(--text-muted);">Creado</td><td style="padding:0.4rem 0.25rem;">${u.createdAt ? new Date(u.createdAt).toLocaleString("es") : "Desconocido"}</td></tr>
     </table>
-    <div style="margin-top:0.75rem;">
-      <button class="btn btn-primary btn-sm" onclick="openSendMsgModal('${escapeHtml(u.username)}', '', '', '')">✉️ Enviar Mensaje al Jugador</button>
-      <button class="btn btn-secondary btn-sm" style="margin-left:0.4rem;" onclick="openAuditAdjustBalance()">💰 Ajustar Saldo</button>
+    <div style="margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.4rem;">
+      <button class="btn btn-primary btn-sm" onclick="adminImpersonate('${escapeHtml(u.username)}')">&#128100; Entrar como este jugador</button>
+      <button class="btn btn-secondary btn-sm" onclick="openSendMsgModal('${escapeHtml(u.username)}', '', '', '')">&#9993;&#65039; Enviar Mensaje</button>
+      <button class="btn btn-secondary btn-sm" onclick="openAuditAdjustBalance()">&#128176; Ajustar Saldo</button>
     </div>
   `;
 }
