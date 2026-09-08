@@ -264,22 +264,37 @@ function renderAdminIssues() {
   tbody.innerHTML = filtered.map(i => {
     let badge = `<span class="badge danger">⚠️ Pendiente</span>`;
     if (i.status === "REDELIVERED") badge = `<span class="badge success">🔄 Re-encolado</span>`;
-    if (i.status === "RESOLVED") badge = `<span class="badge success">✅ Resuelto</span>`;
+    if (i.status === "RESOLVED")    badge = `<span class="badge success">✅ Resuelto</span>`;
+    if (i.status === "DISMISSED")   badge = `<span class="badge" style="background:var(--tiktok-gray);">Desestimado</span>`;
+
+    const isPending = i.status === "PENDING";
+    const actionBtns = isPending ? `
+      <div style="display:flex; flex-direction:column; gap:0.3rem;">
+        <button class="btn btn-primary btn-sm" onclick="issueActionWithNotif('${escapeHtml(i.id)}','${escapeHtml(i.player)}','redeliver')">🔄 Re-encolar</button>
+        <button class="btn btn-success btn-sm" onclick="issueActionWithNotif('${escapeHtml(i.id)}','${escapeHtml(i.player)}','resolve')">✅ Resolver</button>
+        <button class="btn btn-danger btn-sm" onclick="openRefundFromIssue('${escapeHtml(i.player)}','${escapeHtml(i.deliveryId||i.id)}')">💸 Reembolsar</button>
+        <button class="btn btn-secondary btn-sm" onclick="openSendMsgModal('${escapeHtml(i.player)}','${escapeHtml(i.deliveryId||i.id)}','issue','${escapeHtml(i.itemTitle||"")}')">✉️ Mensaje</button>
+      </div>
+    ` : `
+      <div style="display:flex; flex-direction:column; gap:0.3rem;">
+        <span style="font-size:0.78rem; color:var(--text-muted);">Finalizado</span>
+        <button class="btn btn-secondary btn-sm" style="font-size:0.72rem;" onclick="openEditRecord('issue','${escapeHtml(i.id)}','${escapeHtml(i.status)}',${JSON.stringify(escapeHtml(i.adminNote||''))})">✏️ Editar</button>
+        <button class="btn btn-primary btn-sm" style="font-size:0.72rem;" onclick="openSendMsgModal('${escapeHtml(i.player)}','${escapeHtml(i.deliveryId||i.id)}','issue','${escapeHtml(i.itemTitle||"")}')">✉️ Mensaje</button>
+      </div>
+    `;
 
     return `
       <tr>
-        <td style="font-size:0.8rem; color:var(--text-muted);">${new Date(i.createdAt).toLocaleString()}</td>
-        <td><strong>🎮 ${escapeHtml(i.player)}</strong></td>
-        <td>${escapeHtml(i.itemTitle)}</td>
-        <td style="font-family:monospace; font-size:0.8rem; color:var(--primary);">${escapeHtml(i.command || "N/A")}</td>
-        <td>${escapeHtml(i.note || "Sin nota")}</td>
-        <td>${badge}</td>
+        <td style="font-size:0.8rem; color:var(--text-muted); white-space:nowrap;">${new Date(i.createdAt).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</td>
         <td>
-          ${i.status === "PENDING" ? `
-            <button class="btn btn-primary btn-sm" onclick="handleIssueAction('${i.id}', 'redeliver')">🔄 Re-encolar en MC</button>
-            <button class="btn btn-success btn-sm" onclick="handleIssueAction('${i.id}', 'resolve')">✓ Resolver</button>
-          ` : `<span style="font-size:0.8rem; color:var(--text-muted);">Finalizado</span>`}
+          <strong>🎮 ${escapeHtml(i.player)}</strong>
+          <button class="btn btn-secondary btn-sm" style="display:block; margin-top:0.25rem; font-size:0.7rem; padding:1px 5px;" onclick="openAdminAuditModal('${escapeHtml(i.player)}')">🔎 Ver cuenta</button>
         </td>
+        <td>${escapeHtml(i.itemTitle)}</td>
+        <td style="font-family:monospace; font-size:0.78rem; color:var(--primary); max-width:160px; word-break:break-all;">${escapeHtml(i.command || "N/A")}</td>
+        <td style="font-size:0.82rem; color:var(--text-muted);">${escapeHtml(i.note || "Sin nota")}</td>
+        <td>${badge}${i.adminNote ? `<br><span style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(i.adminNote.slice(0,50))}${i.adminNote.length>50?"…":""}</span>` : ""}</td>
+        <td>${actionBtns}</td>
       </tr>
     `;
   }).join("");
@@ -289,6 +304,47 @@ document.getElementById("admin-issues-search")?.addEventListener("input", (e) =>
   issuesSearchQuery = e.target.value.trim();
   renderAdminIssues();
 });
+
+// Accion en reclamo CON notificacion automatica al usuario
+window.issueActionWithNotif = async function(issueId, playerUsername, action) {
+  const labels = { redeliver: "Re-encolar", resolve: "Resolver" };
+  const msgs = {
+    redeliver: { subject: "Tu producto fue re-encolado", body: "Revisamos tu reclamo y hemos vuelto a encolar tu entrega en el servidor de Minecraft. Entra al servidor y usa /buzon para recibirlo. Si tienes mas problemas no dudes en reportarlo nuevamente." },
+    resolve:   { subject: "Tu reclamo fue resuelto", body: "Tu reclamo ha sido revisado y marcado como resuelto por el administrador. Si crees que hay un error o necesitas mas informacion, contactanos." }
+  };
+
+  if (!confirm(`Confirmar: ${labels[action]} reclamo de ${playerUsername}?`)) return;
+
+  try {
+    // 1. Ejecutar la accion
+    const res = await fetch("/api/admin/delivery-issues/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-token": adminToken },
+      body: JSON.stringify({ issueId, action, adminNote: `${labels[action]} por el Administrador.` })
+    });
+    const data = await res.json();
+    if (!data.ok) { showToast(data.error || "Error"); return; }
+
+    // 2. Enviar notificacion automatica al usuario
+    const m = msgs[action] || { subject: "Actualizacion de tu reclamo", body: `Tu reclamo fue marcado como: ${action}` };
+    await fetch("/api/admin/send-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-token": adminToken },
+      body: JSON.stringify({ to: playerUsername, subject: m.subject, body: m.body, refId: data.issue?.deliveryId || issueId, refType: "issue", action })
+    });
+
+    showToast(`✅ Reclamo ${labels[action].toLowerCase()} y notificacion enviada a ${playerUsername}`);
+    loadStats();
+    loadAdminIssues();
+  } catch (e) {
+    showToast("Error de conexion");
+  }
+};
+
+// Abrir modal de reembolso desde reclamo
+window.openRefundFromIssue = function(username, refId) {
+  openRefundModal(username, refId, "delivery");
+};
 
 window.handleIssueAction = async (issueId, action) => {
   try {
@@ -670,8 +726,8 @@ function renderAdminPlayers(list) {
     const avatar = p.avatarUrl || `https://mc-heads.net/avatar/${p.username}/64`;
 
     return `
-    <tr class="admin-player-row" onclick="openAdjustBalanceModal('${escapeHtml(p.username)}', '${displayNameHtml}', ${walletNum}, ${bankNum}, '${avatar}')" title="Haz clic en cualquier parte de la fila para ajustar el saldo de ${displayNameHtml}">
-      <td class="cell-player">
+    <tr class="admin-player-row">
+      <td class="cell-player" onclick="openAdminAuditModal('${escapeHtml(p.username)}')">
         <div class="admin-player-identity">
           <div class="admin-avatar-wrapper ${p.linked ? 'is-linked' : ''}">
             <img src="${avatar}" alt="${displayNameHtml}" class="admin-player-avatar" onerror="this.src='https://mc-heads.net/avatar/Steve/64'">
@@ -707,10 +763,17 @@ function renderAdminPlayers(list) {
         </div>
       </td>
       <td class="cell-actions" onclick="event.stopPropagation();">
-        <button type="button" class="btn-adjust-balance" onclick="openAdjustBalanceModal('${escapeHtml(p.username)}', '${displayNameHtml}', ${walletNum}, ${bankNum}, '${avatar}')" title="Ajustar saldo">
-          <span>💰</span>
-          <span>Ajustar Saldo</span>
-        </button>
+        <div style="display:flex; flex-direction:column; gap:0.3rem;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openAdminAuditModal('${escapeHtml(p.username)}')" title="Ver perfil completo y transacciones">
+            🔎 Ver Cuenta
+          </button>
+          <button type="button" class="btn-adjust-balance" onclick="openAdjustBalanceModal('${escapeHtml(p.username)}', '${displayNameHtml}', ${walletNum}, ${bankNum}, '${avatar}')" title="Ajustar saldo">
+            💰 Ajustar Saldo
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="adminImpersonate('${escapeHtml(p.username)}')" title="Entrar a la app como este jugador (30 min)">
+            👤 Entrar como
+          </button>
+        </div>
       </td>
     </tr>
     `;

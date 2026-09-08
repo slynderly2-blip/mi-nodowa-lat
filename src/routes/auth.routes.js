@@ -136,14 +136,22 @@ router.get("/check-link-status", (req, res) => {
   res.json({ ok: true, verified: false, expired: true });
 });
 
-// 4. Validar token de sesión persistente
+// 4. Validar token de sesion persistente
 router.post("/validate-session", (req, res) => {
   const { sessionToken } = req.body;
   if (!sessionToken || !db.sessions || !db.sessions[sessionToken]) {
-    return res.status(401).json({ ok: false, error: "Sesión no válida o expirada" });
+    return res.status(401).json({ ok: false, error: "Sesion no valida o expirada" });
   }
 
   const sess = db.sessions[sessionToken];
+
+  // Expirar sesiones de impersonacion
+  if (sess.isAdminImpersonation && sess.expiresAt && Date.now() > sess.expiresAt) {
+    delete db.sessions[sessionToken];
+    saveDb();
+    return res.status(401).json({ ok: false, error: "La sesion de impersonacion expiro" });
+  }
+
   if (sess.pending) {
     return res.json({ ok: false, pending: true, username: sess.username });
   }
@@ -154,10 +162,10 @@ router.post("/validate-session", (req, res) => {
   user.lastActive = new Date().toISOString();
   saveDb();
 
-  res.json({ ok: true, user, sessionToken });
+  res.json({ ok: true, user, sessionToken, isAdminImpersonation: !!sess.isAdminImpersonation });
 });
 
-// 5. Cerrar sesión
+// 5. Cerrar sesion
 router.post("/logout", (req, res) => {
   const { sessionToken } = req.body;
   if (sessionToken && db.sessions && db.sessions[sessionToken]) {
@@ -165,6 +173,35 @@ router.post("/logout", (req, res) => {
     saveDb();
   }
   res.json({ ok: true });
+});
+
+// 6. Impersonacion de cuenta por admin (genera sesion temporal de 30 min)
+router.post("/admin-impersonate", (req, res) => {
+  const adminToken = req.headers["x-admin-token"] || req.body.adminToken;
+  if (!adminToken || adminToken !== db.config.adminPassword) {
+    return res.status(401).json({ ok: false, error: "Token de admin invalido" });
+  }
+
+  const { username } = req.body;
+  if (!username) return res.status(400).json({ ok: false, error: "username requerido" });
+
+  const uname = username.trim().toLowerCase();
+  const user  = db.users[uname];
+  if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+  if (!db.sessions) db.sessions = {};
+
+  const sessionToken = "admin_imp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+  db.sessions[sessionToken] = {
+    username: user.username,
+    pending:  false,
+    isAdminImpersonation: true,
+    expiresAt: Date.now() + 30 * 60 * 1000, // 30 minutos
+    createdAt: new Date().toISOString()
+  };
+  saveDb();
+
+  res.json({ ok: true, sessionToken, username: user.username, displayName: user.displayName || user.username });
 });
 
 export default router;
