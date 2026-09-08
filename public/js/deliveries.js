@@ -26,22 +26,6 @@ export async function checkUnreadMessages() {
         badge.style.display = "none";
       }
     }
-    const mobileBtn = document.querySelector('[data-tab="deliveries"].mobile-nav-btn');
-    if (mobileBtn) {
-      let mb = mobileBtn.querySelector(".inbox-badge");
-      if (count > 0) {
-        if (!mb) {
-          mb = document.createElement("span");
-          mb.className = "inbox-badge";
-          mb.style.cssText = "position:absolute; top:2px; right:2px; background:#ef4444; color:#fff; border-radius:9999px; padding:0 4px; font-size:0.6rem; font-weight:800;";
-          mobileBtn.style.position = "relative";
-          mobileBtn.appendChild(mb);
-        }
-        mb.textContent = count > 9 ? "9+" : count;
-      } else if (mb) {
-        mb.style.display = "none";
-      }
-    }
   } catch (e) { /* silencioso */ }
 }
 
@@ -89,46 +73,42 @@ function _injectReceiptExtras(d, methodLabel) {
   else receiptInner.insertAdjacentHTML("beforeend", `<div style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.82rem;">${html}</div>`);
 }
 
-// --- Tarjeta de respuesta del admin (diseño limpio, compatible dark/light) --
-function renderAdminMessage(msg, isGlobal) {
-  const isRead  = !!msg.readAt;
-  const fecha   = new Date(msg.createdAt).toLocaleString("es", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+// --- Tarjeta de mensaje del admin ------------------------------------------
+function renderAdminMessage(msg, isGlobal, username) {
+  const isRead = !!msg.readAt;
+  const fecha  = new Date(msg.createdAt).toLocaleString("es", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
 
-  const accionIcons = { redeliver:"&#128260;", resolve:"&#9989;", refund:"&#128184;", approve:"&#9989;", reject:"&#10060;" };
   const accionTexts = { redeliver:"Producto re-encolado", resolve:"Reclamo resuelto", refund:"Reembolso aplicado", approve:"Orden aprobada", reject:"Orden rechazada" };
+  const accionBadge = msg.action && accionTexts[msg.action] ? `<span style="display:inline-block; font-size:0.72rem; font-weight:800; background:rgba(99,102,241,0.12); color:#6366f1; border:1px solid rgba(99,102,241,0.25); padding:2px 8px; border-radius:999px; margin-bottom:0.35rem;">${accionTexts[msg.action]}</span><br>` : "";
 
-  const accionBadge = msg.action && accionTexts[msg.action] ? `
-    <span style="display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; font-weight:800; background:rgba(99,102,241,0.12); color:#6366f1; border:1px solid rgba(99,102,241,0.25); padding:2px 8px; border-radius:999px; margin-bottom:0.4rem;">
-      <span>${accionIcons[msg.action]||""}</span> ${accionTexts[msg.action]}
-    </span><br>` : "";
+  const dismissBtn = `<button onclick="window.__dismissMsg('${escapeHtml(msg.id)}','${escapeHtml(username||"")}')" style="position:absolute; top:0.35rem; right:0.4rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:2px 6px; border-radius:4px;" title="Descartar">&times;</button>`;
+  const newBadge   = !isRead ? `<span style="display:inline-block; margin-bottom:0.25rem; background:#6366f1; color:#fff; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:999px;">NUEVO</span><br>` : "";
 
-  // Aviso global: barra lateral izquierda violeta, fondo sutil
   if (isGlobal) {
-    return `
-      <div style="display:flex; gap:0; margin-bottom:0.75rem; border-radius:10px; overflow:hidden; border:1px solid rgba(99,102,241,0.3);">
-        <div style="width:4px; background:#6366f1; flex-shrink:0;"></div>
-        <div style="padding:0.75rem 1rem; flex:1; background:rgba(99,102,241,0.06);">
-          ${!isRead ? `<span style="float:right; background:#6366f1; color:#fff; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:999px; margin-left:0.5rem;">NUEVO</span>` : ""}
-          <div style="font-size:0.82rem; font-weight:700; color:var(--text); margin-bottom:0.25rem;">&#128235; ${escapeHtml(msg.subject || "Mensaje del Administrador")}</div>
-          ${accionBadge}
-          <p style="font-size:0.82rem; color:var(--text-muted); margin:0 0 0.3rem; line-height:1.5;">${escapeHtml(msg.body || "")}</p>
-          <span style="font-size:0.7rem; color:var(--text-subtle,var(--text-muted));">Admin &middot; ${fecha}</span>
-        </div>
-      </div>`;
-  }
-
-  // Mensaje vinculado a entrega: estilo respuesta de soporte
-  return `
-    <div style="display:flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid ${isRead ? "var(--border)" : "rgba(99,102,241,0.35)"}; margin-top:0.3rem;">
-      <div style="width:3px; background:${isRead ? "var(--border)" : "#6366f1"}; flex-shrink:0;"></div>
-      <div style="padding:0.6rem 0.85rem; flex:1; background:${isRead ? "var(--surface-hover)" : "rgba(99,102,241,0.05)"}; color:var(--text);">
-        ${!isRead ? `<span style="float:right; background:#6366f1; color:#fff; font-size:0.6rem; font-weight:800; padding:1px 5px; border-radius:999px; margin-left:0.5rem;">NUEVO</span>` : ""}
+    return `<div style="display:flex; gap:0; margin-bottom:0.75rem; border-radius:10px; overflow:hidden; border:1px solid rgba(99,102,241,0.3); position:relative;">
+      ${dismissBtn}
+      <div style="width:4px; background:#6366f1; flex-shrink:0;"></div>
+      <div style="padding:0.75rem 2rem 0.75rem 1rem; flex:1; background:rgba(99,102,241,0.06);">
+        ${newBadge}
+        <div style="font-size:0.82rem; font-weight:700; color:var(--text); margin-bottom:0.2rem;">&#9993; ${escapeHtml(msg.subject || "Mensaje del Administrador")}</div>
         ${accionBadge}
-        <div style="font-size:0.8rem; font-weight:700; color:var(--text); margin-bottom:0.2rem;">&#128235; ${escapeHtml(msg.subject || "Respuesta del Administrador")}</div>
-        <p style="font-size:0.8rem; color:var(--text-muted); margin:0 0 0.25rem; line-height:1.45;">${escapeHtml(msg.body || "")}</p>
-        <span style="font-size:0.68rem; color:var(--text-muted);">Admin &middot; ${fecha}</span>
+        <p style="font-size:0.82rem; color:var(--text-muted); margin:0 0 0.3rem; line-height:1.5;">${escapeHtml(msg.body || "")}</p>
+        <span style="font-size:0.7rem; color:var(--text-muted);">Admin &middot; ${fecha}</span>
       </div>
     </div>`;
+  }
+
+  return `<div style="display:flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid ${isRead ? "var(--border)" : "rgba(99,102,241,0.35)"}; margin-top:0.3rem; position:relative;">
+    ${dismissBtn}
+    <div style="width:3px; background:${isRead ? "var(--border)" : "#6366f1"}; flex-shrink:0;"></div>
+    <div style="padding:0.6rem 2rem 0.6rem 0.85rem; flex:1; background:var(--surface-hover); color:var(--text);">
+      ${newBadge}
+      ${accionBadge}
+      <div style="font-size:0.8rem; font-weight:700; color:var(--text); margin-bottom:0.2rem;">&#9993; ${escapeHtml(msg.subject || "Respuesta del Administrador")}</div>
+      <p style="font-size:0.8rem; color:var(--text-muted); margin:0 0 0.25rem; line-height:1.45;">${escapeHtml(msg.body || "")}</p>
+      <span style="font-size:0.68rem; color:var(--text-muted);">Admin &middot; ${fecha}</span>
+    </div>
+  </div>`;
 }
 
 // --- Carga el buzon del usuario --------------------------------------------
@@ -162,14 +142,14 @@ export async function loadDeliveries() {
     const list     = delivData.deliveries || [];
     const messages = msgData.messages     || [];
 
-    // Marcar leidos al abrir
+    // Marcar leidos al abrir y limpiar badge
     if (messages.some(m => !m.readAt)) {
       fetch("/api/messages/read", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ username: currentUser }) }).catch(()=>{});
       document.querySelectorAll(".inbox-badge").forEach(b => b.style.display = "none");
     }
 
-    // Separar: mensajes globales (sin refId) vs mensajes vinculados a entrega
-    const msgByRef   = {};  // { deliveryId: [msg, ...] }
+    // Separar mensajes globales de los vinculados a entregas
+    const msgByRef   = {};
     const globalMsgs = [];
     for (const m of messages) {
       if (m.refId) {
@@ -187,23 +167,20 @@ export async function loadDeliveries() {
       return;
     }
 
-    // Seccion de avisos globales del admin (sin entrega asociada)
-    // Aparece como banner llamativo arriba de todo, separado de la tabla
+    // Comunicados globales arriba
     let globalHtml = "";
     if (globalMsgs.length > 0) {
       const hasUnread = globalMsgs.some(m => !m.readAt);
       globalHtml = `
         <div style="margin-bottom:1.25rem;">
           <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem;">
-            <span style="font-size:1rem;">&#128229;</span>
             <span style="font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted);">Comunicados del Administrador</span>
             ${hasUnread ? `<span style="background:#6366f1; color:#fff; font-size:0.65rem; font-weight:800; padding:1px 7px; border-radius:999px;">${globalMsgs.filter(m=>!m.readAt).length} nuevo${globalMsgs.filter(m=>!m.readAt).length>1?"s":""}</span>` : ""}
           </div>
-          ${globalMsgs.map(m => renderAdminMessage(m, true)).join("")}
+          ${globalMsgs.map(m => renderAdminMessage(m, true, currentUser)).join("")}
         </div>`;
     }
 
-    // Filas de la tabla con sub-respuestas debajo de cada entrega
     const rowsHtml = list.map(d => {
       const isDelivered = d.status === "DELIVERED";
       const hasIssue    = d.reportedIssue;
@@ -212,8 +189,8 @@ export async function loadDeliveries() {
         ? `<span class="badge badge-emerald">Entregado</span>`
         : `<span class="badge badge-amber">En Cola</span>`;
       if (hasIssue)               badgeHtml = `<span class="badge badge-red">Reportado</span>`;
-      if (d.status==="REJECTED")  badgeHtml = `<span class="badge" style="background:#fee2e2;color:var(--red);">Rechazado</span>`;
-      if (d.status==="REFUNDED")  badgeHtml = `<span class="badge" style="background:#ede9fe;color:#7c3aed;">Reembolsado</span>`;
+      if (d.status === "REJECTED") badgeHtml = `<span class="badge" style="background:#fee2e2;color:var(--red);">Rechazado</span>`;
+      if (d.status === "REFUNDED") badgeHtml = `<span class="badge" style="background:#ede9fe;color:#7c3aed;">Reembolsado</span>`;
 
       let priceDisplay = `<span style="color:var(--text-muted); font-size:0.78rem;">-</span>`;
       if (d.priceUsdt && Number(d.priceUsdt) > 0)
@@ -227,19 +204,18 @@ export async function loadDeliveries() {
       const linkedMsgs = msgByRef[d.id] || [];
       const hasNewMsg  = linkedMsgs.some(m => !m.readAt);
 
-      // Sub-bloque de respuestas del admin para ESTA entrega
       const repliesHtml = linkedMsgs.length > 0 ? `
         <tr>
-          <td colspan="5" style="padding:0 0.75rem 0.75rem; background:transparent; border-bottom:1px solid var(--border);">
+          <td colspan="5" style="padding:0 0.75rem 0.75rem; border-bottom:1px solid var(--border);">
             <div style="padding-left:0.75rem; border-left:2px dashed var(--border);">
-              <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:0.35rem; padding-top:0.25rem;">Respuesta del administrador</div>
-              ${linkedMsgs.map(m => renderAdminMessage(m, false)).join("")}
+              <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); padding-top:0.25rem; margin-bottom:0.35rem;">Respuesta del administrador</div>
+              ${linkedMsgs.map(m => renderAdminMessage(m, false, currentUser)).join("")}
             </div>
           </td>
         </tr>` : "";
 
       return `
-        <tr style="border-bottom:${linkedMsgs.length ? "none" : "1px solid var(--border)"}; ${hasNewMsg ? "background:rgba(99,102,241,0.04);" : ""}">
+        <tr style="border-bottom:${linkedMsgs.length ? "none" : "1px solid var(--border)"}; ${hasNewMsg ? "background:rgba(99,102,241,0.03);" : ""}">
           <td style="padding:0.65rem 0.5rem;">
             <strong>${escapeHtml(d.itemTitle || "Articulo")}</strong>
             ${d.itemCategory ? `<br><span style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(d.itemCategory)}</span>` : ""}
@@ -306,6 +282,15 @@ export function initDeliveries() {
       const parsed = JSON.parse(dataStr.replace(/&quot;/g, '"'));
       if (typeof window.showPurchaseReceipt === "function") window.showPurchaseReceipt(parsed);
     } catch (e) {}
+  };
+
+  // Descartar mensaje del admin
+  window.__dismissMsg = async (msgId, username) => {
+    if (!username || !msgId) return;
+    try {
+      await fetch(`/api/messages/${encodeURIComponent(msgId)}?username=${encodeURIComponent(username)}`, { method: "DELETE" });
+      loadDeliveries();
+    } catch (e) { console.warn("Error dismissing message", e); }
   };
 
   const form = document.getElementById("report-form");

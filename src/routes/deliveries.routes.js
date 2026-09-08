@@ -75,11 +75,24 @@ function buildUserInbox(uname, limit = 100) {
     });
 
   // 3. Compras directas con NC desde la tienda (db.transactions STORE_PURCHASE)
+  // SOLO incluir si NO ya existe una entrega en db.deliveries para esa compra
+  // (evita duplicados: store.js crea delivery + transaction para la misma compra)
+  const deliveryItemTitles = new Set(
+    list.map(d => `${(d.itemTitle||"").toLowerCase()}|${d.createdAt?.substring(0,16)}`)
+  );
+
   const userPurchases = (db.transactions || [])
-    .filter(t => t.type === "STORE_PURCHASE" && (!uname || (t.from || "").toLowerCase() === uname))
+    .filter(t => {
+      if (t.type !== "STORE_PURCHASE") return false;
+      if (uname && (t.from || "").toLowerCase() !== uname) return false;
+      // Suprimir si ya hay una entrega del servidor con mismo nombre e instante (~mismo minuto)
+      const itemName = t.note ? t.note.replace(/^Compra de /i, "") : "";
+      const key = `${itemName.toLowerCase()}|${(t.createdAt||"").substring(0,16)}`;
+      if (deliveryItemTitles.has(key)) return false;
+      return true;
+    })
     .map(t => {
       const itemName = t.note ? t.note.replace(/^Compra de /i, "") : "Artículo de Tienda";
-      // Intentar encontrar el ítem por nombre para obtener el comando
       const catalogItem = (db.storeItems || []).find(
         i => i.name && i.name.toLowerCase() === itemName.toLowerCase()
       );

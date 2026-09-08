@@ -51,4 +51,20 @@ router.post("/read", (req, res) => {
   res.json({ ok: true, marked: count });
 });
 
+// ── Eliminar (descartar) un mensaje ──────────────────────────────────────────
+router.delete("/:messageId", (req, res) => {
+  const { messageId } = req.params;
+  const { username }  = req.query;
+  if (!username) return res.status(400).json({ ok: false, error: "Usuario requerido" });
+
+  const uname  = username.trim().toLowerCase();
+  const before = (db.messages || []).length;
+  db.messages  = (db.messages || []).filter(
+    m => !(m.id === messageId && (m.to || "").toLowerCase() === uname)
+  );
+  const removed = before - db.messages.length;
+  if (removed > 0) saveDb();
+  res.json({ ok: true, removed });
+});
+
 export default router;
