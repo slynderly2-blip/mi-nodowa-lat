@@ -111,7 +111,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     initChat();
     console.log('✓ [Auth/Profile/Social/Chat] Listeners registrados');
 
-    // 2. Comprobar sesión activa
+    // 2. Comprobar sesión activa — detectar impersonación de admin via ?imp=TOKEN
+    const impToken = new URLSearchParams(window.location.search).get("imp");
+    if (impToken) {
+      // Inyectar el token en localStorage como si fuera una sesión normal
+      localStorage.setItem("nodowa_session", impToken);
+      // Limpiar la URL sin recargar la página
+      window.history.replaceState({}, "", window.location.pathname);
+    }
     await validateCurrentSession();
     updateAuthUI();
     console.log('✓ [Session] Sesión validada');

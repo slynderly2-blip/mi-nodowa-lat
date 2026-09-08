@@ -925,6 +925,28 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
+// ─── Impersonacion: entrar a la app como el usuario ───────────────────────────
+window.adminImpersonate = async function(username) {
+  if (!confirm(`Entrar a la app como "${username}"? La sesion dura 30 minutos y se abre en nueva pestana.`)) return;
+  try {
+    const res  = await fetch("/api/auth/admin-impersonate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-token": adminToken },
+      body: JSON.stringify({ username, adminToken })
+    });
+    const data = await res.json();
+    if (data.ok && data.sessionToken) {
+      const url = `/?imp=${encodeURIComponent(data.sessionToken)}`;
+      window.open(url, "_blank");
+      showToast(`Sesion de ${username} abierta en nueva pestana (30 min)`);
+    } else {
+      showToast(data.error || "Error al iniciar sesion");
+    }
+  } catch (e) {
+    showToast("Error de conexion");
+  }
+};
+
 // Inicialización
 checkAdminState();
 

@@ -219,3 +219,70 @@
   box-shadow: var(--shadow-sm);
 }
 
+
+/* ==========================================================================
+   MODALES ADMIN — fondo y texto siempre legibles en cualquier tema
+   ========================================================================== */
+#modal-send-message .modal-box,
+#modal-edit-record .modal-box,
+#modal-refund .modal-box,
+#modal-audit-account .modal-box {
+  background: var(--surface, #fff) !important;
+  color: var(--text, #111) !important;
+  border: 1px solid var(--border) !important;
+}
+
+#modal-send-message .modal-title,
+#modal-edit-record .modal-title,
+#modal-refund .modal-title,
+#modal-audit-account .modal-title {
+  color: var(--text, #111) !important;
+}
+
+#modal-send-message .form-label,
+#modal-edit-record .form-label,
+#modal-refund .form-label {
+  color: var(--text-muted, #555) !important;
+}
+
+#modal-send-message .input,
+#modal-edit-record .input,
+#modal-refund .input {
+  background: var(--surface-hover, #f8f8f8) !important;
+  color: var(--text, #111) !important;
+  border: 1px solid var(--border) !important;
+}
+
+#modal-send-message .input:focus,
+#modal-edit-record .input:focus,
+#modal-refund .input:focus {
+  border-color: var(--primary) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.12) !important;
+}
+
+/* Info pill "Para: jugador" en modal de mensaje */
+#modal-send-message [style*="background:var(--tiktok-gray"],
+#modal-refund [style*="background:var(--tiktok-gray"] {
+  background: var(--surface-hover, #f3f3f3) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-muted, #555) !important;
+  border-radius: 6px !important;
+  padding: 0.5rem 0.75rem !important;
+}
+
+/* Botones de respuestas rápidas */
+#modal-send-message .btn.btn-secondary {
+  background: var(--surface-hover, #f0f0f0) !important;
+  color: var(--text, #111) !important;
+  border: 1px solid var(--border) !important;
+}
+#modal-send-message .btn.btn-secondary:hover {
+  background: var(--primary-light, #ede9fe) !important;
+  color: var(--primary, #6366f1) !important;
+}
+
+/* Panel de auditoría — sub-tabs y paneles */
+.audit-panel { color: var(--text, #111); }
+[data-audittab] { background: var(--surface, #fff) !important; color: var(--text-muted, #555) !important; }
+[data-audittab].active { background: var(--primary, #6366f1) !important; color: #fff !important; }
