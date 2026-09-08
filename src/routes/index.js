@@ -10,6 +10,7 @@ import playersRoutes from "./players.routes.js";
 import adminRoutes from "./admin.routes.js";
 import socialRoutes from "./social.routes.js";
 import ncRoutes from "./nc.routes.js";
+import messagesRoutes from "./messages.routes.js";
 
 const router = Router();
 
@@ -24,7 +25,8 @@ router.use("/deliveries", deliveriesRoutes);
 router.use("/players", playersRoutes);
 router.use("/admin", adminRoutes);
 router.use("/social", socialRoutes);
-router.use("/nc", ncRoutes); // /api/nc/* todas las rutas de ventas NC
+router.use("/nc", ncRoutes);
+router.use("/messages", messagesRoutes);
 
 import { db } from "../database/index.js";
 

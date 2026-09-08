@@ -16,7 +16,7 @@ import { loadMarket, buyP2PListing, deleteP2PListing, listMyItemP2P } from './ma
 import { loadTransactions, openQuickTransfer, openBankActionModal, setBankPercentage, claimBankInterest, submitQuickTransfer, initWallet } from './wallet.js';
 import { openChatWith, closeChatMobile, deleteMessage, initChat } from './chat.js';
 import { sendFriendRequest, viewOtherPlayerProfile, switchSocialSubTab, setPlayersFilter, clearPlayersSearch, respondFriendRequest, removeFriend, initSocial } from './social.js';
-import { openReportModal, initDeliveries } from './deliveries.js';
+import { openReportModal, initDeliveries, checkUnreadMessages } from './deliveries.js';
 import { loadLeaderboard } from './leaderboard.js';
 
 // ==========================================
@@ -115,6 +115,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     await validateCurrentSession();
     updateAuthUI();
     console.log('✓ [Session] Sesión validada');
+
+    // Verificar mensajes no leídos al arrancar (y cada 2 min mientras esté abierto)
+    checkUnreadMessages();
+    setInterval(checkUnreadMessages, 120_000);
 
     // 3. Inicializar enrutador SPA (/slynderly, /coins, /market, etc.)
     initRouter();

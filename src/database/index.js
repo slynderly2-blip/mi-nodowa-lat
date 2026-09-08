@@ -41,6 +41,7 @@ export function loadDb() {
     if (!Array.isArray(db.deliveryIssues)) db.deliveryIssues = [];
     if (!Array.isArray(db.transactions)) db.transactions = [];
     if (!Array.isArray(db.ratings)) db.ratings = [];
+    if (!Array.isArray(db.messages)) db.messages = [];
     if (!Array.isArray(db.ncListings)) db.ncListings = [];
     if (!Array.isArray(db.ncTransactions)) db.ncTransactions = [];
     if (typeof db.users !== "object" || db.users === null) db.users = {};

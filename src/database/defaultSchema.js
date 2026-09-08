@@ -20,6 +20,7 @@ export function getDefaultSchema(adminPassword = "ortizuwu20") {
     deliveryIssues: [],
     transactions: [],
     linkTokens: {},
-    ratings: []
+    ratings: [],
+    messages: []
   };
 }

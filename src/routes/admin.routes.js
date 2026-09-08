@@ -305,7 +305,7 @@ router.get("/user-inbox/:username", (req, res) => {
 
     const inbox = buildUserInbox(uname, 200);
 
-    // Enriquecer reclamos: buscar si cada entrega tiene un reclamo asociado
+    // Enriquecer con reclamos asociados
     const issuesByDeliveryId = {};
     for (const issue of (db.deliveryIssues || [])) {
       if (!issuesByDeliveryId[issue.deliveryId]) {
@@ -313,9 +313,19 @@ router.get("/user-inbox/:username", (req, res) => {
       }
     }
 
+    // Enriquecer con mensajes admin asociados a la entrega/orden
+    const messagesByRef = {};
+    for (const msg of (db.messages || [])) {
+      if (msg.refId) {
+        if (!messagesByRef[msg.refId]) messagesByRef[msg.refId] = [];
+        messagesByRef[msg.refId].push(msg);
+      }
+    }
+
     const enriched = inbox.map(entry => ({
       ...entry,
-      relatedIssue: issuesByDeliveryId[entry.id] || null
+      relatedIssue:    issuesByDeliveryId[entry.id] || null,
+      adminMessages:   messagesByRef[entry.id]      || []
     }));
 
     res.json({
@@ -331,7 +341,7 @@ router.get("/user-inbox/:username", (req, res) => {
   }
 });
 
-// Perfil completo de un usuario para auditoría (datos de cuenta, saldo, transacciones, reclamos)
+// Perfil completo de un usuario para auditoría
 router.get("/user-profile/:username", (req, res) => {
   try {
     const uname = (req.params.username || "").trim().toLowerCase();
@@ -340,19 +350,13 @@ router.get("/user-profile/:username", (req, res) => {
     const user = db.users[uname];
     if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
 
-    // Últimas 100 transacciones del usuario
     const userTx = (db.transactions || [])
-      .filter(tx =>
-        (tx.from || "").toLowerCase() === uname ||
-        (tx.to   || "").toLowerCase() === uname
-      )
+      .filter(tx => (tx.from || "").toLowerCase() === uname || (tx.to || "").toLowerCase() === uname)
       .slice(0, 100);
 
-    // Reclamos del usuario (como jugador)
     const userIssues = (db.deliveryIssues || [])
       .filter(i => (i.player || "").toLowerCase() === uname);
 
-    // Órdenes Binance pendientes y aprobadas
     const userOrders = (db.orders || [])
       .filter(o => (o.username || "").toLowerCase() === uname)
       .map(o => ({
@@ -369,16 +373,14 @@ router.get("/user-profile/:username", (req, res) => {
         createdAt: o.createdAt
       }));
 
-    // Estadísticas rápidas
-    const totalSpentUsdt = userOrders
-      .filter(o => o.status === "APPROVED")
-      .reduce((s, o) => s + (o.priceUsdt || 0), 0);
-    const totalSpentCoins = userTx
-      .filter(tx => tx.type === "STORE_PURCHASE" && (tx.from || "").toLowerCase() === uname)
-      .reduce((s, tx) => s + (tx.amount || 0), 0);
-    const totalReceivedCoins = userTx
-      .filter(tx => ["BINANCE_CREDIT","ADMIN_ADJUST","ADDON_REWARD","INTEREST"].includes(tx.type) && (tx.to || "").toLowerCase() === uname)
-      .reduce((s, tx) => s + (tx.amount || 0), 0);
+    const userMessages = (db.messages || [])
+      .filter(m => (m.to || "").toLowerCase() === uname)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 50);
+
+    const totalSpentUsdt    = userOrders.filter(o => o.status === "APPROVED").reduce((s, o) => s + (o.priceUsdt || 0), 0);
+    const totalSpentCoins   = userTx.filter(tx => tx.type === "STORE_PURCHASE" && (tx.from || "").toLowerCase() === uname).reduce((s, tx) => s + (tx.amount || 0), 0);
+    const totalReceivedCoins= userTx.filter(tx => ["BINANCE_CREDIT","ADMIN_ADJUST","ADDON_REWARD","INTEREST"].includes(tx.type) && (tx.to || "").toLowerCase() === uname).reduce((s, tx) => s + (tx.amount || 0), 0);
 
     res.json({
       ok: true,
@@ -407,14 +409,171 @@ router.get("/user-profile/:username", (req, res) => {
         pendingOrders: userOrders.filter(o => o.status === "PENDING").length,
         totalIssues: userIssues.length,
         pendingIssues: userIssues.filter(i => i.status === "PENDING").length,
-        totalTransactions: userTx.length
+        totalTransactions: userTx.length,
+        unreadMessages: userMessages.filter(m => !m.readAt).length
       },
       transactions: userTx,
       orders: userOrders,
-      issues: userIssues
+      issues: userIssues,
+      messages: userMessages
     });
   } catch (err) {
     console.error("[Admin] Error en user-profile:", err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Re-encolar entrega directamente sin reclamo previo (desde panel auditoría)
+router.post("/delivery-issues/redeliver-direct", (req, res) => {
+  try {
+    const { deliveryId } = req.body;
+    if (!deliveryId) return res.status(400).json({ ok: false, error: "deliveryId requerido" });
+
+    const delivery = (db.deliveries || []).find(d => d.id === deliveryId);
+    if (!delivery) return res.status(404).json({ ok: false, error: "Entrega no encontrada" });
+    if (!delivery.command) return res.status(400).json({ ok: false, error: "Esta entrega no tiene comando para re-encolar" });
+
+    delivery.status       = "PENDING";
+    delivery.deliveredAt  = null;
+    delivery.redeliveredAt = new Date().toISOString();
+    saveDb();
+
+    broadcastWs("NEW_DELIVERY", delivery);
+    res.json({ ok: true, message: "Entrega re-encolada correctamente", delivery });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.post("/send-message", (req, res) => {
+  try {
+    const { to, subject, body, refId, refType, action } = req.body;
+    // refId: id de la entrega/orden/reclamo relacionado (opcional)
+    // refType: "delivery" | "order" | "issue" (opcional)
+    // action: acción que el admin ejecutó junto al mensaje (opcional, solo informativo)
+    if (!to || !body) return res.status(400).json({ ok: false, error: "Destinatario y cuerpo son requeridos" });
+
+    const uname = to.trim().toLowerCase();
+    if (!db.users[uname]) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+    if (!Array.isArray(db.messages)) db.messages = [];
+
+    const msg = {
+      id:        "msg_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      to:        uname,
+      from:      "Admin",
+      subject:   (subject || "Mensaje del Administrador").trim(),
+      body:      body.trim(),
+      refId:     refId  || null,
+      refType:   refType || null,
+      action:    action  || null,
+      readAt:    null,
+      createdAt: new Date().toISOString()
+    };
+
+    db.messages.unshift(msg);
+    saveDb();
+
+    broadcastWs("ADMIN_MESSAGE", { username: uname, message: msg });
+    res.json({ ok: true, message: msg });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ─── EDICIÓN DE ÓRDENES Y RECLAMOS YA PROCESADOS ─────────────────────────────
+
+// Editar nota/estado de una orden Binance ya procesada
+router.post("/orders/edit", (req, res) => {
+  try {
+    const { orderId, adminNote, status } = req.body;
+    if (!orderId) return res.status(400).json({ ok: false, error: "orderId requerido" });
+
+    const order = (db.orders || []).find(o => o.id === orderId);
+    if (!order) return res.status(404).json({ ok: false, error: "Orden no encontrada" });
+
+    if (adminNote !== undefined) order.adminNote = adminNote.trim();
+    if (status && ["PENDING","APPROVED","REJECTED"].includes(status)) {
+      order.status = status;
+      order.reviewedAt = new Date().toISOString();
+    }
+    order.editedAt = new Date().toISOString();
+
+    saveDb();
+    res.json({ ok: true, order });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Editar nota/estado de un reclamo ya resuelto
+router.post("/delivery-issues/edit", (req, res) => {
+  try {
+    const { issueId, adminNote, status } = req.body;
+    if (!issueId) return res.status(400).json({ ok: false, error: "issueId requerido" });
+
+    const issue = (db.deliveryIssues || []).find(i => i.id === issueId);
+    if (!issue) return res.status(404).json({ ok: false, error: "Reclamo no encontrado" });
+
+    if (adminNote !== undefined) issue.adminNote = adminNote.trim();
+    if (status && ["PENDING","REDELIVERED","RESOLVED","DISMISSED"].includes(status)) {
+      issue.status    = status;
+      issue.resolvedAt = new Date().toISOString();
+    }
+    issue.editedAt = new Date().toISOString();
+
+    // Si se cambia de vuelta a PENDING, re-habilitar entrega
+    if (status === "PENDING") {
+      const delivery = (db.deliveries || []).find(d => d.id === issue.deliveryId);
+      if (delivery) {
+        delivery.reportedIssue = true;
+      }
+    }
+
+    saveDb();
+    broadcastWs("DELIVERY_ISSUE_UPDATED", issue);
+    res.json({ ok: true, issue });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Reembolso desde auditoría: devuelve las NC al jugador y marca la entrega
+router.post("/refund", (req, res) => {
+  try {
+    const { username, refId, refType, amount, reason } = req.body;
+    if (!username || !refId) return res.status(400).json({ ok: false, error: "username y refId requeridos" });
+
+    const uname = username.trim().toLowerCase();
+    const user  = db.users[uname];
+    if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+    const numAmount = Math.floor(Number(amount || 0));
+    if (numAmount > 0) {
+      user.wallet = (user.wallet || 0) + numAmount;
+      logTransaction("ADMIN", user.username, numAmount, "ADMIN_ADJUST", `Reembolso: ${reason || "Reembolso administrativo"}`);
+    }
+
+    // Marcar la entrega u orden como reembolsada
+    if (refType === "order") {
+      const order = (db.orders || []).find(o => o.id === refId);
+      if (order) {
+        order.status      = "REFUNDED";
+        order.adminNote   = reason || "Reembolso administrativo";
+        order.reviewedAt  = new Date().toISOString();
+      }
+    } else {
+      const delivery = (db.deliveries || []).find(d => d.id === refId);
+      if (delivery) {
+        delivery.status    = "REFUNDED";
+        delivery.adminNote = reason || "Reembolso administrativo";
+      }
+    }
+
+    saveDb();
+    broadcastWs("BALANCE_UPDATE", { username: user.username, wallet: user.wallet });
+    res.json({ ok: true, newWallet: user.wallet });
+  } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
 });

@@ -869,7 +869,7 @@ checkAdminState();
 // 8. BUZÓN DE JUGADORES (Admin)
 // ═══════════════════════════════════════════════════════════════════════════
 
-let currentInboxUsername = null; // gamertag actualmente cargado en el tab buzón
+let currentInboxUsername = null;
 
 function resetAdminInboxTab() {
   currentInboxUsername = null;
@@ -918,7 +918,6 @@ window.loadAdminUserInbox = async function () {
     }
 
     tbody.innerHTML = inbox.map(d => {
-      // Precio
       let priceCell = "—";
       if (d.priceUsdt && Number(d.priceUsdt) > 0) {
         priceCell = `<span style="color:#f59e0b; font-weight:700;">$${Number(d.priceUsdt).toFixed(2)} USDT</span>`;
@@ -928,51 +927,54 @@ window.loadAdminUserInbox = async function () {
         priceCell = `<span style="color:var(--emerald); font-weight:700;">+${Number(d.giveCoins).toLocaleString()} NC</span>`;
       }
 
-      // Origen
-      const sourceMap = {
-        SERVER_DELIVERY: "🖥️ Entrega",
-        BINANCE_ORDER:   "💵 Binance",
-        STORE_PURCHASE:  "🛍️ Tienda NC"
-      };
+      const sourceMap = { SERVER_DELIVERY: "🖥️ Entrega", BINANCE_ORDER: "💵 Binance", STORE_PURCHASE: "🛍️ Tienda NC" };
       const sourceLabel = sourceMap[d.source] || d.source || "—";
 
-      // Comando
       const cmdCell = d.command
         ? `<code style="font-size:0.73rem; background:var(--tiktok-gray,#1a1a2e); padding:2px 5px; border-radius:4px; color:var(--primary); word-break:break-all; max-width:160px; display:block;">${escapeHtml(d.command)}</code>`
         : `<span style="color:var(--text-muted); font-size:0.78rem;">Sin cmd</span>`;
 
-      // Estado cmd
       const cmdStatusCell = d.command
         ? `<span style="font-size:0.75rem; font-weight:700; color:${d.commandStatus === 'Ejecutado en servidor' ? 'var(--emerald)' : '#f59e0b'};">${escapeHtml(d.commandStatus || "—")}</span>`
         : "—";
 
-      // Estado entrega
       let statusBadge = `<span class="badge warning">En Cola</span>`;
       if (d.status === "DELIVERED") statusBadge = `<span class="badge success">Entregado</span>`;
       if (d.status === "REJECTED")  statusBadge = `<span class="badge danger">Rechazado</span>`;
-      if (d.reportedIssue)          statusBadge += ` <span class="badge danger" style="font-size:0.68rem;">⚠️ Reportado</span>`;
+      if (d.status === "REFUNDED")  statusBadge = `<span class="badge" style="background:#7c3aed22;color:#7c3aed;">Reembolsado</span>`;
+      if (d.reportedIssue) statusBadge += ` <span class="badge danger" style="font-size:0.68rem;">⚠️</span>`;
 
-      // Reclamo asociado
       let issueCell = `<span style="color:var(--text-muted); font-size:0.78rem;">—</span>`;
       if (d.relatedIssue) {
         const iss = d.relatedIssue;
         const issColor = iss.status === "PENDING" ? "var(--red)" : "var(--emerald)";
-        issueCell = `
-          <div style="font-size:0.75rem;">
-            <span style="font-weight:700; color:${issColor};">${escapeHtml(iss.status)}</span><br>
-            <span style="color:var(--text-muted);">${escapeHtml(iss.note ? iss.note.slice(0, 40) + (iss.note.length > 40 ? "…" : "") : "")}</span>
-          </div>`;
+        issueCell = `<span style="font-weight:700; color:${issColor}; font-size:0.75rem;">${escapeHtml(iss.status)}</span>`;
+        if (iss.adminNote) issueCell += `<br><span style="color:var(--text-muted); font-size:0.72rem;">${escapeHtml(iss.adminNote.slice(0,40))}${iss.adminNote.length > 40 ? "…" : ""}</span>`;
       }
 
-      // Fecha
       const fecha = new Date(d.createdAt).toLocaleString("es", { day:"2-digit", month:"short", year:"2-digit", hour:"2-digit", minute:"2-digit" });
+
+      // Botones de acción según origen/estado
+      const issueId  = d.relatedIssue?.id || "";
+      const refType  = d.source === "BINANCE_ORDER" ? "order" : "delivery";
+      const canRedeliver = (d.source === "SERVER_DELIVERY") && d.command && d.status !== "REFUNDED";
+      const canRefund    = d.status !== "REFUNDED";
+      const canResolve   = d.relatedIssue && d.relatedIssue.status === "PENDING";
+
+      const dJson = escapeHtml(JSON.stringify({ id: d.id, refType, title: d.itemTitle, issueId, priceCoins: d.priceCoins, priceUsdt: d.priceUsdt }));
+
+      const actionBtns = `
+        <div style="display:flex; flex-direction:column; gap:0.25rem; min-width:110px;">
+          <button class="btn btn-primary btn-sm" style="font-size:0.72rem; padding:2px 6px;" onclick="openSendMsgModal('${escapeHtml(uname)}', '${escapeHtml(d.id)}', '${refType}', '${escapeHtml(d.itemTitle || "")}')">✉️ Mensaje</button>
+          ${canRedeliver ? `<button class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding:2px 6px;" onclick="adminRedeliverEntry('${escapeHtml(d.id)}')">🔄 Re-encolar</button>` : ""}
+          ${canResolve   ? `<button class="btn btn-success btn-sm" style="font-size:0.72rem; padding:2px 6px;" onclick="adminResolveIssue('${issueId}')">✅ Resolver</button>` : ""}
+          ${canRefund    ? `<button class="btn btn-danger btn-sm" style="font-size:0.72rem; padding:2px 6px;" onclick="openRefundModal('${escapeHtml(uname)}', '${escapeHtml(d.id)}', '${refType}')">💸 Reembolsar</button>` : ""}
+        </div>
+      `;
 
       return `
         <tr>
-          <td>
-            <strong>${escapeHtml(d.itemTitle || "Artículo")}</strong>
-            ${d.itemCategory ? `<br><span style="font-size:0.7rem; color:var(--text-muted);">${escapeHtml(d.itemCategory)}</span>` : ""}
-          </td>
+          <td><strong>${escapeHtml(d.itemTitle || "Artículo")}</strong>${d.itemCategory ? `<br><span style="font-size:0.7rem;color:var(--text-muted);">${escapeHtml(d.itemCategory)}</span>` : ""}</td>
           <td style="white-space:nowrap;">${sourceLabel}</td>
           <td style="white-space:nowrap;">${priceCell}</td>
           <td style="font-size:0.78rem;">${escapeHtml(d.paymentMethod || "—")}</td>
@@ -981,6 +983,7 @@ window.loadAdminUserInbox = async function () {
           <td style="font-size:0.78rem; white-space:nowrap; color:var(--text-muted);">${fecha}</td>
           <td>${statusBadge}</td>
           <td>${issueCell}</td>
+          <td>${actionBtns}</td>
         </tr>
       `;
     }).join("");
@@ -992,16 +995,15 @@ window.loadAdminUserInbox = async function () {
   }
 };
 
-// Enter en el buscador de buzón
 document.getElementById("admin-inbox-search")?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") window.loadAdminUserInbox();
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 9. AUDITORÍA COMPLETA DE CUENTA (modal impersonación de lectura)
+// 9. AUDITORÍA COMPLETA DE CUENTA
 // ═══════════════════════════════════════════════════════════════════════════
 
-let auditData = null; // datos cargados del usuario auditado
+let auditData = null;
 
 window.openAdminAuditModal = async function (usernameOverride) {
   const uname = usernameOverride || currentInboxUsername;
@@ -1034,7 +1036,7 @@ window.openAdminAuditModal = async function (usernameOverride) {
 
     _renderAuditSummary(data);
     _renderAuditTransactions(data.transactions || []);
-    _renderAuditOrders(data.orders || []);
+    _renderAuditOrders(data.orders || [], u.username);
     _renderAuditIssues(data.issues || []);
 
   } catch (err) {
@@ -1051,15 +1053,17 @@ function _renderAuditSummary(data) {
   const u = data.user;
   const s = data.summary;
 
+  const unreadMsgs = s.unreadMessages || 0;
+
   const statCards = [
-    { icon: "🪙", label: "Billetera",         value: `${(u.wallet || 0).toLocaleString()} NC`,          color: "var(--primary)" },
-    { icon: "🏦", label: "Banco",              value: `${(u.bank || 0).toLocaleString()} NC`,            color: "var(--emerald)" },
-    { icon: "💵", label: "Total gastado USDT", value: `$${s.totalSpentUsdt.toFixed(2)}`,                 color: "#f59e0b" },
-    { icon: "🛍️", label: "Gastado en NC",      value: `${(s.totalSpentCoins || 0).toLocaleString()} NC`, color: "var(--red)" },
-    { icon: "📥", label: "NC recibidas",       value: `${(s.totalReceivedCoins || 0).toLocaleString()} NC`, color: "var(--emerald)" },
-    { icon: "📦", label: "Órdenes Binance",    value: `${s.totalOrders} (${s.pendingOrders} pend.)`,     color: "var(--text)" },
-    { icon: "⚠️", label: "Reclamos",           value: `${s.totalIssues} (${s.pendingIssues} pend.)`,     color: s.pendingIssues > 0 ? "var(--red)" : "var(--text)" },
-    { icon: "💸", label: "Transacciones",      value: s.totalTransactions.toString(),                    color: "var(--text)" },
+    { icon: "🪙", label: "Billetera",         value: `${(u.wallet || 0).toLocaleString()} NC`,             color: "var(--primary)" },
+    { icon: "🏦", label: "Banco",              value: `${(u.bank   || 0).toLocaleString()} NC`,             color: "var(--emerald)" },
+    { icon: "💵", label: "Total gastado USDT", value: `$${s.totalSpentUsdt.toFixed(2)}`,                    color: "#f59e0b" },
+    { icon: "🛍️", label: "Gastado en NC",      value: `${(s.totalSpentCoins || 0).toLocaleString()} NC`,    color: "var(--red)" },
+    { icon: "📥", label: "NC recibidas",        value: `${(s.totalReceivedCoins || 0).toLocaleString()} NC`, color: "var(--emerald)" },
+    { icon: "📦", label: "Órdenes Binance",    value: `${s.totalOrders} (${s.pendingOrders} pend.)`,        color: "var(--text)" },
+    { icon: "⚠️", label: "Reclamos",           value: `${s.totalIssues} (${s.pendingIssues} pend.)`,        color: s.pendingIssues > 0 ? "var(--red)" : "var(--text)" },
+    { icon: "✉️", label: "Msgs sin leer",       value: unreadMsgs.toString(),                                color: unreadMsgs > 0 ? "var(--amber,#f59e0b)" : "var(--text)" },
   ];
 
   grid.innerHTML = statCards.map(c => `
@@ -1072,7 +1076,6 @@ function _renderAuditSummary(data) {
     </div>
   `).join("");
 
-  // Info textual del perfil
   const linked = u.linked
     ? `<span style="color:var(--emerald); font-weight:700;">✓ Vinculado</span>${u.linkedAt ? ` (${new Date(u.linkedAt).toLocaleDateString("es")})` : ""}`
     : `<span style="color:var(--red);">✗ No vinculado</span>`;
@@ -1087,6 +1090,10 @@ function _renderAuditSummary(data) {
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.4rem 0.25rem; color:var(--text-muted);">Discord</td><td style="padding:0.4rem 0.25rem;">${escapeHtml((u.socialLinks && u.socialLinks.discord) || "—")}</td></tr>
       <tr><td style="padding:0.4rem 0.25rem; color:var(--text-muted);">Creado</td><td style="padding:0.4rem 0.25rem;">${u.createdAt ? new Date(u.createdAt).toLocaleString("es") : "Desconocido"}</td></tr>
     </table>
+    <div style="margin-top:0.75rem;">
+      <button class="btn btn-primary btn-sm" onclick="openSendMsgModal('${escapeHtml(u.username)}', '', '', '')">✉️ Enviar Mensaje al Jugador</button>
+      <button class="btn btn-secondary btn-sm" style="margin-left:0.4rem;" onclick="openAuditAdjustBalance()">💰 Ajustar Saldo</button>
+    </div>
   `;
 }
 
@@ -1100,21 +1107,13 @@ function _renderAuditTransactions(txList) {
   }
 
   const typeLabel = {
-    TRANSFER:       "Transferencia",
-    STORE_PURCHASE: "Compra Tienda",
-    P2P_PURCHASE:   "Compra P2P",
-    BANK_DEPOSIT:   "Depósito Banco",
-    BANK_WITHDRAW:  "Retiro Banco",
-    INTEREST:       "Interés",
-    BINANCE_CREDIT: "Recarga Binance",
-    ADMIN_ADJUST:   "Ajuste Admin",
-    ADDON_REWARD:   "Recompensa",
-    ADDON_CHARGE:   "Cobro Addon",
+    TRANSFER: "Transferencia", STORE_PURCHASE: "Compra Tienda", P2P_PURCHASE: "Compra P2P",
+    BANK_DEPOSIT: "Depósito Banco", BANK_WITHDRAW: "Retiro Banco", INTEREST: "Interés",
+    BINANCE_CREDIT: "Recarga Binance", ADMIN_ADJUST: "Ajuste Admin", ADDON_REWARD: "Recompensa", ADDON_CHARGE: "Cobro Addon",
   };
 
   tbody.innerHTML = txList.map(tx => {
     const label = typeLabel[tx.type] || tx.type;
-    const isIncoming = true; // mostramos monto absoluto con signo
     const fecha = new Date(tx.createdAt).toLocaleString("es", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
     return `
       <tr>
@@ -1129,25 +1128,29 @@ function _renderAuditTransactions(txList) {
   }).join("");
 }
 
-function _renderAuditOrders(orders) {
+function _renderAuditOrders(orders, username) {
   const tbody = document.getElementById("audit-orders-tbody");
   if (!tbody) return;
 
   if (!orders.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Sin órdenes Binance</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Sin órdenes Binance</td></tr>`;
     return;
   }
 
   tbody.innerHTML = orders.map(o => {
     let statusBadge = `<span class="badge warning">Pendiente</span>`;
-    if (o.status === "APPROVED") statusBadge = `<span class="badge success">Aprobada</span>`;
-    if (o.status === "REJECTED") statusBadge = `<span class="badge danger">Rechazada</span>`;
+    if (o.status === "APPROVED")  statusBadge = `<span class="badge success">Aprobada</span>`;
+    if (o.status === "REJECTED")  statusBadge = `<span class="badge danger">Rechazada</span>`;
+    if (o.status === "REFUNDED")  statusBadge = `<span class="badge" style="background:#7c3aed22;color:#7c3aed;">Reembolsada</span>`;
 
     const cmdCell = o.command
       ? `<code style="font-size:0.72rem; color:var(--primary); word-break:break-all;">${escapeHtml(o.command)}</code>`
       : `<span style="color:var(--text-muted);">—</span>`;
 
     const fecha = new Date(o.createdAt).toLocaleString("es", { day:"2-digit", month:"short", year:"2-digit", hour:"2-digit", minute:"2-digit" });
+
+    const editBtn = `<button class="btn btn-secondary btn-sm" style="font-size:0.7rem; padding:1px 5px;" onclick="openEditRecord('order','${escapeHtml(o.id)}','${escapeHtml(o.status)}',${JSON.stringify(escapeHtml(o.adminNote||''))})">✏️</button>`;
+    const msgBtn  = `<button class="btn btn-primary btn-sm" style="font-size:0.7rem; padding:1px 5px;" onclick="openSendMsgModal('${escapeHtml(username || "")}','${escapeHtml(o.id)}','order','${escapeHtml(o.itemTitle||"")}')">✉️</button>`;
 
     return `
       <tr>
@@ -1157,8 +1160,9 @@ function _renderAuditOrders(orders) {
         <td style="font-family:monospace; font-size:0.72rem;">${escapeHtml(o.txid || "—")}</td>
         <td>${cmdCell}</td>
         <td>${statusBadge}</td>
-        <td style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(o.adminNote || "—")}</td>
+        <td style="font-size:0.75rem; color:var(--text-muted); max-width:120px;">${escapeHtml(o.adminNote || "—")}</td>
         <td style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;">${fecha}</td>
+        <td style="white-space:nowrap;">${editBtn} ${msgBtn}</td>
       </tr>
     `;
   }).join("");
@@ -1169,9 +1173,11 @@ function _renderAuditIssues(issues) {
   if (!tbody) return;
 
   if (!issues.length) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Sin reclamos registrados ✅</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Sin reclamos registrados ✅</td></tr>`;
     return;
   }
+
+  const uname = auditData?.user?.username || "";
 
   tbody.innerHTML = issues.map(i => {
     let statusBadge = `<span class="badge danger">Pendiente</span>`;
@@ -1185,50 +1191,47 @@ function _renderAuditIssues(issues) {
 
     const fecha = new Date(i.createdAt).toLocaleString("es", { day:"2-digit", month:"short", year:"2-digit", hour:"2-digit", minute:"2-digit" });
 
+    const editBtn    = `<button class="btn btn-secondary btn-sm" style="font-size:0.7rem; padding:1px 5px;" onclick="openEditRecord('issue','${escapeHtml(i.id)}','${escapeHtml(i.status)}',${JSON.stringify(escapeHtml(i.adminNote||''))})">✏️</button>`;
+    const msgBtn     = `<button class="btn btn-primary btn-sm" style="font-size:0.7rem; padding:1px 5px;" onclick="openSendMsgModal('${escapeHtml(uname)}','${escapeHtml(i.deliveryId||i.id)}','issue','${escapeHtml(i.itemTitle||"")}')">✉️</button>`;
+    const resolveBtn = i.status === "PENDING" ? `<button class="btn btn-success btn-sm" style="font-size:0.7rem; padding:1px 5px;" onclick="adminResolveIssue('${escapeHtml(i.id)}')">✅</button>` : "";
+
     return `
       <tr>
         <td><strong>${escapeHtml(i.itemTitle || "—")}</strong></td>
         <td style="font-size:0.78rem; color:var(--text-muted);">${escapeHtml(i.note || "—")}</td>
         <td>${cmdCell}</td>
         <td>${statusBadge}</td>
-        <td style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(i.adminNote || "—")}</td>
+        <td style="font-size:0.75rem; color:var(--text-muted); max-width:120px;">${escapeHtml(i.adminNote || "—")}</td>
         <td style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;">${fecha}</td>
+        <td style="white-space:nowrap;">${editBtn} ${resolveBtn} ${msgBtn}</td>
       </tr>
     `;
   }).join("");
 }
 
-// Switch entre tabs del modal de auditoría
+// ─── Cambio de tab del modal de auditoría ─────────────────────────────────────
 window.switchAuditTab = function (tab) {
   document.querySelectorAll("[data-audittab]").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.audittab === tab);
   });
-  document.querySelectorAll(".audit-panel").forEach(panel => {
-    panel.style.display = "none";
-  });
+  document.querySelectorAll(".audit-panel").forEach(p => p.style.display = "none");
   const target = document.getElementById(`audit-panel-${tab}`);
   if (target) target.style.display = "block";
 };
 
-// Atajo: desde el modal de auditoría, abrir ajuste de saldo del usuario auditado
+// ─── Ajuste de saldo desde auditoría ─────────────────────────────────────────
 window.openAuditAdjustBalance = function () {
   if (!auditData) return;
   const u = auditData.user;
   closeModal("modal-audit-account");
   setTimeout(() => {
-    openAdjustBalanceModal(
-      u.username,
-      u.displayName || u.username,
-      u.wallet || 0,
-      u.bank   || 0,
-      u.avatarUrl || `https://mc-heads.net/avatar/${encodeURIComponent(u.username)}/64`
-    );
+    openAdjustBalanceModal(u.username, u.displayName || u.username, u.wallet || 0, u.bank || 0,
+      u.avatarUrl || `https://mc-heads.net/avatar/${encodeURIComponent(u.username)}/64`);
   }, 150);
 };
 
-// También permitir abrir auditoría directamente desde la tabla de jugadores
+// ─── Abrir auditoría desde gestión de jugadores ───────────────────────────────
 window.openAdminAuditFromPlayers = function (username) {
-  // Cambiar al tab inbox, cargar datos y abrir modal
   document.querySelectorAll("[data-atab]").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".admin-tab").forEach(t => t.style.display = "none");
   const inboxBtn = document.querySelector("[data-atab='inbox']");
@@ -1238,7 +1241,202 @@ window.openAdminAuditFromPlayers = function (username) {
 
   currentInboxUsername = username.toLowerCase();
   document.getElementById("admin-inbox-search").value = username;
-  window.loadAdminUserInbox().then(() => {
-    window.openAdminAuditModal(username);
-  });
+  window.loadAdminUserInbox().then(() => window.openAdminAuditModal(username));
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 10. ACCIONES DE AUDITORÍA (Re-encolar, Resolver, Reembolsar, Mensaje)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Re-encolar entrega desde buzón admin
+window.adminRedeliverEntry = async function (deliveryId) {
+  if (!confirm("¿Re-encolar esta entrega en el servidor de Minecraft?")) return;
+  try {
+    const res  = await fetch("/api/admin/delivery-issues/redeliver-direct", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-token": adminToken },
+      body: JSON.stringify({ deliveryId })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast("✅ Entrega re-encolada en el servidor");
+      window.loadAdminUserInbox();
+    } else {
+      showToast(data.error || "Error al re-encolar");
+    }
+  } catch (e) {
+    showToast("Error de conexión");
+  }
+};
+
+// Resolver reclamo
+window.adminResolveIssue = async function (issueId) {
+  if (!confirm("¿Marcar este reclamo como resuelto?")) return;
+  try {
+    const res  = await fetch("/api/admin/delivery-issues/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-token": adminToken },
+      body: JSON.stringify({ issueId, action: "resolve", adminNote: "Resuelto desde panel de auditoría." })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast("✅ Reclamo resuelto");
+      window.loadAdminUserInbox();
+      // Refrescar auditoría si está abierta
+      if (auditData) window.openAdminAuditModal(auditData.user.username);
+    } else {
+      showToast(data.error || "Error");
+    }
+  } catch (e) {
+    showToast("Error de conexión");
+  }
+};
+
+// Modal de reembolso
+window.openRefundModal = function (username, refId, refType) {
+  document.getElementById("refund-username").value       = username;
+  document.getElementById("refund-ref-id").value         = refId;
+  document.getElementById("refund-ref-type").value       = refType;
+  document.getElementById("refund-username-display").textContent = username;
+  document.getElementById("refund-amount").value         = "0";
+  document.getElementById("refund-reason").value         = "";
+  openModal("modal-refund");
+};
+
+document.getElementById("refund-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const username = document.getElementById("refund-username").value;
+  const refId    = document.getElementById("refund-ref-id").value;
+  const refType  = document.getElementById("refund-ref-type").value;
+  const amount   = document.getElementById("refund-amount").value;
+  const reason   = document.getElementById("refund-reason").value.trim();
+
+  try {
+    const res  = await fetch("/api/admin/refund", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-token": adminToken },
+      body: JSON.stringify({ username, refId, refType, amount, reason })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      closeModal("modal-refund");
+      showToast(`💸 Reembolso aplicado. Nuevo saldo: ${data.newWallet?.toLocaleString()} NC`);
+      window.loadAdminUserInbox();
+      loadStats();
+    } else {
+      showToast(data.error || "Error al reembolsar");
+    }
+  } catch (e) {
+    showToast("Error de conexión");
+  }
+});
+
+// ─── Modal de envío de mensaje ────────────────────────────────────────────────
+window.openSendMsgModal = function (toUser, refId, refType, itemTitle) {
+  document.getElementById("msg-to").value          = toUser;
+  document.getElementById("msg-ref-id").value      = refId || "";
+  document.getElementById("msg-ref-type").value    = refType || "";
+  document.getElementById("msg-to-display").textContent = toUser;
+  document.getElementById("msg-ref-display").textContent = itemTitle ? `· ${itemTitle}` : "";
+  document.getElementById("msg-subject").value     = "";
+  document.getElementById("msg-body").value        = "";
+  openModal("modal-send-message");
+  setTimeout(() => document.getElementById("msg-subject").focus(), 100);
+};
+
+window.setQuickReply = function (text) {
+  document.getElementById("msg-body").value = text;
+  document.getElementById("msg-body").focus();
+};
+
+document.getElementById("send-message-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const to      = document.getElementById("msg-to").value;
+  const refId   = document.getElementById("msg-ref-id").value;
+  const refType = document.getElementById("msg-ref-type").value;
+  const subject = document.getElementById("msg-subject").value.trim();
+  const body    = document.getElementById("msg-body").value.trim();
+
+  try {
+    const res  = await fetch("/api/admin/send-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-token": adminToken },
+      body: JSON.stringify({ to, refId, refType, subject, body })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      closeModal("modal-send-message");
+      showToast(`✉️ Mensaje enviado a ${to}`);
+    } else {
+      showToast(data.error || "Error al enviar mensaje");
+    }
+  } catch (err) {
+    showToast("Error de conexión");
+  }
+});
+
+// ─── Modal de edición de nota/estado ─────────────────────────────────────────
+window.openEditRecord = function (type, id, currentStatus, currentNote) {
+  document.getElementById("edit-record-id").value   = id;
+  document.getElementById("edit-record-type").value = type;
+  document.getElementById("edit-record-note").value = currentNote || "";
+
+  const titleEl  = document.getElementById("edit-record-title");
+  const statusSel = document.getElementById("edit-record-status");
+
+  if (type === "order") {
+    if (titleEl) titleEl.textContent = "✏️ Editar Orden Binance";
+    statusSel.innerHTML = `
+      <option value="PENDING"  ${currentStatus==="PENDING"  ? "selected" : ""}>⏳ Pendiente</option>
+      <option value="APPROVED" ${currentStatus==="APPROVED" ? "selected" : ""}>✅ Aprobada</option>
+      <option value="REJECTED" ${currentStatus==="REJECTED" ? "selected" : ""}>❌ Rechazada</option>
+    `;
+  } else {
+    if (titleEl) titleEl.textContent = "✏️ Editar Reclamo";
+    statusSel.innerHTML = `
+      <option value="PENDING"     ${currentStatus==="PENDING"     ? "selected" : ""}>⏳ Pendiente</option>
+      <option value="REDELIVERED" ${currentStatus==="REDELIVERED" ? "selected" : ""}>🔄 Re-encolado</option>
+      <option value="RESOLVED"    ${currentStatus==="RESOLVED"    ? "selected" : ""}>✅ Resuelto</option>
+      <option value="DISMISSED"   ${currentStatus==="DISMISSED"   ? "selected" : ""}>🚫 Desestimado</option>
+    `;
+  }
+
+  openModal("modal-edit-record");
+  setTimeout(() => document.getElementById("edit-record-note").focus(), 100);
+};
+
+document.getElementById("edit-record-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id     = document.getElementById("edit-record-id").value;
+  const type   = document.getElementById("edit-record-type").value;
+  const status = document.getElementById("edit-record-status").value;
+  const note   = document.getElementById("edit-record-note").value.trim();
+
+  const endpoint = type === "order"
+    ? "/api/admin/orders/edit"
+    : "/api/admin/delivery-issues/edit";
+
+  const body = type === "order"
+    ? { orderId: id, status, adminNote: note }
+    : { issueId: id, status, adminNote: note };
+
+  try {
+    const res  = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-token": adminToken },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      closeModal("modal-edit-record");
+      showToast("✅ Registro actualizado");
+      // Refrescar vista activa
+      if (auditData) window.openAdminAuditModal(auditData.user.username);
+      else window.loadAdminUserInbox();
+    } else {
+      showToast(data.error || "Error al guardar");
+    }
+  } catch (err) {
+    showToast("Error de conexión");
+  }
+});
