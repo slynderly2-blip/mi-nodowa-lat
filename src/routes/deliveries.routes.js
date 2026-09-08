@@ -4,69 +4,134 @@ import { broadcastWs } from "../services/websocket.js";
 
 const router = Router();
 
+// Helper: construye el buzón completo de un usuario (reutilizable por la ruta pública y la de admin)
+function buildUserInbox(uname, limit = 100) {
+  // 1. Entregas en servidor (db.deliveries) — tienen command, itemTitle, status real
+  const rawDeliveries = uname
+    ? (db.deliveries || []).filter(d => (d.username || d.targetGamertag || "").toLowerCase() === uname)
+    : (db.deliveries || []);
+
+  const list = rawDeliveries.map(d => {
+    // Buscar el ítem de catálogo para rellenar precio si falta
+    const catalogItem = d.itemId
+      ? (db.storeItems || []).find(i => i.id === d.itemId)
+      : null;
+
+    return {
+      id: d.id,
+      username: d.username || d.targetGamertag || "",
+      itemTitle: d.itemTitle || "Artículo",
+      itemId: d.itemId || null,
+      itemCategory: catalogItem?.category || null,
+      itemDescription: catalogItem?.description || null,
+      command: d.command || null,           // comando real ejecutado en el servidor
+      commandStatus: d.status === "DELIVERED" ? "Ejecutado en servidor" : "En cola",
+      giveCoins: d.giveCoins || 0,
+      priceCoins: d.priceCoins || catalogItem?.priceCoins || 0,
+      priceUsdt: d.priceUsdt || catalogItem?.priceUsdt || 0,
+      paymentMethod: d.isBinanceOrder ? "Binance USDT" : (d.priceCoins || catalogItem?.priceCoins ? "Nodocoins (NC)" : "Gratuito / Comando Directo"),
+      status: d.status || "PENDING",
+      reportedIssue: !!d.reportedIssue,
+      issueNote: d.issueNote || null,
+      redeliveredAt: d.redeliveredAt || null,
+      deliveredAt: d.deliveredAt || null,
+      createdAt: d.createdAt || new Date().toISOString(),
+      source: "SERVER_DELIVERY"
+    };
+  });
+
+  // 2. Órdenes Binance (db.orders)
+  const userOrders = (db.orders || [])
+    .filter(o => !uname || (o.username || "").toLowerCase() === uname)
+    .map(o => {
+      const catalogItem = o.itemId
+        ? (db.storeItems || []).find(i => i.id === o.itemId)
+        : null;
+      return {
+        id: o.id,
+        username: o.username,
+        itemTitle: o.itemTitle || (o.giveCoins ? `${Number(o.giveCoins).toLocaleString()} NC` : "Recarga Binance"),
+        itemId: o.itemId || null,
+        itemCategory: catalogItem?.category || "coins",
+        itemDescription: catalogItem?.description || null,
+        command: o.command || catalogItem?.command || null,
+        commandStatus: o.status === "APPROVED"
+          ? (o.command ? "Ejecutado en servidor" : "Monedas acreditadas")
+          : (o.status === "REJECTED" ? "Rechazado" : "Pendiente de aprobación"),
+        giveCoins: o.giveCoins || 0,
+        priceCoins: 0,
+        priceUsdt: o.priceUsdt || 0,
+        paymentMethod: "Binance USDT",
+        status: o.status === "APPROVED" ? "DELIVERED" : (o.status === "REJECTED" ? "REJECTED" : "PENDING"),
+        reportedIssue: !!o.reportedIssue,
+        issueNote: o.issueNote || null,
+        txid: o.txid || null,
+        receiptImage: o.receiptImage || null,
+        reviewedAt: o.reviewedAt || null,
+        adminNote: o.adminNote || null,
+        createdAt: o.createdAt || new Date().toISOString(),
+        source: "BINANCE_ORDER"
+      };
+    });
+
+  // 3. Compras directas con NC desde la tienda (db.transactions STORE_PURCHASE)
+  const userPurchases = (db.transactions || [])
+    .filter(t => t.type === "STORE_PURCHASE" && (!uname || (t.from || "").toLowerCase() === uname))
+    .map(t => {
+      const itemName = t.note ? t.note.replace(/^Compra de /i, "") : "Artículo de Tienda";
+      // Intentar encontrar el ítem por nombre para obtener el comando
+      const catalogItem = (db.storeItems || []).find(
+        i => i.name && i.name.toLowerCase() === itemName.toLowerCase()
+      );
+      return {
+        id: t.id,
+        username: t.from,
+        itemTitle: itemName,
+        itemId: catalogItem?.id || null,
+        itemCategory: catalogItem?.category || "items",
+        itemDescription: catalogItem?.description || null,
+        command: catalogItem?.command || null,
+        commandStatus: catalogItem?.command ? "Ejecutado en servidor" : "Entregado automáticamente",
+        giveCoins: catalogItem?.giveCoins || 0,
+        priceCoins: t.amount || 0,
+        priceUsdt: catalogItem?.priceUsdt || 0,
+        paymentMethod: "Nodocoins (NC)",
+        status: "DELIVERED",
+        reportedIssue: false,
+        issueNote: null,
+        createdAt: t.createdAt || new Date().toISOString(),
+        source: "STORE_PURCHASE"
+      };
+    });
+
+  // Combinar sin duplicados
+  const combined = [...list];
+  const existingIds = new Set(combined.map(d => d.id));
+
+  for (const ord of userOrders) {
+    if (!existingIds.has(ord.id)) {
+      combined.push(ord);
+      existingIds.add(ord.id);
+    }
+  }
+  for (const pur of userPurchases) {
+    if (!existingIds.has(pur.id)) {
+      combined.push(pur);
+      existingIds.add(pur.id);
+    }
+  }
+
+  // Ordenar por fecha descendente
+  combined.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  return combined.slice(0, limit);
+}
+
 // Consultar buzón de entregas y compras de un jugador
 router.get("/", (req, res) => {
   try {
     const uname = (req.query.username || "").trim().toLowerCase();
-    
-    // 1. Entregas en servidor
-    let list = uname
-      ? (db.deliveries || []).filter(d => (d.username || d.targetGamertag || "").toLowerCase() === uname)
-      : (db.deliveries || []);
-
-    // 2. Órdenes Binance del usuario (recargas USDT / packs)
-    const userOrders = (db.orders || [])
-      .filter(o => !uname || (o.username || "").toLowerCase() === uname)
-      .map(o => ({
-        id: o.id,
-        username: o.username,
-        itemTitle: o.itemTitle || (o.giveCoins ? `${o.giveCoins.toLocaleString()} NC` : "Recarga Binance"),
-        command: o.command || null,
-        giveCoins: o.giveCoins || 0,
-        priceUsdt: o.priceUsdt || 0,
-        status: o.status === "APPROVED" ? "DELIVERED" : (o.status === "REJECTED" ? "REJECTED" : "PENDING"),
-        reportedIssue: !!o.reportedIssue,
-        isBinanceOrder: true,
-        receiptImage: o.receiptImage,
-        txid: o.txid,
-        createdAt: o.createdAt || new Date().toISOString()
-      }));
-
-    // 3. Compras en tienda desde transacciones
-    const userPurchases = (db.transactions || [])
-      .filter(t => t.type === "STORE_PURCHASE" && (!uname || (t.from || "").toLowerCase() === uname))
-      .map(t => ({
-        id: t.id,
-        username: t.from,
-        itemTitle: t.note ? t.note.replace(/^Compra de /i, "") : "Artículo de Tienda",
-        command: null,
-        priceCoins: t.amount,
-        status: "DELIVERED",
-        isStorePurchase: true,
-        createdAt: t.createdAt || new Date().toISOString()
-      }));
-
-    // Combinar sin duplicados
-    const combined = [...list];
-    const existingIds = new Set(combined.map(d => d.id));
-
-    for (const ord of userOrders) {
-      if (!existingIds.has(ord.id)) {
-        combined.push(ord);
-        existingIds.add(ord.id);
-      }
-    }
-    for (const pur of userPurchases) {
-      if (!existingIds.has(pur.id)) {
-        combined.push(pur);
-        existingIds.add(pur.id);
-      }
-    }
-
-    // Ordenar por fecha descendente
-    combined.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-
-    res.json({ ok: true, deliveries: combined.slice(0, 50) });
+    const inbox = buildUserInbox(uname, 50);
+    res.json({ ok: true, deliveries: inbox });
   } catch (err) {
     console.error("[Deliveries] Error al obtener buzón:", err);
     res.status(500).json({ ok: false, error: err.message, deliveries: [] });
@@ -119,4 +184,5 @@ router.post("/report-issue", (req, res) => {
   }
 });
 
+export { buildUserInbox };
 export default router;

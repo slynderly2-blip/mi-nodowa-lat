@@ -94,6 +94,7 @@
       <button class="tab-btn" data-atab="catalog">🛍️ Catálogo Tienda</button>
       <button class="tab-btn" data-atab="code-catalog">💻 Editor Catálogo en Código (JSON)</button>
       <button class="tab-btn" data-atab="players">👥 Gestión de Jugadores</button>
+      <button class="tab-btn" data-atab="inbox">📬 Buzón de Jugadores</button>
       <button class="tab-btn" data-atab="config">⚙️ Configuración Binance</button>
     </div>
 
@@ -276,7 +277,50 @@
       </div>
     </section>
 
-    <!-- TAB 6: Configuración -->
+    <!-- TAB 6: Buzón de Jugadores (Admin) -->
+    <section class="admin-tab" id="atab-inbox" style="display:none;">
+      <div class="admin-tab-header" style="margin-bottom:1rem;">
+        <div>
+          <h2 style="font-size:1.2rem; font-weight:700;">📬 Buzón & Recibos de Jugadores</h2>
+          <p style="font-size:0.83rem; color:var(--text-muted); margin-top:2px;">Consulta el historial de compras, entregas y recibos detallados de cualquier jugador. También puedes auditar la cuenta completa.</p>
+        </div>
+      </div>
+
+      <!-- Buscador de jugador -->
+      <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; margin-bottom:1.25rem;">
+        <div class="admin-search-wrapper" style="flex:1; min-width:220px; max-width:380px;">
+          <svg class="admin-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="admin-inbox-search" class="admin-search-input" placeholder="Gamertag del jugador..." autocomplete="off">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="loadAdminUserInbox()">🔍 Ver Buzón</button>
+        <button class="btn btn-secondary btn-sm" id="btn-audit-account" style="display:none;" onclick="openAdminAuditModal()">🔎 Auditar Cuenta Completa</button>
+      </div>
+
+      <!-- Estado / resultado -->
+      <div id="admin-inbox-status" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem; min-height:1.2em;"></div>
+
+      <!-- Tabla de buzón del jugador -->
+      <div class="table-wrap" id="admin-inbox-table-wrap" style="display:none;">
+        <table>
+          <thead>
+            <tr>
+              <th>Artículo</th>
+              <th>Origen</th>
+              <th>Precio Pagado</th>
+              <th>Método</th>
+              <th>Comando Ejecutado</th>
+              <th>Estado Cmd</th>
+              <th>Fecha</th>
+              <th>Estado</th>
+              <th>Reclamo</th>
+            </tr>
+          </thead>
+          <tbody id="admin-inbox-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 7: Configuración -->
     <section class="admin-tab" id="atab-config" style="display:none;">
       <div class="card" style="max-width:550px;">
         <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:1rem;">⚙️ Parámetros de Binance Pay</h2>
@@ -516,8 +560,109 @@
     </div>
   </div>
 
+  <!-- ===================================================================
+       MODAL: AUDITORÍA COMPLETA DE CUENTA (impersonación de lectura)
+       =================================================================== -->
+  <div class="modal-backdrop" id="modal-audit-account">
+    <div class="modal-box" style="max-width:760px; max-height:90vh; display:flex; flex-direction:column;">
+      <div class="modal-header" style="flex-shrink:0;">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <img id="audit-user-avatar" src="" alt="" style="width:42px; height:42px; border-radius:50%; border:2px solid var(--border);" onerror="this.src='https://mc-heads.net/avatar/Steve/64'">
+          <div>
+            <h3 class="modal-title" style="margin:0;">🔎 Auditoría de Cuenta</h3>
+            <span id="audit-user-display" style="font-size:0.82rem; color:var(--text-muted);"></span>
+          </div>
+        </div>
+        <button class="btn-close" onclick="closeModal('modal-audit-account')">&times;</button>
+      </div>
+
+      <!-- Tabs internos del modal -->
+      <div style="display:flex; gap:0.4rem; flex-wrap:wrap; padding:0.75rem 0 0; flex-shrink:0; border-bottom:1px solid var(--border); margin-bottom:0.75rem;">
+        <button class="tab-btn active" data-audittab="summary" onclick="switchAuditTab('summary')" style="font-size:0.8rem; padding:0.3rem 0.7rem;">📊 Resumen</button>
+        <button class="tab-btn" data-audittab="transactions" onclick="switchAuditTab('transactions')" style="font-size:0.8rem; padding:0.3rem 0.7rem;">💸 Transacciones</button>
+        <button class="tab-btn" data-audittab="orders" onclick="switchAuditTab('orders')" style="font-size:0.8rem; padding:0.3rem 0.7rem;">📦 Órdenes Binance</button>
+        <button class="tab-btn" data-audittab="issues" onclick="switchAuditTab('issues')" style="font-size:0.8rem; padding:0.3rem 0.7rem;">⚠️ Reclamos</button>
+      </div>
+
+      <!-- Contenido scrollable -->
+      <div style="overflow-y:auto; flex:1; padding-right:0.25rem;">
+
+        <!-- Pestaña: Resumen -->
+        <div id="audit-panel-summary" class="audit-panel">
+          <div id="audit-summary-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;"></div>
+          <div id="audit-summary-info" style="font-size:0.83rem; color:var(--text-muted);"></div>
+        </div>
+
+        <!-- Pestaña: Transacciones -->
+        <div id="audit-panel-transactions" class="audit-panel" style="display:none;">
+          <div class="table-wrap">
+            <table style="font-size:0.82rem;">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>De</th>
+                  <th>A</th>
+                  <th>Monto</th>
+                  <th>Nota</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody id="audit-tx-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Pestaña: Órdenes Binance -->
+        <div id="audit-panel-orders" class="audit-panel" style="display:none;">
+          <div class="table-wrap">
+            <table style="font-size:0.82rem;">
+              <thead>
+                <tr>
+                  <th>Artículo</th>
+                  <th>Precio USDT</th>
+                  <th>Monedas</th>
+                  <th>TXID</th>
+                  <th>Comando</th>
+                  <th>Estado</th>
+                  <th>Nota Admin</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody id="audit-orders-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Pestaña: Reclamos -->
+        <div id="audit-panel-issues" class="audit-panel" style="display:none;">
+          <div class="table-wrap">
+            <table style="font-size:0.82rem;">
+              <thead>
+                <tr>
+                  <th>Artículo</th>
+                  <th>Nota del Jugador</th>
+                  <th>Comando</th>
+                  <th>Estado</th>
+                  <th>Nota Admin</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody id="audit-issues-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /scrollable -->
+
+      <div style="flex-shrink:0; padding-top:0.75rem; border-top:1px solid var(--border); margin-top:0.5rem; display:flex; justify-content:flex-end; gap:0.5rem;">
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-audit-account')">Cerrar</button>
+        <button class="btn btn-primary btn-sm" id="audit-adjust-bal-btn" onclick="openAuditAdjustBalance()">💰 Ajustar Saldo</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
-  <script src="/js/admin.js?v=2.2.0"></script>
+  <script src="/js/admin.js?v=2.3.0"></script>
 </body>
 </html>

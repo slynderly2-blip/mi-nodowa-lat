@@ -4,6 +4,7 @@ import { checkAdminAuth } from "../middleware/auth.js";
 import { getOrCreateUser, logTransaction } from "../services/economy.js";
 import { upload } from "../services/uploader.js";
 import { broadcastWs } from "../services/websocket.js";
+import { buildUserInbox } from "./deliveries.routes.js";
 
 const router = Router();
 
@@ -289,6 +290,133 @@ router.post("/reports/resolve", (req, res) => {
   saveDb();
 
   res.json({ ok: true, message: `Reporte actualizado a ${report.status}`, report });
+});
+
+// ─── AUDITORÍA DE USUARIOS ────────────────────────────────────────────────────
+
+// Buzón completo de un usuario específico (vista admin)
+router.get("/user-inbox/:username", (req, res) => {
+  try {
+    const uname = (req.params.username || "").trim().toLowerCase();
+    if (!uname) return res.status(400).json({ ok: false, error: "Usuario requerido" });
+
+    const user = db.users[uname];
+    if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+    const inbox = buildUserInbox(uname, 200);
+
+    // Enriquecer reclamos: buscar si cada entrega tiene un reclamo asociado
+    const issuesByDeliveryId = {};
+    for (const issue of (db.deliveryIssues || [])) {
+      if (!issuesByDeliveryId[issue.deliveryId]) {
+        issuesByDeliveryId[issue.deliveryId] = issue;
+      }
+    }
+
+    const enriched = inbox.map(entry => ({
+      ...entry,
+      relatedIssue: issuesByDeliveryId[entry.id] || null
+    }));
+
+    res.json({
+      ok: true,
+      username: uname,
+      displayName: user.displayName || user.username,
+      totalEntries: enriched.length,
+      inbox: enriched
+    });
+  } catch (err) {
+    console.error("[Admin] Error en user-inbox:", err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Perfil completo de un usuario para auditoría (datos de cuenta, saldo, transacciones, reclamos)
+router.get("/user-profile/:username", (req, res) => {
+  try {
+    const uname = (req.params.username || "").trim().toLowerCase();
+    if (!uname) return res.status(400).json({ ok: false, error: "Usuario requerido" });
+
+    const user = db.users[uname];
+    if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+    // Últimas 100 transacciones del usuario
+    const userTx = (db.transactions || [])
+      .filter(tx =>
+        (tx.from || "").toLowerCase() === uname ||
+        (tx.to   || "").toLowerCase() === uname
+      )
+      .slice(0, 100);
+
+    // Reclamos del usuario (como jugador)
+    const userIssues = (db.deliveryIssues || [])
+      .filter(i => (i.player || "").toLowerCase() === uname);
+
+    // Órdenes Binance pendientes y aprobadas
+    const userOrders = (db.orders || [])
+      .filter(o => (o.username || "").toLowerCase() === uname)
+      .map(o => ({
+        id: o.id,
+        itemTitle: o.itemTitle,
+        priceUsdt: o.priceUsdt || 0,
+        giveCoins: o.giveCoins || 0,
+        command: o.command || null,
+        txid: o.txid || null,
+        receiptImage: o.receiptImage || null,
+        status: o.status,
+        adminNote: o.adminNote || null,
+        reviewedAt: o.reviewedAt || null,
+        createdAt: o.createdAt
+      }));
+
+    // Estadísticas rápidas
+    const totalSpentUsdt = userOrders
+      .filter(o => o.status === "APPROVED")
+      .reduce((s, o) => s + (o.priceUsdt || 0), 0);
+    const totalSpentCoins = userTx
+      .filter(tx => tx.type === "STORE_PURCHASE" && (tx.from || "").toLowerCase() === uname)
+      .reduce((s, tx) => s + (tx.amount || 0), 0);
+    const totalReceivedCoins = userTx
+      .filter(tx => ["BINANCE_CREDIT","ADMIN_ADJUST","ADDON_REWARD","INTEREST"].includes(tx.type) && (tx.to || "").toLowerCase() === uname)
+      .reduce((s, tx) => s + (tx.amount || 0), 0);
+
+    res.json({
+      ok: true,
+      user: {
+        username: user.username,
+        displayName: user.displayName || user.username,
+        avatarUrl: user.avatarUrl || `https://mc-heads.net/avatar/${user.displayName || user.username}/64`,
+        bio: user.bio || "",
+        wallet: Math.floor(user.wallet || 0),
+        bank: Math.floor(user.bank || 0),
+        linked: !!(user.linked || user.linkedAt),
+        linkedAt: user.linkedAt || null,
+        equippedRank: user.equippedRank || "NOVICIO",
+        selectedTitle: user.selectedTitle || "Novato",
+        socialLinks: user.socialLinks || {},
+        createdAt: user.createdAt || null,
+        lastActive: user.lastActive || null,
+        totalInterestEarned: Math.floor(user.totalInterestEarned || 0),
+        stats: user.stats || {}
+      },
+      summary: {
+        totalSpentUsdt: parseFloat(totalSpentUsdt.toFixed(2)),
+        totalSpentCoins,
+        totalReceivedCoins,
+        totalOrders: userOrders.length,
+        pendingOrders: userOrders.filter(o => o.status === "PENDING").length,
+        totalIssues: userIssues.length,
+        pendingIssues: userIssues.filter(i => i.status === "PENDING").length,
+        totalTransactions: userTx.length
+      },
+      transactions: userTx,
+      orders: userOrders,
+      issues: userIssues
+    });
+  } catch (err) {
+    console.error("[Admin] Error en user-profile:", err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 export default router;

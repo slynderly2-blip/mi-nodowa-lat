@@ -80,6 +80,7 @@ document.querySelectorAll("[data-atab]").forEach(btn => {
     if (btn.dataset.atab === "players") loadAdminPlayers();
     if (btn.dataset.atab === "catalog") loadAdminCatalog();
     if (btn.dataset.atab === "config") loadAdminConfig();
+    if (btn.dataset.atab === "inbox") resetAdminInboxTab();
   });
 });
 
@@ -320,6 +321,7 @@ window.switchAdminSubTab = (tabName) => {
   if (tabName === "code-catalog") loadRawCatalogEditor();
   if (tabName === "players") loadAdminPlayers();
   if (tabName === "catalog") loadAdminCatalog();
+  if (tabName === "inbox") resetAdminInboxTab();
 };
 
 // 3. Catálogo Tienda (Visual)
@@ -862,3 +864,381 @@ function escapeHtml(str) {
 
 // Inicialización
 checkAdminState();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 8. BUZÓN DE JUGADORES (Admin)
+// ═══════════════════════════════════════════════════════════════════════════
+
+let currentInboxUsername = null; // gamertag actualmente cargado en el tab buzón
+
+function resetAdminInboxTab() {
+  currentInboxUsername = null;
+  document.getElementById("admin-inbox-status").textContent = "Ingresa el Gamertag de un jugador y haz clic en Ver Buzón.";
+  document.getElementById("admin-inbox-table-wrap").style.display = "none";
+  document.getElementById("btn-audit-account").style.display = "none";
+  document.getElementById("admin-inbox-tbody").innerHTML = "";
+  document.getElementById("admin-inbox-search").value = "";
+}
+
+window.loadAdminUserInbox = async function () {
+  const raw    = (document.getElementById("admin-inbox-search").value || "").trim();
+  const uname  = raw.toLowerCase();
+  const status = document.getElementById("admin-inbox-status");
+  const wrap   = document.getElementById("admin-inbox-table-wrap");
+  const tbody  = document.getElementById("admin-inbox-tbody");
+  const auditBtn = document.getElementById("btn-audit-account");
+
+  if (!uname) { showToast("Ingresa un Gamertag primero"); return; }
+
+  status.textContent = `Cargando buzón de "${escapeHtml(raw)}"…`;
+  wrap.style.display  = "none";
+  auditBtn.style.display = "none";
+  tbody.innerHTML    = "";
+
+  try {
+    const res  = await fetch(`/api/admin/user-inbox/${encodeURIComponent(uname)}`, {
+      headers: { "x-admin-token": adminToken }
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      status.textContent = `❌ ${data.error || "Usuario no encontrado"}`;
+      return;
+    }
+
+    currentInboxUsername = uname;
+    const inbox = data.inbox || [];
+    status.textContent = `Mostrando ${inbox.length} entrada(s) del buzón de ${escapeHtml(data.displayName || raw)}`;
+    auditBtn.style.display = "inline-flex";
+
+    if (inbox.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:2rem; color:var(--text-muted);">No hay entregas registradas para este jugador.</td></tr>`;
+      wrap.style.display = "block";
+      return;
+    }
+
+    tbody.innerHTML = inbox.map(d => {
+      // Precio
+      let priceCell = "—";
+      if (d.priceUsdt && Number(d.priceUsdt) > 0) {
+        priceCell = `<span style="color:#f59e0b; font-weight:700;">$${Number(d.priceUsdt).toFixed(2)} USDT</span>`;
+      } else if (d.priceCoins && Number(d.priceCoins) > 0) {
+        priceCell = `<span style="color:var(--primary); font-weight:700;">${Number(d.priceCoins).toLocaleString()} NC</span>`;
+      } else if (d.giveCoins && Number(d.giveCoins) > 0) {
+        priceCell = `<span style="color:var(--emerald); font-weight:700;">+${Number(d.giveCoins).toLocaleString()} NC</span>`;
+      }
+
+      // Origen
+      const sourceMap = {
+        SERVER_DELIVERY: "🖥️ Entrega",
+        BINANCE_ORDER:   "💵 Binance",
+        STORE_PURCHASE:  "🛍️ Tienda NC"
+      };
+      const sourceLabel = sourceMap[d.source] || d.source || "—";
+
+      // Comando
+      const cmdCell = d.command
+        ? `<code style="font-size:0.73rem; background:var(--tiktok-gray,#1a1a2e); padding:2px 5px; border-radius:4px; color:var(--primary); word-break:break-all; max-width:160px; display:block;">${escapeHtml(d.command)}</code>`
+        : `<span style="color:var(--text-muted); font-size:0.78rem;">Sin cmd</span>`;
+
+      // Estado cmd
+      const cmdStatusCell = d.command
+        ? `<span style="font-size:0.75rem; font-weight:700; color:${d.commandStatus === 'Ejecutado en servidor' ? 'var(--emerald)' : '#f59e0b'};">${escapeHtml(d.commandStatus || "—")}</span>`
+        : "—";
+
+      // Estado entrega
+      let statusBadge = `<span class="badge warning">En Cola</span>`;
+      if (d.status === "DELIVERED") statusBadge = `<span class="badge success">Entregado</span>`;
+      if (d.status === "REJECTED")  statusBadge = `<span class="badge danger">Rechazado</span>`;
+      if (d.reportedIssue)          statusBadge += ` <span class="badge danger" style="font-size:0.68rem;">⚠️ Reportado</span>`;
+
+      // Reclamo asociado
+      let issueCell = `<span style="color:var(--text-muted); font-size:0.78rem;">—</span>`;
+      if (d.relatedIssue) {
+        const iss = d.relatedIssue;
+        const issColor = iss.status === "PENDING" ? "var(--red)" : "var(--emerald)";
+        issueCell = `
+          <div style="font-size:0.75rem;">
+            <span style="font-weight:700; color:${issColor};">${escapeHtml(iss.status)}</span><br>
+            <span style="color:var(--text-muted);">${escapeHtml(iss.note ? iss.note.slice(0, 40) + (iss.note.length > 40 ? "…" : "") : "")}</span>
+          </div>`;
+      }
+
+      // Fecha
+      const fecha = new Date(d.createdAt).toLocaleString("es", { day:"2-digit", month:"short", year:"2-digit", hour:"2-digit", minute:"2-digit" });
+
+      return `
+        <tr>
+          <td>
+            <strong>${escapeHtml(d.itemTitle || "Artículo")}</strong>
+            ${d.itemCategory ? `<br><span style="font-size:0.7rem; color:var(--text-muted);">${escapeHtml(d.itemCategory)}</span>` : ""}
+          </td>
+          <td style="white-space:nowrap;">${sourceLabel}</td>
+          <td style="white-space:nowrap;">${priceCell}</td>
+          <td style="font-size:0.78rem;">${escapeHtml(d.paymentMethod || "—")}</td>
+          <td style="max-width:180px;">${cmdCell}</td>
+          <td>${cmdStatusCell}</td>
+          <td style="font-size:0.78rem; white-space:nowrap; color:var(--text-muted);">${fecha}</td>
+          <td>${statusBadge}</td>
+          <td>${issueCell}</td>
+        </tr>
+      `;
+    }).join("");
+
+    wrap.style.display = "block";
+  } catch (err) {
+    status.textContent = "❌ Error de conexión";
+    showToast("Error al cargar buzón: " + err.message);
+  }
+};
+
+// Enter en el buscador de buzón
+document.getElementById("admin-inbox-search")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") window.loadAdminUserInbox();
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 9. AUDITORÍA COMPLETA DE CUENTA (modal impersonación de lectura)
+// ═══════════════════════════════════════════════════════════════════════════
+
+let auditData = null; // datos cargados del usuario auditado
+
+window.openAdminAuditModal = async function (usernameOverride) {
+  const uname = usernameOverride || currentInboxUsername;
+  if (!uname) { showToast("Carga primero el buzón de un jugador"); return; }
+
+  const displayEl = document.getElementById("audit-user-display");
+  const avatarEl  = document.getElementById("audit-user-avatar");
+  if (displayEl) displayEl.textContent = "Cargando…";
+
+  openModal("modal-audit-account");
+  switchAuditTab("summary");
+
+  try {
+    const res  = await fetch(`/api/admin/user-profile/${encodeURIComponent(uname)}`, {
+      headers: { "x-admin-token": adminToken }
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      if (displayEl) displayEl.textContent = data.error || "Error";
+      showToast(data.error || "No se pudo cargar el perfil");
+      return;
+    }
+
+    auditData = data;
+    const u = data.user;
+
+    if (displayEl) displayEl.textContent = `${escapeHtml(u.displayName || u.username)}  @${escapeHtml(u.username)}`;
+    if (avatarEl)  avatarEl.src = u.avatarUrl || `https://mc-heads.net/avatar/${encodeURIComponent(u.username)}/64`;
+
+    _renderAuditSummary(data);
+    _renderAuditTransactions(data.transactions || []);
+    _renderAuditOrders(data.orders || []);
+    _renderAuditIssues(data.issues || []);
+
+  } catch (err) {
+    if (displayEl) displayEl.textContent = "Error de conexión";
+    showToast("Error: " + err.message);
+  }
+};
+
+function _renderAuditSummary(data) {
+  const grid    = document.getElementById("audit-summary-grid");
+  const infoBox = document.getElementById("audit-summary-info");
+  if (!grid) return;
+
+  const u = data.user;
+  const s = data.summary;
+
+  const statCards = [
+    { icon: "🪙", label: "Billetera",         value: `${(u.wallet || 0).toLocaleString()} NC`,          color: "var(--primary)" },
+    { icon: "🏦", label: "Banco",              value: `${(u.bank || 0).toLocaleString()} NC`,            color: "var(--emerald)" },
+    { icon: "💵", label: "Total gastado USDT", value: `$${s.totalSpentUsdt.toFixed(2)}`,                 color: "#f59e0b" },
+    { icon: "🛍️", label: "Gastado en NC",      value: `${(s.totalSpentCoins || 0).toLocaleString()} NC`, color: "var(--red)" },
+    { icon: "📥", label: "NC recibidas",       value: `${(s.totalReceivedCoins || 0).toLocaleString()} NC`, color: "var(--emerald)" },
+    { icon: "📦", label: "Órdenes Binance",    value: `${s.totalOrders} (${s.pendingOrders} pend.)`,     color: "var(--text)" },
+    { icon: "⚠️", label: "Reclamos",           value: `${s.totalIssues} (${s.pendingIssues} pend.)`,     color: s.pendingIssues > 0 ? "var(--red)" : "var(--text)" },
+    { icon: "💸", label: "Transacciones",      value: s.totalTransactions.toString(),                    color: "var(--text)" },
+  ];
+
+  grid.innerHTML = statCards.map(c => `
+    <div style="background:var(--card,#111); border:1px solid var(--border); border-radius:var(--radius-md,8px); padding:0.75rem 1rem; display:flex; align-items:center; gap:0.6rem;">
+      <span style="font-size:1.4rem;">${c.icon}</span>
+      <div>
+        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">${c.label}</div>
+        <div style="font-size:1rem; font-weight:900; color:${c.color};">${c.value}</div>
+      </div>
+    </div>
+  `).join("");
+
+  // Info textual del perfil
+  const linked = u.linked
+    ? `<span style="color:var(--emerald); font-weight:700;">✓ Vinculado</span>${u.linkedAt ? ` (${new Date(u.linkedAt).toLocaleDateString("es")})` : ""}`
+    : `<span style="color:var(--red);">✗ No vinculado</span>`;
+
+  infoBox.innerHTML = `
+    <table style="width:100%; border-collapse:collapse; font-size:0.82rem; margin-top:0.5rem;">
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.4rem 0.25rem; color:var(--text-muted); width:140px;">Rango</td><td style="padding:0.4rem 0.25rem; font-weight:700;">${escapeHtml(u.equippedRank || "NOVICIO")}</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.4rem 0.25rem; color:var(--text-muted);">Título</td><td style="padding:0.4rem 0.25rem;">[${escapeHtml(u.selectedTitle || "Novato")}]</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.4rem 0.25rem; color:var(--text-muted);">Bedrock</td><td style="padding:0.4rem 0.25rem;">${linked}</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.4rem 0.25rem; color:var(--text-muted);">Bio</td><td style="padding:0.4rem 0.25rem; color:var(--text-muted); font-style:italic;">${escapeHtml(u.bio || "Sin bio")}</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.4rem 0.25rem; color:var(--text-muted);">Intereses cobrados</td><td style="padding:0.4rem 0.25rem;">${(u.totalInterestEarned || 0).toLocaleString()} NC</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.4rem 0.25rem; color:var(--text-muted);">Discord</td><td style="padding:0.4rem 0.25rem;">${escapeHtml((u.socialLinks && u.socialLinks.discord) || "—")}</td></tr>
+      <tr><td style="padding:0.4rem 0.25rem; color:var(--text-muted);">Creado</td><td style="padding:0.4rem 0.25rem;">${u.createdAt ? new Date(u.createdAt).toLocaleString("es") : "Desconocido"}</td></tr>
+    </table>
+  `;
+}
+
+function _renderAuditTransactions(txList) {
+  const tbody = document.getElementById("audit-tx-tbody");
+  if (!tbody) return;
+
+  if (!txList.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Sin transacciones</td></tr>`;
+    return;
+  }
+
+  const typeLabel = {
+    TRANSFER:       "Transferencia",
+    STORE_PURCHASE: "Compra Tienda",
+    P2P_PURCHASE:   "Compra P2P",
+    BANK_DEPOSIT:   "Depósito Banco",
+    BANK_WITHDRAW:  "Retiro Banco",
+    INTEREST:       "Interés",
+    BINANCE_CREDIT: "Recarga Binance",
+    ADMIN_ADJUST:   "Ajuste Admin",
+    ADDON_REWARD:   "Recompensa",
+    ADDON_CHARGE:   "Cobro Addon",
+  };
+
+  tbody.innerHTML = txList.map(tx => {
+    const label = typeLabel[tx.type] || tx.type;
+    const isIncoming = true; // mostramos monto absoluto con signo
+    const fecha = new Date(tx.createdAt).toLocaleString("es", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+    return `
+      <tr>
+        <td><span style="font-size:0.75rem; font-weight:700; background:var(--tiktok-gray,#111); padding:2px 7px; border-radius:999px;">${escapeHtml(label)}</span></td>
+        <td style="font-size:0.78rem;">${escapeHtml(tx.from || "—")}</td>
+        <td style="font-size:0.78rem;">${escapeHtml(tx.to || "—")}</td>
+        <td style="font-weight:800; color:var(--primary);">${Number(tx.amount || 0).toLocaleString()} NC</td>
+        <td style="font-size:0.78rem; color:var(--text-muted);">${escapeHtml(tx.note || "—")}</td>
+        <td style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;">${fecha}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function _renderAuditOrders(orders) {
+  const tbody = document.getElementById("audit-orders-tbody");
+  if (!tbody) return;
+
+  if (!orders.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Sin órdenes Binance</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = orders.map(o => {
+    let statusBadge = `<span class="badge warning">Pendiente</span>`;
+    if (o.status === "APPROVED") statusBadge = `<span class="badge success">Aprobada</span>`;
+    if (o.status === "REJECTED") statusBadge = `<span class="badge danger">Rechazada</span>`;
+
+    const cmdCell = o.command
+      ? `<code style="font-size:0.72rem; color:var(--primary); word-break:break-all;">${escapeHtml(o.command)}</code>`
+      : `<span style="color:var(--text-muted);">—</span>`;
+
+    const fecha = new Date(o.createdAt).toLocaleString("es", { day:"2-digit", month:"short", year:"2-digit", hour:"2-digit", minute:"2-digit" });
+
+    return `
+      <tr>
+        <td><strong>${escapeHtml(o.itemTitle || "—")}</strong></td>
+        <td style="color:#f59e0b; font-weight:700;">$${Number(o.priceUsdt || 0).toFixed(2)}</td>
+        <td style="color:var(--emerald); font-weight:700;">${Number(o.giveCoins || 0).toLocaleString()} NC</td>
+        <td style="font-family:monospace; font-size:0.72rem;">${escapeHtml(o.txid || "—")}</td>
+        <td>${cmdCell}</td>
+        <td>${statusBadge}</td>
+        <td style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(o.adminNote || "—")}</td>
+        <td style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;">${fecha}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function _renderAuditIssues(issues) {
+  const tbody = document.getElementById("audit-issues-tbody");
+  if (!tbody) return;
+
+  if (!issues.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Sin reclamos registrados ✅</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = issues.map(i => {
+    let statusBadge = `<span class="badge danger">Pendiente</span>`;
+    if (i.status === "REDELIVERED") statusBadge = `<span class="badge success">Re-encolado</span>`;
+    if (i.status === "RESOLVED")    statusBadge = `<span class="badge success">Resuelto</span>`;
+    if (i.status === "DISMISSED")   statusBadge = `<span class="badge" style="background:var(--tiktok-gray);">Desestimado</span>`;
+
+    const cmdCell = i.command
+      ? `<code style="font-size:0.72rem; color:var(--primary);">${escapeHtml(i.command)}</code>`
+      : "—";
+
+    const fecha = new Date(i.createdAt).toLocaleString("es", { day:"2-digit", month:"short", year:"2-digit", hour:"2-digit", minute:"2-digit" });
+
+    return `
+      <tr>
+        <td><strong>${escapeHtml(i.itemTitle || "—")}</strong></td>
+        <td style="font-size:0.78rem; color:var(--text-muted);">${escapeHtml(i.note || "—")}</td>
+        <td>${cmdCell}</td>
+        <td>${statusBadge}</td>
+        <td style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(i.adminNote || "—")}</td>
+        <td style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;">${fecha}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+// Switch entre tabs del modal de auditoría
+window.switchAuditTab = function (tab) {
+  document.querySelectorAll("[data-audittab]").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.audittab === tab);
+  });
+  document.querySelectorAll(".audit-panel").forEach(panel => {
+    panel.style.display = "none";
+  });
+  const target = document.getElementById(`audit-panel-${tab}`);
+  if (target) target.style.display = "block";
+};
+
+// Atajo: desde el modal de auditoría, abrir ajuste de saldo del usuario auditado
+window.openAuditAdjustBalance = function () {
+  if (!auditData) return;
+  const u = auditData.user;
+  closeModal("modal-audit-account");
+  setTimeout(() => {
+    openAdjustBalanceModal(
+      u.username,
+      u.displayName || u.username,
+      u.wallet || 0,
+      u.bank   || 0,
+      u.avatarUrl || `https://mc-heads.net/avatar/${encodeURIComponent(u.username)}/64`
+    );
+  }, 150);
+};
+
+// También permitir abrir auditoría directamente desde la tabla de jugadores
+window.openAdminAuditFromPlayers = function (username) {
+  // Cambiar al tab inbox, cargar datos y abrir modal
+  document.querySelectorAll("[data-atab]").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".admin-tab").forEach(t => t.style.display = "none");
+  const inboxBtn = document.querySelector("[data-atab='inbox']");
+  if (inboxBtn) inboxBtn.classList.add("active");
+  const inboxTab = document.getElementById("atab-inbox");
+  if (inboxTab) inboxTab.style.display = "block";
+
+  currentInboxUsername = username.toLowerCase();
+  document.getElementById("admin-inbox-search").value = username;
+  window.loadAdminUserInbox().then(() => {
+    window.openAdminAuditModal(username);
+  });
+};
