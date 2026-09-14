@@ -6,16 +6,29 @@ const router = Router();
 
 // Helper: construye el buzón completo de un usuario (reutilizable por la ruta pública y la de admin)
 function buildUserInbox(uname, limit = 100) {
-  // 1. Entregas en servidor (db.deliveries) — tienen command, itemTitle, status real
+  // 1. Entregas en servidor (db.deliveries)
   const rawDeliveries = uname
     ? (db.deliveries || []).filter(d => (d.username || d.targetGamertag || "").toLowerCase() === uname)
     : (db.deliveries || []);
 
   const list = rawDeliveries.map(d => {
-    // Buscar el ítem de catálogo para rellenar precio si falta
     const catalogItem = d.itemId
       ? (db.storeItems || []).find(i => i.id === d.itemId)
       : null;
+
+    // Si no tiene priceCoins guardado, buscarlo en las transacciones históricas
+    let priceCoins = d.priceCoins || catalogItem?.priceCoins || 0;
+    if (!priceCoins && d.itemTitle) {
+      const itemTitleLower = (d.itemTitle || "").toLowerCase();
+      const deliveryMinute = (d.createdAt || "").substring(0, 16);
+      const matchTx = (db.transactions || []).find(t =>
+        t.type === "STORE_PURCHASE" &&
+        (t.from || "").toLowerCase() === (d.username || "").toLowerCase() &&
+        (t.note || "").toLowerCase().includes(itemTitleLower) &&
+        (t.createdAt || "").substring(0, 16) === deliveryMinute
+      );
+      if (matchTx) priceCoins = matchTx.amount || 0;
+    }
 
     return {
       id: d.id,
@@ -24,12 +37,12 @@ function buildUserInbox(uname, limit = 100) {
       itemId: d.itemId || null,
       itemCategory: catalogItem?.category || null,
       itemDescription: catalogItem?.description || null,
-      command: d.command || null,           // comando real ejecutado en el servidor
+      command: d.command || null,
       commandStatus: d.status === "DELIVERED" ? "Ejecutado en servidor" : "En cola",
       giveCoins: d.giveCoins || 0,
-      priceCoins: d.priceCoins || catalogItem?.priceCoins || 0,
+      priceCoins,
       priceUsdt: d.priceUsdt || catalogItem?.priceUsdt || 0,
-      paymentMethod: d.isBinanceOrder ? "Binance USDT" : (d.priceCoins || catalogItem?.priceCoins ? "Nodocoins (NC)" : "Gratuito / Comando Directo"),
+      paymentMethod: d.isBinanceOrder ? "Binance USDT" : (priceCoins ? "Nodocoins (NC)" : "Gratuito / Comando Directo"),
       status: d.status || "PENDING",
       reportedIssue: !!d.reportedIssue,
       issueNote: d.issueNote || null,
@@ -74,9 +87,7 @@ function buildUserInbox(uname, limit = 100) {
       };
     });
 
-  // 3. Compras directas con NC desde la tienda (db.transactions STORE_PURCHASE)
-  // SOLO incluir si NO ya existe una entrega en db.deliveries para esa compra
-  // (evita duplicados: store.js crea delivery + transaction para la misma compra)
+  // 3. Compras directas con NC (STORE_PURCHASE) sin entrega correspondiente
   const deliveryItemTitles = new Set(
     list.map(d => `${(d.itemTitle||"").toLowerCase()}|${d.createdAt?.substring(0,16)}`)
   );
@@ -85,7 +96,6 @@ function buildUserInbox(uname, limit = 100) {
     .filter(t => {
       if (t.type !== "STORE_PURCHASE") return false;
       if (uname && (t.from || "").toLowerCase() !== uname) return false;
-      // Suprimir si ya hay una entrega del servidor con mismo nombre e instante (~mismo minuto)
       const itemName = t.note ? t.note.replace(/^Compra de /i, "") : "";
       const key = `${itemName.toLowerCase()}|${(t.createdAt||"").substring(0,16)}`;
       if (deliveryItemTitles.has(key)) return false;
@@ -122,19 +132,12 @@ function buildUserInbox(uname, limit = 100) {
   const existingIds = new Set(combined.map(d => d.id));
 
   for (const ord of userOrders) {
-    if (!existingIds.has(ord.id)) {
-      combined.push(ord);
-      existingIds.add(ord.id);
-    }
+    if (!existingIds.has(ord.id)) { combined.push(ord); existingIds.add(ord.id); }
   }
   for (const pur of userPurchases) {
-    if (!existingIds.has(pur.id)) {
-      combined.push(pur);
-      existingIds.add(pur.id);
-    }
+    if (!existingIds.has(pur.id)) { combined.push(pur); existingIds.add(pur.id); }
   }
 
-  // Ordenar por fecha descendente
   combined.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   return combined.slice(0, limit);
 }
@@ -159,7 +162,6 @@ router.post("/report-issue", (req, res) => {
 
     let delivery = (db.deliveries || []).find(d => d.id === deliveryId);
     if (!delivery) {
-      // Buscar en órdenes Binance
       delivery = (db.orders || []).find(o => o.id === deliveryId);
     }
 

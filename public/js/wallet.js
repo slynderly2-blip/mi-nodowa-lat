@@ -151,7 +151,7 @@ export async function loadTransactions() {
     };
 
     const uname = currentUser.toLowerCase();
-    const rowsHtml = txs.map(tx => {
+    const txsMapped = txs.map(tx => {
       const isIncoming  = (tx.to || "").toLowerCase() === uname;
       const sign        = isIncoming ? "+" : "-";
       const amountColor = isIncoming ? "var(--emerald)" : "var(--red)";
@@ -160,28 +160,45 @@ export async function loadTransactions() {
 
       const counterpart = isIncoming
         ? (["SYSTEM","BANK","BANK_INTEREST","BINANCE","ADMIN"].includes(tx.from) ? "" : `de ${tx.from}`)
-        : (["SYSTEM","BANK","STORE"].includes(tx.to)   ? "" : `a ${tx.to}`);
+        : (["SYSTEM","BANK","STORE"].includes(tx.to) ? "" : `a ${tx.to}`);
 
-      return `<tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 0.6rem 0.4rem;"><span style="font-size:0.75rem; font-weight:700; color:${info.color}; background:${info.color}18; padding:2px 8px; border-radius:999px;">${info.label}</span></td>
-        <td style="padding: 0.6rem 0.4rem; font-size:0.85rem; color:var(--text-muted);">${tx.note || "—"}${counterpart ? `<br><span style="font-size:0.75rem;">${counterpart}</span>` : ""}</td>
-        <td style="padding: 0.6rem 0.4rem; font-weight:800; color:${amountColor}; white-space:nowrap;">${sign}${tx.amount.toLocaleString()} NC</td>
-        <td style="padding: 0.6rem 0.4rem; font-size:0.78rem; color:var(--text-subtle); white-space:nowrap;">${date}</td>
-      </tr>`;
-    }).join("");
+      return {
+        rowHtml: `<tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:0.6rem 0.4rem;"><span style="font-size:0.75rem;font-weight:700;color:${info.color};background:${info.color}18;padding:2px 8px;border-radius:999px;">${info.label}</span></td>
+          <td style="padding:0.6rem 0.4rem;font-size:0.85rem;color:var(--text-muted);">${tx.note || "—"}${counterpart ? `<br><span style="font-size:0.75rem;">${counterpart}</span>` : ""}</td>
+          <td style="padding:0.6rem 0.4rem;font-weight:800;color:${amountColor};white-space:nowrap;">${sign}${tx.amount.toLocaleString()} NC</td>
+          <td style="padding:0.6rem 0.4rem;font-size:0.78rem;color:var(--text-subtle);white-space:nowrap;">${date}</td>
+        </tr>`,
+        cardHtml: `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;padding:0.65rem 0;border-bottom:1px solid var(--border);">
+            <div style="display:flex;flex-direction:column;gap:0.2rem;min-width:0;flex:1;">
+              <span style="font-size:0.7rem;font-weight:700;color:${info.color};background:${info.color}18;padding:1px 7px;border-radius:999px;width:fit-content;">${info.label}</span>
+              <span style="font-size:0.82rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${tx.note || "—"}${counterpart ? ` · ${counterpart}` : ""}</span>
+              <span style="font-size:0.7rem;color:var(--text-subtle);">${date}</span>
+            </div>
+            <span style="font-weight:800;font-size:1rem;color:${amountColor};white-space:nowrap;flex-shrink:0;">${sign}${tx.amount.toLocaleString()} NC</span>
+          </div>`
+      };
+    });
+
+    const rowsHtml  = txsMapped.map(t => t.rowHtml).join("");
+    const cardsHtml = txsMapped.map(t => t.cardHtml).join("");
 
     listContainer.innerHTML = `
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
-        <thead>
-          <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">
-            <th style="padding: 0.5rem 0.4rem;">Tipo</th>
-            <th style="padding: 0.5rem 0.4rem;">Detalle</th>
-            <th style="padding: 0.5rem 0.4rem;">Monto</th>
-            <th style="padding: 0.5rem 0.4rem;">Fecha</th>
-          </tr>
-        </thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>
+      <div class="wallet-tx-table-wrap">
+        <table style="width:100%;border-collapse:collapse;text-align:left;font-size:0.88rem;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border);color:var(--text-muted);font-size:0.78rem;text-transform:uppercase;">
+              <th style="padding:0.5rem 0.4rem;">Tipo</th>
+              <th style="padding:0.5rem 0.4rem;">Detalle</th>
+              <th style="padding:0.5rem 0.4rem;">Monto</th>
+              <th style="padding:0.5rem 0.4rem;">Fecha</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+      <div class="wallet-tx-cards-mobile">${cardsHtml}</div>
     `;
   } catch (err) {
     if (listContainer) listContainer.innerHTML = `<div style="text-align:center; color:var(--red); padding:1.5rem;">Error al cargar historial.</div>`;

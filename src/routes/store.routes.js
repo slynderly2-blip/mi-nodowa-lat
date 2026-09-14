@@ -37,8 +37,12 @@ router.post("/buy", (req, res) => {
       id: "del_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
       username: user.username,
       itemTitle: item.name,
+      itemCategory: item.category || null,
       command: item.command ? item.command.replace(/{player}/g, user.displayName || user.username) : null,
       giveCoins: item.giveCoins || 0,
+      priceCoins: price,
+      paymentMethod: "Nodocoins (NC)",
+      source: "STORE_NC",
       status: "PENDING",
       createdAt: new Date().toISOString()
     };

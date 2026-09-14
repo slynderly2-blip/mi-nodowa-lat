@@ -32,3 +32,27 @@
 .byc-info-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--text-muted); }
 .byc-info-row svg { color: var(--emerald); flex-shrink: 0; }
 .byc-info-row strong { color: var(--text); }
+
+/* ==========================================================================
+   HISTORIAL DE TRANSACCIONES — RESPONSIVE MÓVIL
+   ========================================================================== */
+
+/* Desktop: tabla con scroll horizontal si hace falta */
+.wallet-tx-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Móvil: ocultar tabla, mostrar tarjetas */
+.wallet-tx-cards-mobile {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .wallet-tx-table-wrap {
+    display: none;
+  }
+  .wallet-tx-cards-mobile {
+    display: block;
+  }
+}
