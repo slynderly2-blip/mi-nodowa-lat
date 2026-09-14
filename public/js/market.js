@@ -49,13 +49,15 @@ export function initMarket() {
     });
   }
 
-  // Exponer globales
+  // Exponer globales específicos del tab market
   window.setMarketFilter      = setMarketFilter;
   window.clearMarketSearch    = clearMarketSearch;
-  window.deleteMarketListing  = deleteMarketListing;
-  window.listMyItemP2P        = listMyItemP2P;
-  window.deleteP2PListing     = deleteMarketListing;
 }
+
+// Exponer siempre al cargar el módulo (el modal puede usarse desde cualquier tab)
+window.listMyItemP2P       = listMyItemP2P;
+window.deleteMarketListing = deleteMarketListing;
+window.deleteP2PListing    = deleteMarketListing;
 
 export function setMarketFilter(filter) {
   currentMarketFilter = filter;
