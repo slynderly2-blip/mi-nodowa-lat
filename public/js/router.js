@@ -2,7 +2,7 @@
 import { loadStore } from './store.js';
 import { loadCoinsCenter } from './coins.js';
 import { loadUserShop } from './user-shop.js';
-import { loadMarket } from './market.js';
+import { loadMarket, initMarket } from './market.js';
 import { loadSocial } from './social.js';
 import { loadTransactions } from './wallet.js';
 import { loadDeliveries } from './deliveries.js';
@@ -89,6 +89,7 @@ function loadTabContent(tab) {
         loadCoinsCenter();
         break;
       case 'market':
+        initMarket();
         loadMarket();
         break;
       case 'social':

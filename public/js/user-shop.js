@@ -186,17 +186,13 @@ function renderItemsTabHtml() {
           <div class="product-footer">
             <div>
               <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Precio:</span>
-              <span class="product-price">${Number(item.price).toLocaleString()} NC</span>
+              <span class="product-price">${typeof item.price === 'number' && item.price > 0 ? Number(item.price).toLocaleString() + ' NC' : 'A convenir'}</span>
             </div>
             ${currentUser && currentUser.toLowerCase() === item.seller.toLowerCase() ? `
               <button class="btn btn-outline btn-sm" onclick="window.deleteP2PListing('${item.id}')">
                 Eliminar
               </button>
-            ` : `
-              <button class="btn btn-primary btn-sm" onclick="window.buyP2PListing('${item.id}')">
-                Comprar
-              </button>
-            `}
+            ` : renderBuyButtonHtml(item)}
           </div>
         </div>
       `).join('')}
@@ -204,7 +200,35 @@ function renderItemsTabHtml() {
   `;
 }
 
-function renderNcOffersTabHtml() {
+function renderBuyButtonHtml(item) {
+  // Si el vendedor tiene WhatsApp, mostrar botón directo
+  if (item.whatsappNumber) {
+    const country = (item.whatsappCountry || '+591').replace(/\+/g, '');
+    const fullPhone = `${country}${item.whatsappNumber}`;
+    const msg = encodeURIComponent(`¡Hola ${item.seller}! Vi tu artículo "${item.title}" en tu tienda de Nodowa Network y me interesa comprarlo. ¿Cómo coordinamos?`);
+    const waUrl = `https://wa.me/${fullPhone}?text=${msg}`;
+    return `
+      <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+        <a href="${waUrl}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm" title="Contactar por WhatsApp">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.634.076-1.782-.379-1.393-.552-2.316-1.954-2.385-2.046-.068-.093-.564-.75-.564-1.429 0-.679.355-1.013.481-1.152.127-.138.277-.173.369-.173.093 0 .185.001.266.005.085.004.199-.033.31.234.116.279.398.971.433 1.042.035.071.058.154.012.247-.047.092-.07.15-.14.232-.07.081-.146.182-.209.245-.07.07-.143.146-.062.285.081.139.362.597.777.966.534.476.985.624 1.124.693.139.07.221.058.302-.035.082-.093.349-.406.442-.545.093-.139.186-.116.313-.07.127.047.808.381.947.45.139.07.232.104.267.162.035.058.035.337-.109.742z"/></svg>
+          WhatsApp
+        </a>
+        <button class="btn btn-outline btn-sm" onclick="window.openChatWith('${escapeHtml(item.seller)}')" title="Chat Web">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </button>
+      </div>
+    `;
+  }
+  // Sin WhatsApp: solo botón de chat web
+  return `
+    <button class="btn btn-primary btn-sm" onclick="window.openChatWith('${escapeHtml(item.seller)}')" style="display:flex;align-items:center;gap:5px;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Contactar
+    </button>
+  `;
+}
+
+
   if (ncOffers.length === 0) {
     return `
       <div class="card" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">

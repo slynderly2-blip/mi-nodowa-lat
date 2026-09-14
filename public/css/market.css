@@ -218,3 +218,129 @@
   outline: none;
   background: transparent;
 }
+
+/* ==========================================================================
+   BUZÓN DE ENTREGAS — LAYOUT RESPONSIVE MÓVIL
+   ========================================================================== */
+
+/* Tabla de escritorio: ocultar en móvil */
+.deliveries-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Vista de tarjetas para móvil */
+.deliveries-cards-mobile {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .deliveries-table-wrap {
+    display: none;
+  }
+  .deliveries-cards-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+/* Tarjeta individual de entrega en móvil */
+.delivery-card-mobile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  transition: border-color 0.15s;
+}
+
+.delivery-card-mobile.has-new-msg {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(99, 102, 241, 0.02);
+}
+
+.dcm-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.dcm-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.dcm-title strong {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dcm-category {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.dcm-new-badge {
+  display: inline-block;
+  background: #6366f1;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-top: 2px;
+  width: fit-content;
+}
+
+.dcm-right {
+  flex-shrink: 0;
+}
+
+.dcm-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  margin-bottom: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.dcm-price {
+  font-size: 0.88rem;
+}
+
+.dcm-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dcm-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Botones de acción en tabla desktop */
+.delivery-action-btns {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Botón WhatsApp versión pequeña (para user-shop) */
+.btn-whatsapp.btn-sm {
+  padding: 0.4rem 0.7rem !important;
+  font-size: 0.78rem !important;
+}

@@ -4,8 +4,12 @@ import { showToast, openModal, closeModal, escapeHtml } from './utils.js';
 
 let currentMarketFilter = "all";
 let marketSearchTerm = "";
+let marketInitialized = false;
 
 export function initMarket() {
+  if (marketInitialized) return;
+  marketInitialized = true;
+
   // Búsqueda con debounce
   const searchInput = document.getElementById("market-search");
   if (searchInput) {
@@ -118,7 +122,8 @@ export async function listMyItemP2P() {
 }
 
 export async function loadMarket() {
-  const grid = document.getElementById("market-grid");
+  // Soporta ambos ids: el del tab principal y el del tab de usuario
+  const grid = document.getElementById("market-grid") || document.getElementById("p2p-market-grid");
   if (!grid) return;
 
   try {
@@ -138,7 +143,8 @@ export async function loadMarket() {
 }
 
 function renderMarket(offers) {
-  const grid = document.getElementById("market-grid");
+  // Soporta ambos ids: el del tab principal y el del tab de usuario
+  const grid = document.getElementById("market-grid") || document.getElementById("p2p-market-grid");
   if (!grid) return;
 
   if (!offers || offers.length === 0) {

@@ -203,6 +203,17 @@ export async function loadDeliveries() {
       const dEncoded   = encodeURIComponent(JSON.stringify(d));
       const linkedMsgs = msgByRef[d.id] || [];
       const hasNewMsg  = linkedMsgs.some(m => !m.readAt);
+      const dateStr    = new Date(d.createdAt).toLocaleString("es", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+
+      const actionBtns = `
+        <div class="delivery-action-btns">
+          <button class="btn btn-outline btn-sm" onclick="window.__openDeliveryReceipt('${dEncoded}')">🧾 Recibo</button>
+          ${hasIssue
+            ? `<span style="font-size:0.75rem; color:var(--red); font-weight:700;">En revision</span>`
+            : d.status !== "REJECTED" && d.status !== "REFUNDED"
+              ? `<button class="btn btn-outline btn-sm" style="color:var(--red);" onclick="window.openReportModal('${escapeHtml(d.id)}')">Reportar</button>`
+              : ""}
+        </div>`;
 
       const repliesHtml = linkedMsgs.length > 0 ? `
         <tr>
@@ -222,38 +233,88 @@ export async function loadDeliveries() {
             ${hasNewMsg ? `<span style="display:inline-block; margin-left:4px; background:#6366f1; color:#fff; font-size:0.58rem; font-weight:800; padding:0 5px; border-radius:999px; vertical-align:middle;">Respuesta</span>` : ""}
           </td>
           <td style="padding:0.65rem 0.5rem; font-size:0.82rem;">${priceDisplay}</td>
-          <td style="padding:0.65rem 0.5rem; font-size:0.82rem; color:var(--text-muted);">
-            ${new Date(d.createdAt).toLocaleString("es", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" })}
-          </td>
+          <td style="padding:0.65rem 0.5rem; font-size:0.82rem; color:var(--text-muted);">${dateStr}</td>
           <td style="padding:0.65rem 0.5rem;">${badgeHtml}</td>
-          <td style="padding:0.65rem 0.5rem;">
-            <div style="display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;">
-              <button class="btn btn-outline btn-sm" onclick="window.__openDeliveryReceipt('${dEncoded}')">&#129534; Recibo</button>
-              ${hasIssue
-                ? `<span style="font-size:0.75rem; color:var(--red); font-weight:700;">En revision</span>`
-                : d.status !== "REJECTED" && d.status !== "REFUNDED"
-                  ? `<button class="btn btn-outline btn-sm" style="color:var(--red);" onclick="window.openReportModal('${escapeHtml(d.id)}')">Reportar</button>`
-                  : ""}
-            </div>
-          </td>
+          <td style="padding:0.65rem 0.5rem;">${actionBtns}</td>
         </tr>
         ${repliesHtml}`;
     }).join("");
 
     const tableHtml = `
       ${globalHtml}
-      <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.88rem;">
-        <thead>
-          <tr style="border-bottom:2px solid var(--border); color:var(--text-muted); font-size:0.78rem; text-transform:uppercase;">
-            <th style="padding:0.5rem;">Articulo</th>
-            <th style="padding:0.5rem;">Precio</th>
-            <th style="padding:0.5rem;">Fecha</th>
-            <th style="padding:0.5rem;">Estado</th>
-            <th style="padding:0.5rem;">Accion</th>
-          </tr>
-        </thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>`;
+      <div class="deliveries-table-wrap">
+        <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.88rem;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border); color:var(--text-muted); font-size:0.78rem; text-transform:uppercase;">
+              <th style="padding:0.5rem;">Articulo</th>
+              <th style="padding:0.5rem;">Precio</th>
+              <th style="padding:0.5rem;">Fecha</th>
+              <th style="padding:0.5rem;">Estado</th>
+              <th style="padding:0.5rem;">Accion</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+      <div class="deliveries-cards-mobile">
+        ${list.map(d => {
+          const isDelivered = d.status === "DELIVERED";
+          const hasIssue    = d.reportedIssue;
+
+          let badgeHtml = isDelivered
+            ? `<span class="badge badge-emerald">Entregado</span>`
+            : `<span class="badge badge-amber">En Cola</span>`;
+          if (hasIssue)                badgeHtml = `<span class="badge badge-red">Reportado</span>`;
+          if (d.status === "REJECTED") badgeHtml = `<span class="badge" style="background:#fee2e2;color:var(--red);">Rechazado</span>`;
+          if (d.status === "REFUNDED") badgeHtml = `<span class="badge" style="background:#ede9fe;color:#7c3aed;">Reembolsado</span>`;
+
+          let priceDisplay = `<span style="color:var(--text-muted);">Sin costo</span>`;
+          if (d.priceUsdt && Number(d.priceUsdt) > 0)
+            priceDisplay = `<strong style="color:#f59e0b;">$${Number(d.priceUsdt).toFixed(2)} USDT</strong>`;
+          else if (d.priceCoins && Number(d.priceCoins) > 0)
+            priceDisplay = `<strong style="color:var(--primary);">-${Number(d.priceCoins).toLocaleString()} NC</strong>`;
+          else if (d.giveCoins && Number(d.giveCoins) > 0)
+            priceDisplay = `<strong style="color:var(--emerald);">+${Number(d.giveCoins).toLocaleString()} NC</strong>`;
+
+          const dEncoded   = encodeURIComponent(JSON.stringify(d));
+          const linkedMsgs = msgByRef[d.id] || [];
+          const hasNewMsg  = linkedMsgs.some(m => !m.readAt);
+          const dateStr    = new Date(d.createdAt).toLocaleString("es", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+
+          const repliesMobileHtml = linkedMsgs.length > 0 ? `
+            <div style="margin-top:0.5rem; padding:0.5rem 0.75rem; border-left:2px dashed var(--border); background:var(--surface-hover); border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+              <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:0.3rem;">Respuesta del admin</div>
+              ${linkedMsgs.map(m => renderAdminMessage(m, false, currentUser)).join("")}
+            </div>` : "";
+
+          return `
+            <div class="delivery-card-mobile ${hasNewMsg ? 'has-new-msg' : ''}">
+              <div class="dcm-top">
+                <div class="dcm-title">
+                  <strong>${escapeHtml(d.itemTitle || "Articulo")}</strong>
+                  ${d.itemCategory ? `<span class="dcm-category">${escapeHtml(d.itemCategory)}</span>` : ""}
+                  ${hasNewMsg ? `<span class="dcm-new-badge">Respuesta</span>` : ""}
+                </div>
+                <div class="dcm-right">
+                  ${badgeHtml}
+                </div>
+              </div>
+              <div class="dcm-meta">
+                <span class="dcm-price">${priceDisplay}</span>
+                <span class="dcm-date">${dateStr}</span>
+              </div>
+              <div class="dcm-actions">
+                <button class="btn btn-outline btn-sm" onclick="window.__openDeliveryReceipt('${dEncoded}')">🧾 Recibo</button>
+                ${hasIssue
+                  ? `<span style="font-size:0.75rem; color:var(--red); font-weight:700; padding:0.25rem 0;">En revision</span>`
+                  : d.status !== "REJECTED" && d.status !== "REFUNDED"
+                    ? `<button class="btn btn-outline btn-sm" style="color:var(--red);" onclick="window.openReportModal('${escapeHtml(d.id)}')">Reportar</button>`
+                    : ""}
+              </div>
+              ${repliesMobileHtml}
+            </div>`;
+        }).join("")}
+      </div>`;
 
     if (container)  container.innerHTML = tableHtml;
     else if (tbody) tbody.innerHTML     = rowsHtml;
