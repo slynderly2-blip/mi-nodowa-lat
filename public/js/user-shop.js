@@ -188,11 +188,10 @@ function renderItemsTabHtml() {
               <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Precio:</span>
               <span class="product-price">${typeof item.price === 'number' && item.price > 0 ? Number(item.price).toLocaleString() + ' NC' : 'A convenir'}</span>
             </div>
-            ${currentUser && currentUser.toLowerCase() === item.seller.toLowerCase() ? `
-              <button class="btn btn-outline btn-sm" onclick="window.deleteP2PListing('${item.id}')">
-                Eliminar
-              </button>
-            ` : renderBuyButtonHtml(item)}
+            ${currentUser && currentUser.toLowerCase() === item.seller.toLowerCase()
+              ? `<button class="btn btn-outline btn-sm" onclick="window.deleteP2PListing('${item.id}')">Eliminar</button>`
+              : renderBuyButtonHtml(item)
+            }
           </div>
         </div>
       `).join('')}
@@ -201,11 +200,10 @@ function renderItemsTabHtml() {
 }
 
 function renderBuyButtonHtml(item) {
-  // Si el vendedor tiene WhatsApp, mostrar botón directo
   if (item.whatsappNumber) {
     const country = (item.whatsappCountry || '+591').replace(/\+/g, '');
     const fullPhone = `${country}${item.whatsappNumber}`;
-    const msg = encodeURIComponent(`¡Hola ${item.seller}! Vi tu artículo "${item.title}" en tu tienda de Nodowa Network y me interesa comprarlo. ¿Cómo coordinamos?`);
+    const msg = encodeURIComponent(`¡Hola ${item.seller}! Vi tu artículo "${item.title}" en Nodowa Network y me interesa comprarlo. ¿Cómo coordinamos?`);
     const waUrl = `https://wa.me/${fullPhone}?text=${msg}`;
     return `
       <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
@@ -219,7 +217,6 @@ function renderBuyButtonHtml(item) {
       </div>
     `;
   }
-  // Sin WhatsApp: solo botón de chat web
   return `
     <button class="btn btn-primary btn-sm" onclick="window.openChatWith('${escapeHtml(item.seller)}')" style="display:flex;align-items:center;gap:5px;">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -228,7 +225,7 @@ function renderBuyButtonHtml(item) {
   `;
 }
 
-
+function renderNcOffersTabHtml() {
   if (ncOffers.length === 0) {
     return `
       <div class="card" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
