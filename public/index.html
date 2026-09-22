@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tienda Nodowa</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Encabezado -->
+  <header>
+    <h1>Tienda Oficial Nodowa</h1>
+    <p>Servidor Minecraft Bedrock: <b>carina.mcserverhost.com:2022</b></p>
+
+    <!-- Barra de estado de usuario -->
+    <div id="nav-actions">
+      <button onclick="openMinecraftLogin()">🎮 Entrar con Minecraft (/link)</button>
+      <button onclick="openAdminLoginModal()">👑 Admin</button>
+    </div>
+  </header>
+
+  <hr>
+
+  <!-- Botones de acción rápida -->
+  <div>
+    <button onclick="openWalletModal()">Mi Billetera y Banco</button>
+    <button onclick="copyServerIP()">Copiar IP del Servidor</button>
+  </div>
+
+  <hr>
+
+  <!-- Catálogo de productos -->
+  <section>
+    <h2>Catálogo de Productos</h2>
+
+    <div>
+      <label>Buscar: </label>
+      <input type="text" id="search-items" placeholder="Buscar item o rango...">
+    </div>
+    <br>
+
+    <div>
+      <b>Categorías: </b>
+      <button class="cat-btn" data-cat="all">Todos</button>
+      <button class="cat-btn" data-cat="coins">Nodocoins (NC)</button>
+      <button class="cat-btn" data-cat="ranks">Rangos VIP</button>
+      <button class="cat-btn" data-cat="items">Items & Kits</button>
+    </div>
+
+    <!-- Lista de productos -->
+    <div id="store-grid" class="store-grid">
+      <p>Cargando productos...</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- Modal: Iniciar Sesión mediante /link en Minecraft -->
+  <div class="modal-overlay" id="modal-link-login">
+    <h3>Iniciar sesión mediante Minecraft (/link)</h3>
+    <button style="float: right;" onclick="closeModal('modal-link-login')">Cerrar</button>
+    
+    <p>
+      Para identificarte en la tienda no necesitas contraseña.<br>
+      Solo escribe el código generado dentro del servidor de Minecraft con el comando <code>/link</code>.
+    </p>
+
+    <div id="link-login-box">
+      <button onclick="startMinecraftLogin()">Generar Código de Acceso</button>
+    </div>
+
+    <div id="link-code-status" style="margin-top: 15px;"></div>
+  </div>
+
+  <!-- Modal: Login Admin -->
+  <div class="modal-overlay" id="modal-admin-login">
+    <h3>Acceso de Administrador</h3>
+    <button style="float: right;" onclick="closeModal('modal-admin-login')">Cerrar</button>
+
+    <form onsubmit="handleAdminLogin(event)">
+      <div>
+        <label>Contraseña de Administrador:</label><br>
+        <input type="password" id="admin-pass-input" placeholder="Contraseña de admin" required>
+      </div>
+      <br>
+      <button type="submit">Entrar al Panel Admin</button>
+    </form>
+  </div>
+
+  <!-- Modal: Pago USDT / Binance -->
+  <div class="modal-overlay" id="modal-usdt">
+    <h3>Pagar con Binance Pay (USDT)</h3>
+    <button style="float: right;" onclick="closeModal('modal-usdt')">Cerrar</button>
+    <div id="usdt-item-details"></div>
+
+    <p>
+      <b>Instrucciones de pago:</b><br>
+      1. Entra a Binance Pay.<br>
+      2. Envía al <b>Binance Pay ID: 1255344898</b><br>
+      3. O escanea el código QR:<br>
+      <img src="/uploads/1788641794187_6lpnkb.jpeg" alt="QR Binance" style="max-width: 180px; border: 1px solid #ccc; margin-top: 5px;" onerror="this.style.display='none'">
+    </p>
+
+    <form id="form-usdt-order" onsubmit="submitUsdtOrder(event)">
+      <input type="hidden" id="usdt-item-id">
+      <div>
+        <label>ID de Transacción (TXID):</label><br>
+        <input type="text" id="usdt-txid" placeholder="Ej: 455290222503165952">
+      </div>
+      <br>
+      <div>
+        <label>Comprobante de pago (imagen):</label><br>
+        <input type="file" id="usdt-file" accept="image/*">
+      </div>
+      <br>
+      <button type="submit">Enviar Pedido para Revisión</button>
+    </form>
+  </div>
+
+  <!-- Modal: Billetera y Banco -->
+  <div class="modal-overlay" id="modal-wallet">
+    <h3>Billetera y Banco</h3>
+    <button style="float: right;" onclick="closeModal('modal-wallet')">Cerrar</button>
+
+    <p>
+      <b>Saldo en Mano:</b> <span id="wallet-user-wallet">0 NC</span><br>
+      <b>Saldo en Banco:</b> <span id="wallet-user-bank">0 NC</span>
+    </p>
+
+    <div>
+      <button onclick="handleBankDeposit()">Depositar en Banco</button>
+      <button onclick="handleBankWithdraw()">Retirar de Banco</button>
+      <button onclick="handlePlayerTransfer()">Transferir a otro jugador</button>
+    </div>
+
+    <h4>Transacciones recientes:</h4>
+    <div id="wallet-tx-list"></div>
+  </div>
+
+  <!-- Modal: Perfil -->
+  <div class="modal-overlay" id="modal-profile">
+    <h3>Perfil de Jugador</h3>
+    <button style="float: right;" onclick="closeModal('modal-profile')">Cerrar</button>
+    <p>
+      <b>Jugador:</b> <span id="profile-username"></span><br>
+      <b>Estado Minecraft:</b> <span id="profile-linked-status"></span><br>
+      <b>Billetera:</b> <span id="profile-wallet-balance"></span><br>
+      <b>Banco:</b> <span id="profile-bank-balance"></span>
+    </p>
+    <button onclick="logout(); closeModal('modal-profile');">Cerrar sesión</button>
+  </div>
+
+  <!-- Modal: Admin -->
+  <div class="modal-overlay" id="modal-admin">
+    <h3>Panel de Administración</h3>
+    <button style="float: right;" onclick="closeModal('modal-admin')">Cerrar</button>
+
+    <div id="admin-stats-box"></div>
+    <h4>Pedidos USDT Pendientes</h4>
+    <div id="admin-orders-list"></div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

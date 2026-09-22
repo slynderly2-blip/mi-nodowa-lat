@@ -1,0 +1,61 @@
+/* Sin estilos decorativos */
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background-color: #fff;
+  color: #000;
+}
+
+hr {
+  margin: 20px 0;
+}
+
+.store-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.item-card {
+  border: 1px solid #ccc;
+  padding: 15px;
+  width: 260px;
+  background: #fafafa;
+}
+
+.modal-overlay {
+  display: none;
+}
+
+.modal-overlay.active {
+  display: block;
+  position: fixed;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 2px solid #333;
+  padding: 20px;
+  width: 450px;
+  max-width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 2000;
+}
+
+.toast {
+  background: #222;
+  color: #fff;
+  padding: 8px 12px;
+  margin-top: 6px;
+  border-radius: 3px;
+}
