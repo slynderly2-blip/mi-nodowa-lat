@@ -4,13 +4,13 @@
 
 /* ── 1. Tokens de diseño ─────────────────────────────────────────────────── */
 :root {
-  /* Colores base — tema claro */
-  --bg-base:       #f5f5f7;
+  /* Colores base — tema claro con contraste real */
+  --bg-base:       #f0f2f5;
   --bg-surface:    #ffffff;
-  --bg-elevated:   #f0f0f4;
-  --bg-hover:      #e8e8ef;
-  --border:        #d1d1db;
-  --border-subtle: #e4e4ed;
+  --bg-elevated:   #f7f8fa;
+  --bg-hover:      #eceef2;
+  --border:        #c8ccd6;
+  --border-subtle: #dde0e8;
 
   /* Marca */
   --violet:        #7C3AED;
@@ -20,16 +20,16 @@
   --teal-hover:    #0f766e;
   --teal-dim:      rgba(13, 148, 136, 0.10);
 
-  /* Textos */
-  --text-primary:  #111118;
-  --text-secondary:#52526a;
-  --text-muted:    #9898b0;
+  /* Textos — contrastes WCAG AA */
+  --text-primary:  #0f1117;
+  --text-secondary:#3d4460;
+  --text-muted:    #6b7280;
 
   /* Semánticos */
-  --success:       #16a34a;
-  --warning:       #d97706;
-  --danger:        #dc2626;
-  --info:          #0284c7;
+  --success:       #15803d;
+  --warning:       #b45309;
+  --danger:        #b91c1c;
+  --info:          #0369a1;
 
   /* Dimensiones */
   --sidebar-width:   220px;
@@ -88,7 +88,7 @@ input, button, select, textarea { font-size: inherit; }
 .sidebar {
   width: var(--sidebar-width);
   background: var(--bg-surface);
-  border-right: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -215,7 +215,7 @@ input, button, select, textarea { font-size: inherit; }
 .topbar {
   height: var(--topbar-height);
   background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -370,20 +370,22 @@ input, button, select, textarea { font-size: inherit; }
 /* Tarjeta de item */
 .item-card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 18px 16px 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: border-color 0.18s, transform 0.15s;
+  transition: border-color 0.18s, transform 0.15s, box-shadow 0.18s;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
 }
 
 .item-card:hover {
-  border-color: var(--border);
+  border-color: var(--violet);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(124,58,237,0.12);
 }
 
 .item-card__icon {
@@ -460,9 +462,10 @@ input, button, select, textarea { font-size: inherit; }
 /* ── 8. Cards genéricas ──────────────────────────────────────────────────── */
 .card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 20px 22px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
 }
 
 .card-title {
@@ -483,12 +486,13 @@ input, button, select, textarea { font-size: inherit; }
 
 .balance-card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 22px 22px 18px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
 }
 
 .balance-card--bank {
@@ -588,7 +592,7 @@ input, button, select, textarea { font-size: inherit; }
 
 .order-card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 16px 18px;
   display: flex;
@@ -596,6 +600,7 @@ input, button, select, textarea { font-size: inherit; }
   justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .order-card__info {
@@ -1258,8 +1263,8 @@ input::placeholder { color: var(--text-muted); }
 
 /* ── 19. Estados vacíos ──────────────────────────────────────────────────── */
 .empty-state {
-  color: var(--text-muted);
-  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
   text-align: center;
   padding: 32px 16px;
 }
