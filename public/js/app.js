@@ -2107,48 +2107,42 @@ async function init() {
   $('wallet-action-form')?.addEventListener('submit', submitWalletAction);
   $('admin-user-form')?.addEventListener('submit', submitAdminUser);
 
-  // ── Sidebar hamburger (desktop + mobile) ───────────────────────
+  // ── Sidebar hamburger — mobile only ────────────────────────────
+  // Múltiples capas: click, touchend, y registro temprano vía módulo
   const sidebar  = $('sidebar');
-  const wrapper  = document.querySelector('.main-wrapper');
   const overlay  = $('sidebar-overlay');
 
   function openSidebar() {
-    sidebar?.classList.remove('collapsed');
-    overlay?.classList.add('show');
-    wrapper?.classList.remove('sidebar-collapsed');
-    try { localStorage.setItem('sidebarOpen', '1'); } catch {}
+    if (!sidebar) return;
+    sidebar.classList.add('open');
+    sidebar.setAttribute('aria-hidden', 'false');
+    overlay && overlay.classList.add('show');
+    document.body.classList.add('sidebar-open');
   }
   function closeSidebar() {
-    sidebar?.classList.add('collapsed');
-    overlay?.classList.remove('show');
-    wrapper?.classList.add('sidebar-collapsed');
-    try { localStorage.setItem('sidebarOpen', '0'); } catch {}
+    if (!sidebar) return;
+    sidebar.classList.remove('open');
+    sidebar.setAttribute('aria-hidden', 'true');
+    overlay && overlay.classList.remove('show');
+    document.body.classList.remove('sidebar-open');
   }
-  function toggleSidebar() {
-    if (sidebar?.classList.contains('collapsed')) openSidebar();
-    else closeSidebar();
-  }
-
-  // Restaurar preferencia guardada
-  try {
-    if (localStorage.getItem('sidebarOpen') === '0') {
-      sidebar?.classList.add('collapsed');
-      wrapper?.classList.add('sidebar-collapsed');
-    }
-  } catch {}
-
-  // En mobile, siempre empezar colapsado sin importar preferencia
-  if (window.innerWidth <= 768) {
-    sidebar?.classList.add('collapsed');
-    overlay?.classList.remove('show');
+  function toggleSidebar(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    sidebar && sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
   }
 
-  $('sidebar-toggle')?.addEventListener('click', toggleSidebar);
-  overlay?.addEventListener('click', closeSidebar);
+  const btn = $('sidebar-toggle');
+  if (btn) {
+    btn.addEventListener('click',      toggleSidebar, { passive: false });
+    btn.addEventListener('touchend',   toggleSidebar, { passive: false });
+  }
+  if (overlay) {
+    overlay.addEventListener('click',    closeSidebar, { passive: true });
+    overlay.addEventListener('touchend', closeSidebar, { passive: true });
+  }
+  // Cerrar al navegar en mobile
   $('sidebar-nav')?.addEventListener('click', e => {
-    if (e.target.closest('[data-section]') && window.innerWidth <= 768) {
-      closeSidebar();
-    }
+    if (e.target.closest('[data-section]') && window.innerWidth <= 768) closeSidebar();
   });
 
   // Activar sección catálogo sin recargar (ya cargó en paralelo al inicio)
@@ -2163,3 +2157,46 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+/* ── Registro TEMPRANO del burger — capa extra antes de init() ─── */
+// Se ejecuta en cuanto el DOM existe, independiente de init() async
+;(function() {
+  function _earlyToggle(e) {
+    e && e.preventDefault && e.preventDefault();
+    e && e.stopPropagation && e.stopPropagation();
+    var s = document.getElementById('sidebar');
+    var o = document.getElementById('sidebar-overlay');
+    if (!s) return;
+    var isOpen = s.classList.contains('open');
+    s.classList.toggle('open', !isOpen);
+    s.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
+    if (o) o.classList.toggle('show', !isOpen);
+    document.body.classList.toggle('sidebar-open', !isOpen);
+  }
+  function _earlyClose(e) {
+    var s = document.getElementById('sidebar');
+    var o = document.getElementById('sidebar-overlay');
+    if (s) { s.classList.remove('open'); s.setAttribute('aria-hidden', 'true'); }
+    if (o) o.classList.remove('show');
+    document.body.classList.remove('sidebar-open');
+  }
+  function _attach() {
+    var btn = document.getElementById('sidebar-toggle');
+    var ovr = document.getElementById('sidebar-overlay');
+    if (btn && !btn._earlyBound) {
+      btn.addEventListener('click',    _earlyToggle, { passive: false });
+      btn.addEventListener('touchend', _earlyToggle, { passive: false });
+      btn._earlyBound = true;
+    }
+    if (ovr && !ovr._earlyBound) {
+      ovr.addEventListener('click',    _earlyClose, { passive: true });
+      ovr.addEventListener('touchend', _earlyClose, { passive: true });
+      ovr._earlyBound = true;
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _attach);
+  } else {
+    _attach();
+  }
+})();
