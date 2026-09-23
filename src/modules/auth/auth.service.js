@@ -127,68 +127,85 @@ async function requestLinkCode(username) {
   return { ok: true, code, expiresAt, username: nick };
 }
 
-// ── Verificar si el código ya fue usado (polling desde el frontend) ────────────
-function checkLinkStatus(code) {
-  const token = db.get(
-    `SELECT * FROM link_tokens WHERE code = ? AND expires_at > datetime('now')`,
-    [code]
-  );
-  if (!token) return { ok: false, status: 'expired' };
-  if (!token.used) return { ok: false, status: 'pending' };
-
-  // Ya fue usado — devolver JWT
-  const user = db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [token.username]);
-  if (!user) return { ok: false, status: 'error' };
-
-  const jwt_token = makeToken(user);
-  // Limpiar token usado
-  db.run(`DELETE FROM link_tokens WHERE code = ?`, [code]);
-  return { ok: true, status: 'linked', token: jwt_token, user: safeUser(user) };
-}
-
 // ── Verificar vinculación (llamado desde addon) ───────────────────────────────
 async function verifyLink(code, playerName, xuid) {
   if (!code || !playerName) throw new BadRequest('Código y nombre de jugador requeridos');
 
-  const token = db.get(
+  const linkToken = db.get(
     `SELECT * FROM link_tokens WHERE code = ? AND used = 0 AND expires_at > datetime('now')`,
     [String(code)]
   );
-  if (!token) return { ok: false, error: 'Código inválido o expirado' };
+  if (!linkToken) return { ok: false, error: 'Código inválido o expirado' };
 
-  const { username } = token;
+  const { username } = linkToken;
 
-  // Verificar que el username del token coincida con playerName o actualizarlo
   const user = db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [username]);
   if (!user) return { ok: false, error: 'Usuario no encontrado' };
 
-  // Ya vinculado?
-  if (user.linked) {
-    db.run('DELETE FROM link_tokens WHERE code = ?', [code]);
-    return { ok: false, error: 'Tu cuenta ya está vinculada' };
-  }
+  const alreadyLinked = !!user.linked;
+  const bonusNc       = alreadyLinked ? 0 : 500;
 
-  // Dar bono
-  const bonusNc = 500;
+  // Generar JWT para que el polling del frontend lo recoja
+  const jwtToken = makeToken(user);
+
   db.transaction(() => {
+    if (!alreadyLinked) {
+      // Primera vinculación: actualizar datos y dar bono
+      db.run(
+        `UPDATE users SET linked = 1, xuid = ?, display_name = ?, last_active = datetime('now') WHERE id = ?`,
+        [xuid || null, playerName, user.id]
+      );
+      db.run(`UPDATE users SET wallet = wallet + ? WHERE id = ?`, [bonusNc, user.id]);
+      db.run(
+        `INSERT INTO transactions (id, from_user, to_user, amount, type, note)
+         VALUES (?, 'SYSTEM', ?, ?, 'BONUS', 'Bono de vinculación Minecraft')`,
+        [genId('tx'), username, bonusNc]
+      );
+    } else {
+      // Relogin: solo actualizar last_active
+      db.run(`UPDATE users SET last_active = datetime('now') WHERE id = ?`, [user.id]);
+    }
+
+    // Guardar JWT en session_token para que el polling lo recoja
     db.run(
-      `UPDATE users SET linked = 1, xuid = ?, display_name = ?, last_active = datetime('now') WHERE id = ?`,
-      [xuid || null, playerName, user.id]
+      `UPDATE link_tokens SET used = 1, session_token = ? WHERE code = ?`,
+      [jwtToken, code]
     );
-    db.run(
-      `UPDATE users SET wallet = wallet + ? WHERE id = ?`,
-      [bonusNc, user.id]
-    );
-    db.run(
-      `INSERT INTO transactions (id, from_user, to_user, amount, type, note)
-       VALUES (?, 'SYSTEM', ?, ?, 'BONUS', 'Bono de vinculación Minecraft')`,
-      [genId('tx'), username, bonusNc]
-    );
-    db.run(`UPDATE link_tokens SET used = 1 WHERE code = ?`, [code]);
   });
 
-  log.ok(`[Auth] Cuenta vinculada: ${username} ↔ ${playerName}`);
-  return { ok: true, bonusAmount: bonusNc, bonusAwarded: true };
+  log.ok(`[Auth] ${alreadyLinked ? 'Relogin' : 'Vinculación'}: ${username} ↔ ${playerName}`);
+  return { ok: true, bonusAmount: bonusNc, bonusAwarded: !alreadyLinked };
+}
+
+// ── Verificar si el código ya fue usado (polling desde el frontend) ────────────
+function checkLinkStatus(code) {
+  const linkToken = db.get(
+    `SELECT * FROM link_tokens WHERE code = ?`,
+    [code]
+  );
+
+  if (!linkToken) return { ok: false, status: 'expired' };
+
+  // Código todavía pendiente
+  if (!linkToken.used) {
+    // Verificar expiración
+    if (new Date(linkToken.expires_at) < new Date()) {
+      db.run(`DELETE FROM link_tokens WHERE code = ?`, [code]);
+      return { ok: false, status: 'expired' };
+    }
+    return { ok: false, status: 'pending' };
+  }
+
+  // Ya fue usado — devolver JWT guardado
+  if (!linkToken.session_token) return { ok: false, status: 'error' };
+
+  const user = db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [linkToken.username]);
+  if (!user) return { ok: false, status: 'error' };
+
+  // Limpiar token
+  db.run(`DELETE FROM link_tokens WHERE code = ?`, [code]);
+
+  return { ok: true, status: 'linked', token: linkToken.session_token, user: safeUser(user) };
 }
 
 // ── Helper: datos seguros del usuario ────────────────────────────────────────
