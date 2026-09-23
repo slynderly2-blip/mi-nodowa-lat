@@ -8,160 +8,150 @@
 </head>
 <body>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       LAYOUT PRINCIPAL
-  ═══════════════════════════════════════════════════════════ -->
   <div class="app-layout">
 
-    <!-- ── SIDEBAR ────────────────────────────────────────────── -->
+    <!-- ── SIDEBAR ──────────────────────────────────────────────── -->
     <aside class="sidebar" id="sidebar">
-      <!-- Logo -->
       <div class="sidebar-logo">
-        <svg class="logo-svg" width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-label="Nodowa logo">
-          <!-- Cuadro grande violeta — top-right -->
-          <rect x="14" y="0" width="18" height="18" rx="3" fill="#7C3AED"/>
-          <!-- Cuadro grande teal — bottom-left -->
-          <rect x="0" y="14" width="18" height="18" rx="3" fill="#0D9488"/>
-          <!-- Cuadro pequeño violeta opaco — centro-superior -->
-          <rect x="5" y="5" width="10" height="10" rx="2" fill="#7C3AED" opacity="0.45"/>
+        <svg class="logo-svg" width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-label="Nodowa">
+          <rect x="14" y="0"  width="18" height="18" rx="3" fill="#7C3AED"/>
+          <rect x="0"  y="14" width="18" height="18" rx="3" fill="#0D9488"/>
+          <rect x="5"  y="5"  width="10" height="10" rx="2" fill="#7C3AED" opacity="0.45"/>
         </svg>
         <span class="logo-text">Nodowa</span>
       </div>
 
-      <!-- Navegación dinámica (renderizada por JS según rol) -->
       <nav class="sidebar-nav" id="sidebar-nav" aria-label="Menú principal">
-        <!-- Inyectado por renderSidebarNav() en app.js -->
+        <!-- Inyectado por JS -->
       </nav>
     </aside>
 
-    <!-- ── ÁREA PRINCIPAL ─────────────────────────────────────── -->
+    <!-- ── CONTENIDO PRINCIPAL ─────────────────────────────────── -->
     <div class="main-wrapper">
 
-      <!-- TOPBAR -->
-      <header class="topbar" id="topbar">
+      <header class="topbar">
         <h1 class="topbar-title" id="topbar-title">Catálogo</h1>
-        <div class="topbar-actions" id="topbar-actions">
-          <!-- Inyectado por renderTopbar() en app.js -->
-        </div>
+        <div class="topbar-actions" id="topbar-actions"></div>
       </header>
 
-      <!-- CONTENIDO — secciones intercambiables -->
       <main class="main-content" id="main-content">
 
-        <!-- ── SECCIÓN: CATÁLOGO ──────────────────────────────── -->
+        <!-- CATÁLOGO -->
         <section id="section-catalog" class="content-section active" data-title="Catálogo">
           <div class="section-toolbar">
             <div class="filter-bar">
-              <input id="search-input" type="search" placeholder="Buscar productos…" aria-label="Buscar productos" />
-              <div class="category-filters" id="category-filters">
-                <!-- botones de categoría inyectados por JS -->
-              </div>
+              <input id="search-input" type="search" placeholder="Buscar productos..." aria-label="Buscar" />
+              <div class="category-filters" id="category-filters"></div>
             </div>
           </div>
-          <div class="items-grid" id="items-grid">
-            <!-- items inyectados por JS -->
-          </div>
+          <div class="items-grid" id="items-grid"></div>
           <div class="pagination" id="catalog-pagination"></div>
         </section>
 
-        <!-- ── SECCIÓN: BILLETERA ─────────────────────────────── -->
-        <section id="section-wallet" class="content-section" data-title="Billetera">
-          <div class="wallet-cards">
-            <div class="balance-card">
+        <!-- ECONOMÍA (billetera + banco combinados) -->
+        <section id="section-economy" class="content-section" data-title="Economía">
+          <div class="economy-header">
+            <div class="balance-card balance-card--wallet">
               <span class="balance-label">En mano</span>
-              <span class="balance-amount" id="wallet-amount">— NC</span>
+              <span class="balance-amount" id="econ-wallet">— NC</span>
               <div class="balance-actions">
-                <button class="btn btn-secondary" id="btn-deposit-bank">
-                  <span aria-hidden="true">🏦</span> Depositar al banco
-                </button>
-                <button class="btn btn-secondary" id="btn-withdraw-bank">
-                  <span aria-hidden="true">💸</span> Retirar del banco
-                </button>
+                <button class="btn btn-secondary btn-sm" id="btn-to-bank">Mover al banco</button>
+                <button class="btn btn-secondary btn-sm" id="btn-from-bank">Retirar del banco</button>
               </div>
             </div>
-            <div class="balance-card">
+            <div class="balance-card balance-card--bank">
               <span class="balance-label">En banco</span>
-              <span class="balance-amount" id="bank-amount">— NC</span>
+              <span class="balance-amount" id="econ-bank">— NC</span>
+              <div class="balance-meta" id="econ-total-label">Total: — NC</div>
+            </div>
+            <div class="balance-card balance-card--transfer">
+              <span class="balance-label">Transferir NC</span>
+              <form id="transfer-form" class="transfer-form" novalidate>
+                <input type="text"   id="transfer-to"     placeholder="Usuario destino" required />
+                <input type="number" id="transfer-amount" placeholder="Cantidad"        min="1" required />
+                <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+              </form>
+              <p class="form-feedback" id="transfer-feedback" aria-live="polite"></p>
             </div>
           </div>
 
-          <!-- Formulario transferencia -->
           <div class="card mt-4">
-            <h2 class="card-title">Transferir NC</h2>
-            <form id="transfer-form" class="form-inline" novalidate>
-              <input type="text" id="transfer-to" placeholder="Usuario destino" required aria-label="Usuario destino" />
-              <input type="number" id="transfer-amount" placeholder="Cantidad" min="1" required aria-label="Cantidad a transferir" />
-              <button type="submit" class="btn btn-primary">Transferir</button>
-            </form>
-            <p class="form-feedback" id="transfer-feedback" aria-live="polite"></p>
-          </div>
-
-          <!-- Historial -->
-          <div class="card mt-4">
-            <h2 class="card-title">Historial de transacciones</h2>
-            <div class="tx-list" id="tx-list">
-              <p class="empty-state">Cargando…</p>
+            <div class="card-header">
+              <h2 class="card-title">Historial de transacciones</h2>
+              <div class="tx-type-filter" id="tx-type-filter">
+                <button class="tab-btn active" data-type="all">Todas</button>
+                <button class="tab-btn" data-type="BONUS">Bonos</button>
+                <button class="tab-btn" data-type="PURCHASE">Compras</button>
+                <button class="tab-btn" data-type="BANK">Banco</button>
+                <button class="tab-btn" data-type="TRANSFER">Transferencias</button>
+              </div>
             </div>
+            <div class="tx-list" id="tx-list"><p class="empty-state">Cargando...</p></div>
             <div class="pagination" id="tx-pagination"></div>
           </div>
         </section>
 
-        <!-- ── SECCIÓN: BANCO ─────────────────────────────────── -->
-        <section id="section-bank" class="content-section" data-title="Banco">
-          <div class="wallet-cards">
-            <div class="balance-card balance-card--bank">
-              <span class="balance-label">Saldo bancario</span>
-              <span class="balance-amount" id="bank-section-amount">— NC</span>
-              <div class="balance-actions">
-                <button class="btn btn-secondary" id="btn-bank-deposit">
-                  <span aria-hidden="true">⬆</span> Depositar
-                </button>
-                <button class="btn btn-secondary" id="btn-bank-withdraw">
-                  <span aria-hidden="true">⬇</span> Retirar
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card mt-4">
-            <h2 class="card-title">Movimientos bancarios</h2>
-            <div class="tx-list" id="bank-tx-list">
-              <p class="empty-state">Cargando…</p>
-            </div>
-          </div>
-        </section>
-
-        <!-- ── SECCIÓN: MIS PEDIDOS ───────────────────────────── -->
+        <!-- MIS PEDIDOS -->
         <section id="section-orders" class="content-section" data-title="Mis Pedidos">
-          <div class="orders-list" id="orders-list">
-            <p class="empty-state">Cargando…</p>
-          </div>
+          <div class="orders-list" id="orders-list"><p class="empty-state">Cargando...</p></div>
           <div class="pagination" id="orders-pagination"></div>
         </section>
 
-        <!-- ── SECCIÓN: MI PERFIL ─────────────────────────────── -->
+        <!-- MI PERFIL -->
         <section id="section-profile" class="content-section" data-title="Mi Perfil">
-          <div class="profile-card" id="profile-card">
-            <!-- Inyectado por JS -->
-          </div>
-
-          <!-- Vinculación MC -->
-          <div class="card mt-4" id="link-card">
-            <h2 class="card-title">Vinculación Minecraft</h2>
-            <div id="link-status">
-              <!-- Inyectado por JS -->
+          <div class="profile-layout">
+            <div class="profile-sidebar-card" id="profile-avatar-card"></div>
+            <div class="profile-main">
+              <div class="card" id="profile-info-card"></div>
+              <div class="card mt-3" id="profile-edit-card">
+                <h2 class="card-title">Editar perfil</h2>
+                <form id="profile-edit-form" class="modal-form" novalidate>
+                  <label for="edit-display-name">Nombre visible</label>
+                  <input type="text" id="edit-display-name" maxlength="32" placeholder="Tu nombre" />
+                  <label for="edit-avatar-url">URL de avatar (imagen)</label>
+                  <input type="url" id="edit-avatar-url" placeholder="https://..." />
+                  <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                </form>
+                <p class="form-feedback" id="profile-edit-feedback" aria-live="polite"></p>
+              </div>
+              <div class="card mt-3" id="link-card">
+                <h2 class="card-title">Cuenta Minecraft</h2>
+                <div id="link-status"></div>
+              </div>
             </div>
           </div>
         </section>
 
-        <!-- ── SECCIÓN: ESTADÍSTICAS (admin) ─────────────────── -->
-        <section id="section-stats" class="content-section" data-title="Estadísticas">
-          <div class="stats-grid" id="stats-grid">
-            <!-- Inyectado por JS -->
+        <!-- JUGADORES -->
+        <section id="section-players" class="content-section" data-title="Jugadores">
+          <div class="section-toolbar">
+            <div class="filter-bar">
+              <input id="players-search" type="search" placeholder="Buscar jugador..." aria-label="Buscar jugador" />
+            </div>
           </div>
+          <div id="players-results"><p class="empty-state">Escribe un nombre para buscar.</p></div>
         </section>
 
-        <!-- ── SECCIÓN: PEDIDOS USDT (admin) ─────────────────── -->
+        <!-- LEADERBOARD -->
+        <section id="section-leaderboard" class="content-section" data-title="Ranking">
+          <div class="leaderboard-list" id="leaderboard-list"><p class="empty-state">Cargando...</p></div>
+        </section>
+
+        <!-- BUZON -->
+        <section id="section-inbox" class="content-section" data-title="Buzon">
+          <div class="inbox-toolbar">
+            <button class="btn btn-secondary btn-sm" id="btn-mark-all-read">Marcar todo como leido</button>
+          </div>
+          <div class="inbox-list" id="inbox-list"><p class="empty-state">Cargando...</p></div>
+          <div class="pagination" id="inbox-pagination"></div>
+        </section>
+
+        <!-- ESTADÍSTICAS (admin) -->
+        <section id="section-stats" class="content-section" data-title="Estadisticas">
+          <div class="stats-grid" id="stats-grid"></div>
+        </section>
+
+        <!-- PEDIDOS USDT (admin) -->
         <section id="section-admin-orders" class="content-section" data-title="Pedidos USDT">
           <div class="toolbar-row">
             <div class="filter-tabs" id="admin-orders-tabs">
@@ -171,115 +161,101 @@
               <button class="tab-btn" data-status="ALL">Todos</button>
             </div>
           </div>
-          <div class="admin-orders-list" id="admin-orders-list">
-            <p class="empty-state">Cargando…</p>
-          </div>
+          <div class="admin-orders-list" id="admin-orders-list"><p class="empty-state">Cargando...</p></div>
           <div class="pagination" id="admin-orders-pagination"></div>
         </section>
 
-        <!-- ── SECCIÓN: JUGADORES (admin) ────────────────────── -->
-        <section id="section-admin-users" class="content-section" data-title="Jugadores">
+        <!-- JUGADORES (admin) -->
+        <section id="section-admin-users" class="content-section" data-title="Gestionar jugadores">
           <div class="toolbar-row">
-            <input type="search" id="users-search" placeholder="Buscar jugador…" aria-label="Buscar jugador" />
+            <input type="search" id="admin-users-search" placeholder="Buscar jugador..." aria-label="Buscar jugador" />
           </div>
-          <div class="admin-users-list" id="admin-users-list">
-            <p class="empty-state">Cargando…</p>
-          </div>
+          <div class="admin-users-list" id="admin-users-list"><p class="empty-state">Cargando...</p></div>
         </section>
 
-      </main><!-- /main-content -->
-    </div><!-- /main-wrapper -->
-  </div><!-- /app-layout -->
+      </main>
+    </div>
+  </div>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       MODALES
-  ═══════════════════════════════════════════════════════════ -->
+  <!-- ═══ MODALES ═══════════════════════════════════════════════════════════ -->
 
-  <!-- Modal Login — flujo MC: nickname → código → /link en servidor -->
+  <!-- Login -->
   <div class="modal-backdrop" id="modal-login" role="dialog" aria-modal="true" aria-labelledby="modal-login-title" hidden>
     <div class="modal">
-      <button class="modal-close" id="modal-login-close" aria-label="Cerrar">✕</button>
-
-      <!-- Paso 1: ingresar nickname -->
+      <button class="modal-close" id="modal-login-close" aria-label="Cerrar">&#x2715;</button>
       <div id="login-step-1">
-        <h2 class="modal-title" id="modal-login-title">Iniciar sesión</h2>
+        <h2 class="modal-title" id="modal-login-title">Iniciar sesion</h2>
         <p class="modal-subtitle">Ingresa tu nickname exacto del servidor de Minecraft.</p>
         <form id="link-request-form" class="modal-form" novalidate>
           <label for="link-username">Nickname de Minecraft</label>
-          <input type="text" id="link-username" autocomplete="off" required
-                 placeholder="Ej: Steve123" maxlength="32" />
-          <button type="submit" class="btn btn-primary btn-full">Generar código</button>
+          <input type="text" id="link-username" autocomplete="off" required placeholder="Steve123" maxlength="32" />
+          <button type="submit" class="btn btn-primary btn-full">Generar codigo</button>
           <p class="form-feedback" id="link-request-feedback" aria-live="polite"></p>
         </form>
-        <p class="modal-hint">¿Eres admin? <button class="link-btn" id="show-admin-login">Entrar con contraseña</button></p>
+        <p class="modal-hint">Administrador: <button class="link-btn" id="show-admin-login">entrar con contrasena</button></p>
       </div>
-
-      <!-- Paso 2: mostrar código y esperar confirmación -->
       <div id="login-step-2" hidden>
-        <h2 class="modal-title">Escribe este código en Minecraft</h2>
-        <p class="modal-subtitle">En el servidor escribe el siguiente comando:</p>
+        <h2 class="modal-title">Escribe este codigo en Minecraft</h2>
+        <p class="modal-subtitle">Ejecuta el siguiente comando en el servidor:</p>
         <div class="link-code-display">
           <code class="link-command">/link <span id="modal-link-code">------</span></code>
         </div>
         <div class="link-waiting">
           <span class="spinner" aria-hidden="true"></span>
-          <span id="link-wait-text">Esperando confirmación…</span>
+          <span id="link-wait-text">Esperando confirmacion...</span>
         </div>
         <p class="link-expires-note" id="link-expires-note"></p>
-        <button class="btn btn-ghost btn-full mt-sm" id="btn-back-step1">← Cambiar nickname</button>
+        <button class="btn btn-ghost btn-full" style="margin-top:10px" id="btn-back-step1">Cambiar nickname</button>
       </div>
-
-      <!-- Login admin (oculto por defecto) -->
       <div id="login-admin-panel" hidden>
         <h2 class="modal-title">Acceso administrador</h2>
         <form id="admin-login-form" class="modal-form" novalidate>
           <label for="admin-login-username">Usuario</label>
           <input type="text" id="admin-login-username" autocomplete="username" required placeholder="admin" />
-          <label for="admin-login-password">Contraseña</label>
+          <label for="admin-login-password">Contrasena</label>
           <input type="password" id="admin-login-password" autocomplete="current-password" required placeholder="••••••••" />
           <button type="submit" class="btn btn-primary btn-full">Entrar</button>
           <p class="form-feedback" id="admin-login-feedback" aria-live="polite"></p>
         </form>
-        <p class="modal-hint"><button class="link-btn" id="show-link-login">← Volver al login con Minecraft</button></p>
+        <p class="modal-hint"><button class="link-btn" id="show-link-login">Volver al login con Minecraft</button></p>
       </div>
-
     </div>
   </div>
 
-  <!-- Modal Buy con NC -->
+  <!-- Compra NC -->
   <div class="modal-backdrop" id="modal-buy-nc" role="dialog" aria-modal="true" aria-labelledby="modal-buy-nc-title" hidden>
     <div class="modal">
-      <button class="modal-close" id="modal-buy-nc-close" aria-label="Cerrar">✕</button>
+      <button class="modal-close" id="modal-buy-nc-close" aria-label="Cerrar">&#x2715;</button>
       <h2 class="modal-title" id="modal-buy-nc-title">Confirmar compra</h2>
       <div id="modal-buy-nc-body"></div>
       <div class="modal-footer">
         <button class="btn btn-ghost" id="modal-buy-nc-cancel">Cancelar</button>
-        <button class="btn btn-primary" id="modal-buy-nc-confirm">Comprar con NC</button>
+        <button class="btn btn-primary" id="modal-buy-nc-confirm">Confirmar compra</button>
       </div>
       <p class="form-feedback" id="buy-nc-feedback" aria-live="polite"></p>
     </div>
   </div>
 
-  <!-- Modal Buy con USDT -->
+  <!-- Compra USDT -->
   <div class="modal-backdrop" id="modal-buy-usdt" role="dialog" aria-modal="true" aria-labelledby="modal-buy-usdt-title" hidden>
     <div class="modal">
-      <button class="modal-close" id="modal-buy-usdt-close" aria-label="Cerrar">✕</button>
+      <button class="modal-close" id="modal-buy-usdt-close" aria-label="Cerrar">&#x2715;</button>
       <h2 class="modal-title" id="modal-buy-usdt-title">Pagar con USDT</h2>
       <div id="modal-buy-usdt-body"></div>
       <form id="usdt-form" class="modal-form" novalidate>
         <label for="usdt-txid">Hash / TxID de la transferencia</label>
-        <input type="text" id="usdt-txid" required placeholder="0x…" />
+        <input type="text" id="usdt-txid" required placeholder="0x..." />
         <button type="submit" class="btn btn-primary btn-full">Enviar pedido</button>
       </form>
       <p class="form-feedback" id="buy-usdt-feedback" aria-live="polite"></p>
     </div>
   </div>
 
-  <!-- Modal Wallet action (depositar/retirar banco) -->
+  <!-- Mover dinero (banco) -->
   <div class="modal-backdrop" id="modal-wallet-action" role="dialog" aria-modal="true" aria-labelledby="modal-wallet-action-title" hidden>
     <div class="modal modal--sm">
-      <button class="modal-close" id="modal-wallet-action-close" aria-label="Cerrar">✕</button>
-      <h2 class="modal-title" id="modal-wallet-action-title">Acción</h2>
+      <button class="modal-close" id="modal-wallet-action-close" aria-label="Cerrar">&#x2715;</button>
+      <h2 class="modal-title" id="modal-wallet-action-title">Mover NC</h2>
       <form id="wallet-action-form" class="modal-form" novalidate>
         <label for="wallet-action-amount" id="wallet-action-label">Cantidad (NC)</label>
         <input type="number" id="wallet-action-amount" min="1" required placeholder="Cantidad" />
@@ -289,10 +265,10 @@
     </div>
   </div>
 
-  <!-- Modal Admin: Gestionar usuario -->
+  <!-- Editar jugador (admin) -->
   <div class="modal-backdrop" id="modal-admin-user" role="dialog" aria-modal="true" aria-labelledby="modal-admin-user-title" hidden>
     <div class="modal">
-      <button class="modal-close" id="modal-admin-user-close" aria-label="Cerrar">✕</button>
+      <button class="modal-close" id="modal-admin-user-close" aria-label="Cerrar">&#x2715;</button>
       <h2 class="modal-title" id="modal-admin-user-title">Editar jugador</h2>
       <form id="admin-user-form" class="modal-form" novalidate>
         <input type="hidden" id="admin-user-id" />
@@ -306,7 +282,15 @@
     </div>
   </div>
 
-  <!-- Toast notification -->
+  <!-- Ver perfil de jugador -->
+  <div class="modal-backdrop" id="modal-player-profile" role="dialog" aria-modal="true" aria-labelledby="modal-player-profile-title" hidden>
+    <div class="modal">
+      <button class="modal-close" id="modal-player-profile-close" aria-label="Cerrar">&#x2715;</button>
+      <h2 class="modal-title" id="modal-player-profile-title">Perfil</h2>
+      <div id="modal-player-profile-body"></div>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script src="/js/app.js"></script>

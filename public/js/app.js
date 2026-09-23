@@ -1,1384 +1,1025 @@
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    Nodowa Tienda — app.js
-   ═══════════════════════════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════════════ */
 'use strict';
 
-/* ── 1. Estado global ────────────────────────────────────────────────────── */
+/* ── Estado global ─────────────────────────────────────────────── */
 const State = {
-  user:          null,   // objeto usuario del JWT / /me
-  token:         null,   // JWT string
-  activeSection: 'catalog',
-  catalog: {
-    items:    [],
-    page:     1,
-    total:    0,
-    category: 'all',
-    search:   '',
-  },
-  wallet: {
-    wallet: 0,
-    bank:   0,
-    txPage: 1,
-  },
-  adminOrders: {
-    status: 'PENDING',
-    page:   1,
-  },
+  user:    null,
+  token:   null,
+  section: 'catalog',
+  balance: { wallet: 0, bank: 0 },
+  catalog: { items: [], page: 1, total: 0, category: 'all', search: '' },
+  economy: { txFilter: 'all', txPage: 1 },
+  adminOrders: { status: 'PENDING', page: 1 },
+  inbox:   { unread: 0 },
 };
 
-/* ── 2. API helper ───────────────────────────────────────────────────────── */
-const API_BASE = '/api';
+/* ── API ────────────────────────────────────────────────────────── */
+const API = '/api';
 
-async function api(method, path, body = null, auth = true) {
+async function req(method, path, body, auth = true) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth && State.token) headers['Authorization'] = `Bearer ${State.token}`;
-
   const opts = { method, headers };
   if (body) opts.body = JSON.stringify(body);
-
-  const url = `${API_BASE}${path}`;
-  console.log(`[API] ${method} ${url}`);
-
-  try {
-    const res  = await fetch(url, opts);
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      console.error(`[API] ❌ ${method} ${url} → ${res.status}:`, data);
-      throw new Error(data.message || data.error || `Error ${res.status}`);
-    }
-    console.log(`[API] ✅ ${method} ${url} → ${res.status}`);
-    return data;
-  } catch (err) {
-    if (err.message.startsWith('Error ') || err.message.includes('fetch')) {
-      console.error(`[API] 🔥 ${method} ${url} → NETWORK ERROR:`, err.message);
-    }
-    throw err;
-  }
+  const res  = await fetch(API + path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || data.error || `Error ${res.status}`);
+  return data;
 }
 
-const get  = (path, auth)       => api('GET',    path, null, auth);
-const post = (path, body, auth) => api('POST',   path, body, auth);
+const GET    = (p, a)    => req('GET',    p, null, a);
+const POST   = (p, b, a) => req('POST',   p, b,    a);
+const PATCH  = (p, b)    => req('PATCH',  p, b,    true);
 
-/* ── 3. Token / sesión ───────────────────────────────────────────────────── */
+/* ── DOM helpers ────────────────────────────────────────────────── */
+const $  = id => document.getElementById(id);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
+
+function setHTML(id, html) { const e = $(id); if (e) e.innerHTML = html; }
+function setText(id, txt)  { const e = $(id); if (e) e.textContent = txt; }
+
+function feedback(id, msg, isErr = false) {
+  const e = $(id);
+  if (!e) return;
+  e.textContent = msg;
+  e.className = 'form-feedback ' + (isErr ? 'form-feedback--error' : 'form-feedback--ok');
+}
+function clearFb(id) { const e = $(id); if (e) { e.textContent = ''; e.className = 'form-feedback'; } }
+
+function fmt(n)    { return Number(n || 0).toLocaleString('es'); }
+function fmtDate(s) {
+  if (!s) return '—';
+  return new Date(s).toLocaleDateString('es', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function avatar(name, url, size = 40) {
+  if (url) return `<img src="${esc(url)}" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="avatar-letter" style="display:none;width:${size}px;height:${size}px">${esc((name||'?')[0]).toUpperCase()}</span>`;
+  return `<span class="avatar-letter" style="width:${size}px;height:${size}px">${esc((name||'?')[0]).toUpperCase()}</span>`;
+}
+
+function statusBadge(s) {
+  const m = { PENDING: ['badge--pending','Pendiente'], APPROVED: ['badge--approved','Aprobado'], REJECTED: ['badge--rejected','Rechazado'] };
+  const [cls, label] = m[s] || ['','—'];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+/* ── Toast ──────────────────────────────────────────────────────── */
+let _tt;
+function toast(msg, type = 'info') {
+  const e = $('toast');
+  e.textContent = msg;
+  e.className = `toast toast--${type} show`;
+  clearTimeout(_tt);
+  _tt = setTimeout(() => e.classList.remove('show'), 3500);
+}
+
+/* ── Modales ────────────────────────────────────────────────────── */
+function openModal(id)  { const e = $(id); if (e) e.hidden = false; }
+function closeModal(id) { const e = $(id); if (e) e.hidden = true;  }
+
+function initModals() {
+  document.querySelectorAll('.modal-backdrop').forEach(bd => {
+    bd.addEventListener('click', e => {
+      if (e.target === bd) { bd.hidden = true; if (bd.id === 'modal-login') resetLogin(); }
+    });
+  });
+  [['modal-login-close','modal-login'],['modal-buy-nc-close','modal-buy-nc'],
+   ['modal-buy-usdt-close','modal-buy-usdt'],['modal-wallet-action-close','modal-wallet-action'],
+   ['modal-admin-user-close','modal-admin-user'],['modal-player-profile-close','modal-player-profile'],
+  ].forEach(([btn, modal]) => {
+    const b = $(btn);
+    if (b) b.addEventListener('click', () => { closeModal(modal); if (modal === 'modal-login') resetLogin(); });
+  });
+  $('modal-buy-nc-cancel')?.addEventListener('click', () => closeModal('modal-buy-nc'));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.modal-backdrop:not([hidden])').forEach(m => { m.hidden = true; });
+  });
+}
+
+/* ── Sesión ─────────────────────────────────────────────────────── */
 function saveSession(token, user) {
-  State.token = token;
-  State.user  = user;
+  State.token = token; State.user = user;
   localStorage.setItem('nodowa_token', token);
-  localStorage.removeItem('nodowa_pending_code'); // limpiar código pendiente
-  console.log('[Auth] Sesión guardada para:', user.username);
-}
-
-function clearSession() {
-  State.token = null;
-  State.user  = null;
-  localStorage.removeItem('nodowa_token');
-  console.log('[Auth] Sesión limpiada');
-}
-
-function savePendingCode(code, username, expiresAt) {
-  localStorage.setItem('nodowa_pending_code', JSON.stringify({ code, username, expiresAt }));
-  console.log('[Auth] Código pendiente guardado:', code, 'para', username);
-}
-
-function getPendingCode() {
-  try {
-    const raw = localStorage.getItem('nodowa_pending_code');
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    if (new Date(data.expiresAt) < new Date()) {
-      localStorage.removeItem('nodowa_pending_code');
-      console.log('[Auth] Código pendiente expirado, limpiado');
-      return null;
-    }
-    return data;
-  } catch { return null; }
-}
-
-function clearPendingCode() {
   localStorage.removeItem('nodowa_pending_code');
 }
-
-function parseJwt(token) {
+function clearSession() {
+  State.token = null; State.user = null;
+  localStorage.removeItem('nodowa_token');
+}
+function savePending(code, username, expiresAt) {
+  localStorage.setItem('nodowa_pending_code', JSON.stringify({ code, username, expiresAt }));
+}
+function getPending() {
   try {
-    return JSON.parse(atob(token.split('.')[1]));
+    const d = JSON.parse(localStorage.getItem('nodowa_pending_code') || 'null');
+    if (!d) return null;
+    if (new Date(d.expiresAt) < new Date()) { localStorage.removeItem('nodowa_pending_code'); return null; }
+    return d;
   } catch { return null; }
 }
+function parseJwt(t) { try { return JSON.parse(atob(t.split('.')[1])); } catch { return null; } }
 
 async function restoreSession() {
-  // 1. Intentar restaurar sesión activa
   const token = localStorage.getItem('nodowa_token');
   if (token) {
-    const payload = parseJwt(token);
-    if (!payload || payload.exp * 1000 < Date.now()) {
-      console.log('[Auth] Token expirado, limpiando sesión');
-      clearSession();
-    } else {
+    const p = parseJwt(token);
+    if (p && p.exp * 1000 > Date.now()) {
       State.token = token;
-      try {
-        const data = await get('/auth/me');
-        State.user = data.user;
-        console.log('[Auth] Sesión restaurada para:', State.user.username);
-        return;
-      } catch (err) {
-        console.warn('[Auth] /me falló, limpiando sesión:', err.message);
-        clearSession();
-      }
-    }
+      try { const d = await GET('/auth/me'); State.user = d.user; return; } catch { clearSession(); }
+    } else { clearSession(); }
   }
-
-  // 2. Si hay código pendiente, reanudar polling
-  const pending = getPendingCode();
+  const pending = getPending();
   if (pending) {
-    console.log('[Auth] Código pendiente encontrado:', pending.code, '— reanudando polling');
-    // Abrir modal mostrando el código y reanudar polling
-    _linkCode = pending.code;
-    // Mostrar modal en step 2 automáticamente después del init
     setTimeout(() => {
       openModal('modal-login');
-      $('login-step-1').hidden    = true;
-      $('login-step-2').hidden    = false;
-      $('login-admin-panel').hidden = true;
-      $('modal-link-code').textContent = pending.code;
-      const expires = new Date(pending.expiresAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
-      $('link-expires-note').textContent = `El código expira a las ${expires}`;
-      $('link-wait-text').textContent = 'Esperando confirmación… (¿ya pusiste /link en Minecraft?)';
-      startLinkPolling(pending.code);
+      showLoginStep2({ code: pending.code, expiresAt: pending.expiresAt, username: pending.username });
     }, 300);
   }
 }
 
-/* ── 4. Toast ────────────────────────────────────────────────────────────── */
-let _toastTimer = null;
+/* ── Sidebar ────────────────────────────────────────────────────── */
+// Iconos SVG inline (sin emojis)
+const ICONS = {
+  catalog:       `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>`,
+  economy:       `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5v7M5.5 6.5c0-1.1.9-2 2.5-2s2.5.9 2.5 2-2.5 2-2.5 2-2.5.9-2.5 2 .9 2 2.5 2 2.5-.9 2.5-2"/></svg>`,
+  orders:        `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1.5" width="12" height="13" rx="1.5"/><path d="M5 5.5h6M5 8h6M5 10.5h4"/></svg>`,
+  profile:       `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5.5" r="3"/><path d="M1.5 14c0-3 2.9-5 6.5-5s6.5 2 6.5 5"/></svg>`,
+  players:       `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-2.8 2.2-5 5-5h.5"/><circle cx="12.5" cy="10.5" r="3"/><path d="M12.5 9v1.5l1 1"/></svg>`,
+  leaderboard:   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="8" width="3" height="6.5" rx=".5"/><rect x="6.5" y="4" width="3" height="10.5" rx=".5"/><rect x="12" y="1.5" width="3" height="13" rx=".5"/></svg>`,
+  inbox:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M1 6l7 4.5L15 6"/></svg>`,
+  stats:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12.5l4-4 3 2.5 4-6 3 2"/></svg>`,
+  adminOrders:   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h6"/><circle cx="13" cy="11" r="2.5"/><path d="M13 9.5v1.5l1 1"/></svg>`,
+  adminUsers:    `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/><path d="M11 7l1.5 1.5L15 6"/></svg>`,
+  login:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/><path d="M11 11l3-3-3-3M14 8H6"/></svg>`,
+  logout:        `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 14h3a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1h-3"/><path d="M7 11l-3-3 3-3M4 8h8"/></svg>`,
+  admin:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L2 4v4c0 3.3 2.7 5.7 6 6.5 3.3-.8 6-3.2 6-6.5V4z"/></svg>`,
+};
 
-function toast(msg, type = 'info', duration = 3500) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className   = `toast toast--${type} show`;
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => {
-    el.classList.remove('show');
-  }, duration);
+function navItem(section, label, active, badge = '') {
+  const icon = ICONS[section] || '';
+  return `<button class="nav-item${active ? ' active' : ''}" data-section="${section}">
+    <span class="nav-icon">${icon}</span>
+    <span class="nav-label">${label}</span>
+    ${badge ? `<span class="nav-badge">${badge}</span>` : ''}
+  </button>`;
 }
 
-/* ── 5. Helpers DOM ──────────────────────────────────────────────────────── */
-function $(id) { return document.getElementById(id); }
+function renderNav() {
+  const nav   = $('sidebar-nav');
+  const auth  = !!State.user;
+  const admin = auth && State.user.is_admin;
+  const s     = State.section;
+  const unread = State.inbox.unread > 0 ? State.inbox.unread : '';
 
-function setFeedback(id, msg, isError = false) {
-  const el = $(id);
-  if (!el) return;
-  el.textContent = msg;
-  el.className = `form-feedback ${isError ? 'form-feedback--error' : 'form-feedback--ok'}`;
-}
+  let html = `<span class="nav-section-label">Tienda</span>
+    ${navItem('catalog','Catalogo', s==='catalog')}`;
 
-function clearFeedback(id) {
-  const el = $(id);
-  if (el) { el.textContent = ''; el.className = 'form-feedback'; }
-}
-
-function formatNumber(n) {
-  return Number(n || 0).toLocaleString('es');
-}
-
-function formatDate(str) {
-  if (!str) return '—';
-  return new Date(str).toLocaleDateString('es', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
-
-/* ── 6. Modales ──────────────────────────────────────────────────────────── */
-function openModal(id) {
-  const el = $(id);
-  if (el) el.hidden = false;
-}
-
-function closeModal(id) {
-  const el = $(id);
-  if (el) el.hidden = true;
-}
-
-function initModals() {
-  // Cerrar al hacer click en el backdrop
-  document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
-    backdrop.addEventListener('click', e => {
-      if (e.target === backdrop) {
-        backdrop.hidden = true;
-        if (backdrop.id === 'modal-login') resetLoginModal();
-      }
-    });
-  });
-
-  // Botones de cierre
-  [
-    ['modal-login-close',       'modal-login'],
-    ['modal-buy-nc-close',      'modal-buy-nc'],
-    ['modal-buy-usdt-close',    'modal-buy-usdt'],
-    ['modal-wallet-action-close','modal-wallet-action'],
-    ['modal-admin-user-close',  'modal-admin-user'],
-  ].forEach(([btnId, modalId]) => {
-    const btn = $(btnId);
-    if (btn) btn.addEventListener('click', () => {
-      closeModal(modalId);
-      if (modalId === 'modal-login') resetLoginModal();
-    });
-  });
-
-  // Cancelar compra NC
-  const cancelNc = $('modal-buy-nc-cancel');
-  if (cancelNc) cancelNc.addEventListener('click', () => closeModal('modal-buy-nc'));
-
-  // Escape cierra modales
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      document.querySelectorAll('.modal-backdrop:not([hidden])').forEach(m => m.hidden = true);
-    }
-  });
-}
-
-/* ── 7. Sidebar Nav por rol ──────────────────────────────────────────────── */
-function renderSidebarNav() {
-  const nav    = $('sidebar-nav');
-  const isAuth = !!State.user;
-  const isAdmin = isAuth && State.user.is_admin;
-
-  const sections = [];
-
-  /* TIENDA — siempre visible */
-  sections.push(`
-    <span class="nav-section-label">Tienda</span>
-    <button class="nav-item ${State.activeSection === 'catalog' ? 'active' : ''}"
-            data-section="catalog">
-      <i class="nav-icon" aria-hidden="true">📦</i> Catálogo
-    </button>
-  `);
-
-  if (!isAuth) {
-    /* No autenticado: solo login */
-    sections.push(`
-      <div class="nav-divider"></div>
-      <span class="nav-section-label">Acceder</span>
-      <button class="nav-item" id="nav-login-btn">
-        <i class="nav-icon" aria-hidden="true">🎮</i> Iniciar sesión
-      </button>
-    `);
+  if (!auth) {
+    html += `<div class="nav-divider"></div>
+    <span class="nav-section-label">Acceder</span>
+    <button class="nav-item" id="nav-login-btn">
+      <span class="nav-icon">${ICONS.login}</span>
+      <span class="nav-label">Iniciar sesion</span>
+    </button>`;
   } else {
-    /* Autenticado: Mi cuenta */
-    sections.push(`
-      <div class="nav-divider"></div>
-      <span class="nav-section-label">Mi cuenta</span>
-      <button class="nav-item ${State.activeSection === 'profile' ? 'active' : ''}"
-              data-section="profile">
-        <i class="nav-icon" aria-hidden="true">👤</i> Mi Perfil
-      </button>
-      <button class="nav-item ${State.activeSection === 'wallet' ? 'active' : ''}"
-              data-section="wallet">
-        <i class="nav-icon" aria-hidden="true">💰</i> Billetera
-      </button>
-      <button class="nav-item ${State.activeSection === 'bank' ? 'active' : ''}"
-              data-section="bank">
-        <i class="nav-icon" aria-hidden="true">🏦</i> Banco
-      </button>
-      <button class="nav-item ${State.activeSection === 'orders' ? 'active' : ''}"
-              data-section="orders">
-        <i class="nav-icon" aria-hidden="true">📋</i> Mis Pedidos
-      </button>
-    `);
+    html += `<div class="nav-divider"></div>
+    <span class="nav-section-label">Mi cuenta</span>
+    ${navItem('profile','Mi Perfil', s==='profile')}
+    ${navItem('economy','Economia', s==='economy')}
+    ${navItem('orders','Mis Pedidos', s==='orders')}
+    ${navItem('inbox','Buzon', s==='inbox', unread)}
+    <div class="nav-divider"></div>
+    <span class="nav-section-label">Comunidad</span>
+    ${navItem('players','Jugadores', s==='players')}
+    ${navItem('leaderboard','Ranking', s==='leaderboard')}`;
 
-    if (isAdmin) {
-      /* Admin: sección Administración */
-      sections.push(`
-        <div class="nav-divider"></div>
-        <span class="nav-section-label">Administración</span>
-        <button class="nav-item ${State.activeSection === 'stats' ? 'active' : ''}"
-                data-section="stats">
-          <i class="nav-icon" aria-hidden="true">📊</i> Estadísticas
-        </button>
-        <button class="nav-item ${State.activeSection === 'admin-orders' ? 'active' : ''}"
-                data-section="admin-orders">
-          <i class="nav-icon" aria-hidden="true">📝</i> Pedidos USDT
-        </button>
-        <button class="nav-item ${State.activeSection === 'admin-users' ? 'active' : ''}"
-                data-section="admin-users">
-          <i class="nav-icon" aria-hidden="true">👥</i> Jugadores
-        </button>
-      `);
+    if (admin) {
+      html += `<div class="nav-divider"></div>
+      <span class="nav-section-label">Admin</span>
+      ${navItem('stats','Estadisticas', s==='stats')}
+      ${navItem('admin-orders','Pedidos USDT', s==='admin-orders')}
+      ${navItem('admin-users','Jugadores', s==='admin-users')}`;
     }
 
-    /* Cerrar sesión siempre al final */
-    sections.push(`
-      <div class="nav-divider"></div>
-      <span class="nav-section-label">Sesión</span>
-      <button class="nav-item nav-item--danger" id="nav-logout-btn">
-        <i class="nav-icon" aria-hidden="true">🚪</i> Cerrar sesión
-      </button>
-    `);
+    html += `<div class="nav-divider"></div>
+    <button class="nav-item nav-item--danger" id="nav-logout-btn">
+      <span class="nav-icon">${ICONS.logout}</span>
+      <span class="nav-label">Cerrar sesion</span>
+    </button>`;
   }
 
-  nav.innerHTML = sections.join('');
-
-  /* Eventos de navegación */
-  nav.querySelectorAll('[data-section]').forEach(btn => {
-    btn.addEventListener('click', () => navigateTo(btn.dataset.section));
-  });
-
-  const loginBtn = $('nav-login-btn');
-  if (loginBtn) loginBtn.addEventListener('click', () => openModal('modal-login'));
-
-  const logoutBtn = $('nav-logout-btn');
-  if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+  nav.innerHTML = html;
+  nav.querySelectorAll('[data-section]').forEach(b => b.addEventListener('click', () => go(b.dataset.section)));
+  $('nav-login-btn')?.addEventListener('click', () => openModal('modal-login'));
+  $('nav-logout-btn')?.addEventListener('click', doLogout);
 }
 
-/* ── 8. Topbar por rol ───────────────────────────────────────────────────── */
 function renderTopbar() {
   const actions = $('topbar-actions');
-  const isAuth  = !!State.user;
-  const isAdmin = isAuth && State.user.is_admin;
+  const auth = !!State.user;
 
-  if (!isAuth) {
-    actions.innerHTML = `
-      <button class="btn btn-primary btn-sm" id="topbar-login-btn">
-        🎮 Iniciar sesión
-      </button>
-    `;
-    const btn = $('topbar-login-btn');
-    if (btn) btn.addEventListener('click', () => openModal('modal-login'));
-  } else {
-    const wallet = formatNumber(State.wallet.wallet);
-    const initial = (State.user.display_name || State.user.username || '?')[0].toUpperCase();
-
-    actions.innerHTML = `
-      <div class="topbar-balance">
-        <span class="balance-icon">💰</span>
-        <span>${wallet} NC</span>
-      </div>
-      ${isAdmin ? `<button class="btn btn-secondary btn-sm" id="topbar-admin-btn">⚙ Admin</button>` : ''}
-      <div class="topbar-avatar" id="topbar-avatar" title="${State.user.display_name || State.user.username}" role="button" tabindex="0" aria-label="Mi perfil">${initial}</div>
-    `;
-
-    const avatar = $('topbar-avatar');
-    if (avatar) {
-      avatar.addEventListener('click', () => navigateTo('profile'));
-      avatar.addEventListener('keydown', e => { if (e.key === 'Enter') navigateTo('profile'); });
-    }
-
-    const adminBtn = $('topbar-admin-btn');
-    if (adminBtn) adminBtn.addEventListener('click', () => navigateTo('stats'));
+  if (!auth) {
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" id="tb-login">Iniciar sesion</button>`;
+    $('tb-login')?.addEventListener('click', () => openModal('modal-login'));
+    return;
   }
+
+  const name = State.user.display_name || State.user.username || '?';
+  const av   = State.user.avatar || '';
+  const isAdmin = State.user.is_admin;
+
+  actions.innerHTML = `
+    <div class="topbar-balance" title="En mano">
+      <span class="balance-icon-svg">${ICONS.economy}</span>
+      <span id="tb-balance">${fmt(State.balance.wallet)} NC</span>
+    </div>
+    ${isAdmin ? `<button class="btn btn-secondary btn-sm" id="tb-admin">${ICONS.admin} Admin</button>` : ''}
+    <button class="topbar-avatar" id="tb-avatar" title="${esc(name)}" aria-label="Mi perfil">
+      ${av ? `<img src="${esc(av)}" alt="${esc(name)}" onerror="this.style.display='none'" style="width:100%;height:100%;border-radius:50%;object-fit:cover">` : ''}
+      <span class="avatar-initial">${esc(name[0].toUpperCase())}</span>
+    </button>`;
+
+  $('tb-avatar')?.addEventListener('click', () => go('profile'));
+  $('tb-admin')?.addEventListener('click',  () => go('stats'));
 }
 
-/* ── 9. Navegación de secciones ──────────────────────────────────────────── */
-function navigateTo(sectionId) {
-  console.log('[Nav] →', sectionId);
-  /* Requiere auth para secciones privadas */
-  const privateSections = ['wallet','bank','orders','profile','stats','admin-orders','admin-users'];
-  if (privateSections.includes(sectionId) && !State.user) {
-    openModal('modal-login');
-    return;
-  }
+/* ── Navegación ─────────────────────────────────────────────────── */
+const PRIVATE = new Set(['economy','orders','profile','inbox','stats','admin-orders','admin-users']);
+const ADMIN   = new Set(['stats','admin-orders','admin-users']);
 
-  /* Solo admin puede acceder a secciones de admin */
-  const adminSections = ['stats','admin-orders','admin-users'];
-  if (adminSections.includes(sectionId) && !(State.user?.is_admin)) {
-    toast('Acceso restringido', 'error');
-    return;
-  }
+function go(sectionId) {
+  if (PRIVATE.has(sectionId) && !State.user) { openModal('modal-login'); return; }
+  if (ADMIN.has(sectionId) && !State.user?.is_admin) { toast('Acceso restringido', 'error'); return; }
 
-  State.activeSection = sectionId;
+  State.section = sectionId;
 
-  /* Actualizar título topbar */
-  const section = document.getElementById(`section-${sectionId}`);
-  if (!section) {
-    console.error(`[Nav] ❌ Elemento #section-${sectionId} no existe en el DOM`);
-    return;
-  }
-  const title = section.dataset.title || sectionId;
-  $('topbar-title').textContent = title;
+  const sec = document.getElementById(`section-${sectionId}`);
+  if (!sec) { console.error('Seccion no encontrada:', sectionId); return; }
 
-  /* Mostrar sección activa — forzar display también via style por si el CSS no aplica */
-  document.querySelectorAll('.content-section').forEach(s => {
-    s.classList.remove('active');
-    s.style.display = 'none';
-  });
-  section.classList.add('active');
-  section.style.display = 'block';
-  console.log('[Nav] Sección activa:', section.id, '| display:', getComputedStyle(section).display);
+  setText('topbar-title', sec.dataset.title || sectionId);
 
-  /* Actualizar nav activo */
-  document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.section === sectionId);
-  });
+  document.querySelectorAll('.content-section').forEach(s => { s.classList.remove('active'); s.style.display = 'none'; });
+  sec.classList.add('active');
+  sec.style.display = 'block';
 
-  /* Cargar datos de la sección */
-  switch (sectionId) {
-    case 'catalog':      loadCatalog();        break;
-    case 'wallet':       loadWallet();         break;
-    case 'bank':         loadBank();           break;
-    case 'orders':       loadOrders();         break;
-    case 'profile':      loadProfile();        break;
-    case 'stats':        loadStats();          break;
-    case 'admin-orders': loadAdminOrders();    break;
-    case 'admin-users':  loadAdminUsers();     break;
-  }
+  document.querySelectorAll('.nav-item[data-section]').forEach(b => b.classList.toggle('active', b.dataset.section === sectionId));
+
+  const loaders = {
+    catalog:       loadCatalog,
+    economy:       loadEconomy,
+    orders:        loadOrders,
+    profile:       loadProfile,
+    players:       loadPlayers,
+    leaderboard:   loadLeaderboard,
+    inbox:         loadInbox,
+    stats:         loadStats,
+    'admin-orders':loadAdminOrders,
+    'admin-users': loadAdminUsers,
+  };
+  loaders[sectionId]?.();
 }
 
-/* ── 10. Auth — flujo MC: nickname → código → polling ────────────────────── */
-let _linkPollInterval = null;
-let _linkCode         = null;
+/* ── Auth ───────────────────────────────────────────────────────── */
+let _poll = null;
 
 function initAuthModal() {
-  /* Paso 1: formulario de nickname */
   $('link-request-form').addEventListener('submit', async e => {
     e.preventDefault();
-    clearFeedback('link-request-feedback');
     const username = $('link-username').value.trim();
     if (!username) return;
-
-    const btn = e.submitter || e.target.querySelector('button[type=submit]');
-    btn.disabled = true;
-    btn.textContent = 'Generando…';
-
+    clearFb('link-request-feedback');
+    const btn = e.submitter;
+    btn.disabled = true; btn.textContent = 'Generando...';
     try {
-      const data = await post('/auth/request-link', { username }, false);
-      _linkCode = data.code;
-      showLinkStep2(data);
-    } catch (err) {
-      setFeedback('link-request-feedback', err.message, true);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Generar código';
-    }
+      const d = await POST('/auth/request-link', { username }, false);
+      showLoginStep2(d);
+    } catch (err) { feedback('link-request-feedback', err.message, true); }
+    finally { btn.disabled = false; btn.textContent = 'Generar codigo'; }
   });
 
-  /* Volver al paso 1 */
   $('btn-back-step1').addEventListener('click', () => {
-    stopLinkPolling();
+    stopPoll();
     $('login-step-2').hidden = true;
     $('login-step-1').hidden = false;
   });
 
-  /* Panel admin */
   $('show-admin-login').addEventListener('click', () => {
     $('login-step-1').hidden    = true;
     $('login-admin-panel').hidden = false;
   });
-
   $('show-link-login').addEventListener('click', () => {
     $('login-admin-panel').hidden = true;
     $('login-step-1').hidden    = false;
   });
 
-  /* Form admin login */
   $('admin-login-form').addEventListener('submit', async e => {
     e.preventDefault();
-    clearFeedback('admin-login-feedback');
+    clearFb('admin-login-feedback');
     const username = $('admin-login-username').value.trim();
     const password = $('admin-login-password').value;
-    if (!username || !password) return;
-
-    const btn = e.submitter || e.target.querySelector('button[type=submit]');
-    btn.disabled = true;
-
+    const btn = e.submitter; btn.disabled = true;
     try {
-      const data = await post('/auth/admin-login', { username, password }, false);
-      saveSession(data.token, data.user);
-      closeModal('modal-login');
-      resetLoginModal();
-      await afterAuth();
-      toast(`Bienvenido admin, ${data.user.display_name || data.user.username}`, 'ok');
-    } catch (err) {
-      setFeedback('admin-login-feedback', err.message, true);
-    } finally {
-      btn.disabled = false;
-    }
+      const d = await POST('/auth/admin-login', { username, password }, false);
+      saveSession(d.token, d.user);
+      closeModal('modal-login'); resetLogin();
+      await afterLogin();
+      toast(`Bienvenido, ${d.user.display_name || d.user.username}`);
+    } catch (err) { feedback('admin-login-feedback', err.message, true); }
+    finally { btn.disabled = false; }
   });
 }
 
-function showLinkStep2(data) {
-  $('login-step-1').hidden  = true;
-  $('login-step-2').hidden  = false;
-  $('modal-link-code').textContent = data.code;
-
-  const expires = new Date(data.expiresAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
-  $('link-expires-note').textContent = `El código expira a las ${expires}`;
-  $('link-wait-text').textContent = 'Esperando confirmación…';
-
-  // Guardar en localStorage para que persista si cierran la pestaña
-  savePendingCode(data.code, data.username, data.expiresAt);
-
-  startLinkPolling(data.code);
+function showLoginStep2(data) {
+  $('login-step-1').hidden = true;
+  $('login-step-2').hidden = false;
+  setText('modal-link-code', data.code);
+  const exp = new Date(data.expiresAt).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' });
+  setText('link-expires-note', `Expira a las ${exp}`);
+  setText('link-wait-text', 'Esperando confirmacion...');
+  savePending(data.code, data.username, data.expiresAt);
+  startPoll(data.code);
 }
 
-function startLinkPolling(code) {
-  stopLinkPolling();
-  _linkPollInterval = setInterval(async () => {
+function startPoll(code) {
+  stopPoll();
+  _poll = setInterval(async () => {
     try {
-      const data = await get(`/auth/check-link/${code}`, false);
-
-      if (data.status === 'expired') {
-        stopLinkPolling();
-        $('link-wait-text').textContent = 'Código expirado.';
-        return;
+      const d = await GET(`/auth/check-link/${code}`, false);
+      if (d.status === 'expired') { stopPoll(); setText('link-wait-text', 'Codigo expirado.'); return; }
+      if (d.ok && d.status === 'linked') {
+        stopPoll();
+        localStorage.removeItem('nodowa_pending_code');
+        saveSession(d.token, d.user);
+        closeModal('modal-login'); resetLogin();
+        await afterLogin();
+        toast(`Bienvenido, ${d.user.display_name || d.user.username}`);
       }
-
-      if (data.ok && data.status === 'linked') {
-        stopLinkPolling();
-        clearPendingCode();
-        $('link-wait-text').textContent = '¡Vinculado!';
-        saveSession(data.token, data.user);
-        closeModal('modal-login');
-        resetLoginModal();
-        await afterAuth();
-        toast(`¡Bienvenido, ${data.user.display_name || data.user.username}!`, 'ok');
-      }
-    } catch { /* silencioso */ }
+    } catch { /* silent */ }
   }, 2500);
 }
 
-function stopLinkPolling() {
-  if (_linkPollInterval) {
-    clearInterval(_linkPollInterval);
-    _linkPollInterval = null;
-  }
-}
+function stopPoll()  { clearInterval(_poll); _poll = null; }
 
-function resetLoginModal() {
-  stopLinkPolling();
-  _linkCode = null;
+function resetLogin() {
+  stopPoll();
   $('login-step-1').hidden    = false;
   $('login-step-2').hidden    = true;
   $('login-admin-panel').hidden = true;
   $('link-username').value    = '';
-  clearFeedback('link-request-feedback');
-  clearFeedback('admin-login-feedback');
+  clearFb('link-request-feedback');
+  clearFb('admin-login-feedback');
 }
 
-async function afterAuth() {
-  /* Refrescar balance antes de renderizar */
+async function afterLogin() {
   await refreshBalance();
-  renderSidebarNav();
+  await fetchUnread();
+  renderNav();
   renderTopbar();
-  /* Ir a catálogo post-login */
-  navigateTo('catalog');
+  go('catalog');
 }
 
-async function handleLogout() {
+async function doLogout() {
   clearSession();
-  State.wallet = { wallet: 0, bank: 0, txPage: 1 };
-  renderSidebarNav();
-  renderTopbar();
-  navigateTo('catalog');
-  toast('Sesión cerrada', 'info');
+  State.balance = { wallet: 0, bank: 0 };
+  State.inbox.unread = 0;
+  renderNav(); renderTopbar();
+  go('catalog');
+  toast('Sesion cerrada');
 }
 
-/* ── 11. Balance helper ──────────────────────────────────────────────────── */
+/* ── Balance ────────────────────────────────────────────────────── */
 async function refreshBalance() {
   if (!State.user) return;
   try {
-    const data = await get('/wallet/balance');
-    State.wallet.wallet = data.wallet ?? 0;
-    State.wallet.bank   = data.bank   ?? 0;
-  } catch (err) {
-    console.warn('[Balance] No se pudo cargar el balance:', err.message);
-  }
+    const d = await GET('/wallet/balance');
+    State.balance.wallet = d.wallet ?? 0;
+    State.balance.bank   = d.bank   ?? 0;
+  } catch { /* silent */ }
 }
 
-/* ── 12. CATÁLOGO ────────────────────────────────────────────────────────── */
-const ICON_MAP = {
-  gem: '💎', sword: '⚔️', shield: '🛡️', bow: '🏹', potion: '🧪',
-  food: '🍖', pick: '⛏️', map: '🗺️', coin: '🪙', star: '⭐',
-  chest: '📦', horse: '🐴', fire: '🔥', magic: '✨', axe: '🪓',
-  armor: '🦺', trophy: '🏆', rank: '🎖️', house: '🏠', fly: '🦅',
-};
-
-function itemIcon(iconType) {
-  return ICON_MAP[iconType] || '🎁';
+async function fetchUnread() {
+  if (!State.user) return;
+  try {
+    const d = await GET('/users/inbox/unread');
+    State.inbox.unread = d.unread ?? 0;
+  } catch { /* silent */ }
 }
 
-function categoryLabel(cat) {
-  const labels = {
-    all: 'Todos', items: 'Items', ranks: 'Rangos', coins: 'Monedas',
-    kits: 'Kits', passes: 'Pases', cosmetics: 'Cosméticos',
-  };
-  return labels[cat] || cat;
-}
-
+/* ── CATÁLOGO ───────────────────────────────────────────────────── */
 async function loadCatalog() {
-  const grid = $('items-grid');
-  grid.innerHTML = '<p class="empty-state">Cargando productos…</p>';
-
+  setHTML('items-grid', '<p class="empty-state">Cargando...</p>');
   try {
     const { category, search, page } = State.catalog;
-    const params = new URLSearchParams({ page, limit: 24 });
-    if (category && category !== 'all') params.set('category', category);
-    if (search) params.set('search', search);
-
-    const data = await get(`/store/items?${params}`, false);
-    State.catalog.items = data.items || [];
-    State.catalog.total = data.total || data.items?.length || 0;
-
-    // categories viene como [{category, count}] — extraer solo los strings
-    const cats = (data.categories || []).map(c => typeof c === 'string' ? c : c.category);
-    renderCatalogCategories(cats);
+    const p = new URLSearchParams({ page, limit: 24 });
+    if (category && category !== 'all') p.set('category', category);
+    if (search) p.set('search', search);
+    const d = await GET(`/store/items?${p}`, false);
+    State.catalog.items = d.items || [];
+    State.catalog.total = d.total || d.items?.length || 0;
+    const cats = (d.categories || []).map(c => typeof c === 'string' ? c : c.category);
+    renderCatalogCats(cats);
     renderCatalogItems();
-    renderPagination('catalog-pagination', page, Math.ceil(State.catalog.total / 24), p => {
-      State.catalog.page = p;
-      loadCatalog();
-    });
-  } catch (err) {
-    console.error('[Catalog] Error:', err);
-    grid.innerHTML = `<p class="empty-state">Error al cargar el catálogo: ${err.message}</p>`;
-  }
+    renderPagination('catalog-pagination', page, Math.ceil(State.catalog.total / 24), n => { State.catalog.page = n; loadCatalog(); });
+  } catch (err) { setHTML('items-grid', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
 }
 
-function renderCatalogCategories(cats) {
-  const container = $('category-filters');
+function renderCatalogCats(cats) {
   const all = ['all', ...cats.filter(c => c !== 'all')];
-
-  container.innerHTML = all.map(cat => `
-    <button class="cat-btn ${State.catalog.category === cat ? 'active' : ''}"
-            data-cat="${cat}">
-      ${categoryLabel(cat)}
-    </button>
-  `).join('');
-
-  container.querySelectorAll('.cat-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      State.catalog.category = btn.dataset.cat;
-      State.catalog.page     = 1;
-      loadCatalog();
-    });
-  });
+  const labels = { all:'Todos', items:'Items', rangos:'Rangos', monedas:'Monedas', kits:'Kits', pases:'Pases', cosmetics:'Cosmeticos' };
+  setHTML('category-filters', all.map(c => `<button class="cat-btn${State.catalog.category === c ? ' active' : ''}" data-cat="${c}">${labels[c] || c}</button>`).join(''));
+  $('category-filters').querySelectorAll('.cat-btn').forEach(b => b.addEventListener('click', () => { State.catalog.category = b.dataset.cat; State.catalog.page = 1; loadCatalog(); }));
 }
 
 function renderCatalogItems() {
-  const grid = $('items-grid');
-
   if (!State.catalog.items.length) {
-    grid.innerHTML = `<p class="empty-state">No hay productos en esta categoría.${State.user?.is_admin ? '<br><small>Ve a Administración → Items para agregar productos.</small>' : ''}</p>`;
+    setHTML('items-grid', '<p class="empty-state">No hay productos en esta categoria.</p>');
     return;
   }
-
-  grid.innerHTML = State.catalog.items.map(item => {
+  setHTML('items-grid', State.catalog.items.map(item => {
     const hasNC   = item.price_coins > 0;
     const hasUSDT = item.price_usdt  > 0;
-
-    return `
-      <article class="item-card" data-id="${item.id}">
-        ${item.badge ? `<span class="item-badge">${item.badge}</span>` : ''}
-        <div class="item-card__icon">${itemIcon(item.icon_type)}</div>
-        <div class="item-card__name">${escHtml(item.name)}</div>
-        ${item.description ? `<p class="item-card__desc">${escHtml(item.description)}</p>` : ''}
-        <div class="item-card__prices">
-          ${hasNC   ? `<span class="price-tag price-tag--nc">💎 ${formatNumber(item.price_coins)} NC</span>` : ''}
-          ${hasUSDT ? `<span class="price-tag price-tag--usdt">💵 $${item.price_usdt} USDT</span>`           : ''}
-        </div>
-        <div class="item-card__actions">
-          ${hasNC   ? `<button class="btn btn-primary btn-sm btn-buy-nc"   data-id="${item.id}">Comprar NC</button>`   : ''}
-          ${hasUSDT ? `<button class="btn btn-teal    btn-sm btn-buy-usdt" data-id="${item.id}">Pagar USDT</button>`  : ''}
-        </div>
-      </article>
-    `;
-  }).join('');
-
-  /* Eventos de compra */
-  grid.querySelectorAll('.btn-buy-nc').forEach(btn => {
-    btn.addEventListener('click', () => openBuyNC(btn.dataset.id));
-  });
-  grid.querySelectorAll('.btn-buy-usdt').forEach(btn => {
-    btn.addEventListener('click', () => openBuyUSDT(btn.dataset.id));
-  });
-}
-
-/* Buscar en catálogo */
-function initCatalogSearch() {
-  const input = $('search-input');
-  let debounce;
-  input.addEventListener('input', () => {
-    clearTimeout(debounce);
-    debounce = setTimeout(() => {
-      State.catalog.search = input.value.trim();
-      State.catalog.page   = 1;
-      loadCatalog();
-    }, 350);
-  });
-}
-
-/* ── 13. Compra con NC ───────────────────────────────────────────────────── */
-let _buyNCItemId = null;
-
-function openBuyNC(itemId) {
-  if (!State.user) { openModal('modal-login'); return; }
-
-  const item = State.catalog.items.find(i => i.id === itemId);
-  if (!item) return;
-
-  _buyNCItemId = itemId;
-  clearFeedback('buy-nc-feedback');
-
-  $('modal-buy-nc-title').textContent = 'Confirmar compra';
-  $('modal-buy-nc-body').innerHTML = `
-    <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px;">
-      <span style="font-size:2.2rem;">${itemIcon(item.icon_type)}</span>
-      <div>
-        <div style="font-weight:700; font-size:0.95rem;">${escHtml(item.name)}</div>
-        <div style="color:var(--text-secondary); font-size:0.82rem; margin-top:2px;">${escHtml(item.description || '')}</div>
+    return `<article class="item-card" data-id="${esc(item.id)}">
+      ${item.badge ? `<span class="item-badge">${esc(item.badge)}</span>` : ''}
+      <div class="item-card__name">${esc(item.name)}</div>
+      ${item.description ? `<p class="item-card__desc">${esc(item.description)}</p>` : ''}
+      <div class="item-card__prices">
+        ${hasNC   ? `<span class="price-tag price-tag--nc">${fmt(item.price_coins)} NC</span>` : ''}
+        ${hasUSDT ? `<span class="price-tag price-tag--usdt">$${item.price_usdt} USDT</span>`  : ''}
       </div>
-    </div>
-    <div style="background:var(--violet-dim); border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center;">
-      <span style="color:var(--text-secondary); font-size:0.83rem;">Costo</span>
-      <span style="font-weight:800; color:#a78bfa; font-size:1.1rem;">💎 ${formatNumber(item.price_coins)} NC</span>
-    </div>
-    <div style="margin-top:8px; display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-muted); padding:0 4px;">
-      <span>Tu saldo actual</span>
-      <span>${formatNumber(State.wallet.wallet)} NC</span>
-    </div>
-  `;
+      <div class="item-card__actions">
+        ${hasNC   ? `<button class="btn btn-primary btn-sm btn-buy-nc" data-id="${esc(item.id)}">Comprar con NC</button>`   : ''}
+        ${hasUSDT ? `<button class="btn btn-teal btn-sm btn-buy-usdt"  data-id="${esc(item.id)}">Pagar con USDT</button>`  : ''}
+      </div>
+    </article>`;
+  }).join(''));
+  $('items-grid').querySelectorAll('.btn-buy-nc').forEach(b  => b.addEventListener('click', () => openBuyNC(b.dataset.id)));
+  $('items-grid').querySelectorAll('.btn-buy-usdt').forEach(b => b.addEventListener('click', () => openBuyUSDT(b.dataset.id)));
+}
 
+function initCatalogSearch() {
+  let db;
+  $('search-input').addEventListener('input', e => {
+    clearTimeout(db);
+    db = setTimeout(() => { State.catalog.search = e.target.value.trim(); State.catalog.page = 1; loadCatalog(); }, 350);
+  });
+}
+
+/* ── Compra NC ──────────────────────────────────────────────────── */
+let _buyNC = null;
+function openBuyNC(id) {
+  if (!State.user) { openModal('modal-login'); return; }
+  const item = State.catalog.items.find(i => i.id === id);
+  if (!item) return;
+  _buyNC = id;
+  clearFb('buy-nc-feedback');
+  setHTML('modal-buy-nc-body', `
+    <div class="confirm-row"><span class="confirm-name">${esc(item.name)}</span></div>
+    ${item.description ? `<p class="confirm-desc">${esc(item.description)}</p>` : ''}
+    <div class="confirm-price">
+      <span>Costo</span><span class="price-tag price-tag--nc">${fmt(item.price_coins)} NC</span>
+    </div>
+    <div class="confirm-balance">
+      <span>Tu saldo</span><span>${fmt(State.balance.wallet)} NC</span>
+    </div>`);
   openModal('modal-buy-nc');
 }
-
 async function confirmBuyNC() {
-  if (!_buyNCItemId) return;
-  const btn = $('modal-buy-nc-confirm');
-  btn.disabled = true;
-  clearFeedback('buy-nc-feedback');
-
+  if (!_buyNC) return;
+  const btn = $('modal-buy-nc-confirm'); btn.disabled = true;
   try {
-    await post('/store/buy-nc', { itemId: _buyNCItemId });
-    await refreshBalance();
-    renderTopbar();
-    closeModal('modal-buy-nc');
-    toast('¡Compra exitosa!', 'ok');
-    _buyNCItemId = null;
-  } catch (err) {
-    setFeedback('buy-nc-feedback', err.message, true);
-  } finally {
-    btn.disabled = false;
-  }
+    await POST('/store/buy-nc', { itemId: _buyNC });
+    await refreshBalance(); renderTopbar();
+    closeModal('modal-buy-nc'); toast('Compra exitosa'); _buyNC = null;
+  } catch (err) { feedback('buy-nc-feedback', err.message, true); }
+  finally { btn.disabled = false; }
 }
 
-/* ── 14. Compra con USDT ─────────────────────────────────────────────────── */
-let _buyUSDTItemId = null;
-
-function openBuyUSDT(itemId) {
+/* ── Compra USDT ────────────────────────────────────────────────── */
+let _buyUSDT = null;
+function openBuyUSDT(id) {
   if (!State.user) { openModal('modal-login'); return; }
-
-  const item = State.catalog.items.find(i => i.id === itemId);
+  const item = State.catalog.items.find(i => i.id === id);
   if (!item) return;
-
-  _buyUSDTItemId = itemId;
-  clearFeedback('buy-usdt-feedback');
-  $('usdt-txid').value = '';
-
-  $('modal-buy-usdt-title').textContent = 'Pagar con USDT';
-  $('modal-buy-usdt-body').innerHTML = `
-    <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px;">
-      <span style="font-size:2.2rem;">${itemIcon(item.icon_type)}</span>
-      <div>
-        <div style="font-weight:700; font-size:0.95rem;">${escHtml(item.name)}</div>
-        <div style="font-size:0.82rem; color:var(--text-secondary);">${escHtml(item.description || '')}</div>
-      </div>
+  _buyUSDT = id; clearFb('buy-usdt-feedback'); $('usdt-txid').value = '';
+  setHTML('modal-buy-usdt-body', `
+    <div class="confirm-row"><span class="confirm-name">${esc(item.name)}</span></div>
+    ${item.description ? `<p class="confirm-desc">${esc(item.description)}</p>` : ''}
+    <div class="confirm-price">
+      <span>Total</span><span class="price-tag price-tag--usdt">$${item.price_usdt} USDT</span>
     </div>
-    <div style="background:var(--teal-dim); border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-      <span style="color:var(--text-secondary); font-size:0.83rem;">Total a pagar</span>
-      <span style="font-weight:800; color:#5eead4; font-size:1.1rem;">💵 $${item.price_usdt} USDT</span>
-    </div>
-    <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:6px;">Envía el pago a la dirección USDT (TRC20) del servidor y pega el hash de transacción abajo.</p>
-  `;
-
+    <p class="modal-note">Envia el pago a la billetera USDT del servidor y pega el hash de la transaccion abajo.</p>`);
   openModal('modal-buy-usdt');
 }
-
-async function submitUSDTOrder(e) {
+async function submitUSDT(e) {
   e.preventDefault();
-  if (!_buyUSDTItemId) return;
-  const txid = $('usdt-txid').value.trim();
-  if (!txid) return;
-
-  clearFeedback('buy-usdt-feedback');
-  const btn = e.submitter || e.target.querySelector('button[type=submit]');
-  if (btn) btn.disabled = true;
-
+  if (!_buyUSDT) return;
+  const txid = $('usdt-txid').value.trim(); if (!txid) return;
+  clearFb('buy-usdt-feedback');
+  const btn = e.submitter; btn.disabled = true;
   try {
-    await post('/store/submit-order', { itemId: _buyUSDTItemId, txid });
-    closeModal('modal-buy-usdt');
-    toast('Pedido enviado. El admin lo revisará pronto.', 'info');
-    _buyUSDTItemId = null;
-  } catch (err) {
-    setFeedback('buy-usdt-feedback', err.message, true);
-  } finally {
-    if (btn) btn.disabled = false;
-  }
+    await POST('/store/submit-order', { itemId: _buyUSDT, txid });
+    closeModal('modal-buy-usdt'); toast('Pedido enviado. El admin lo revisara pronto.', 'info'); _buyUSDT = null;
+  } catch (err) { feedback('buy-usdt-feedback', err.message, true); }
+  finally { btn.disabled = false; }
 }
 
-async function loadWallet() {
-  console.log('[Wallet] Cargando billetera…');
-  await refreshBalance();
-  renderTopbar();
-
-  const walletEl = $('wallet-amount');
-  const bankEl   = $('bank-amount');
-  console.log('[Wallet] elementos DOM:', { walletEl: !!walletEl, bankEl: !!bankEl });
-
-  if (walletEl) walletEl.textContent = `${formatNumber(State.wallet.wallet)} NC`;
-  if (bankEl)   bankEl.textContent   = `${formatNumber(State.wallet.bank)} NC`;
-
-  loadTransactions();
+/* ── ECONOMÍA ───────────────────────────────────────────────────── */
+async function loadEconomy() {
+  await refreshBalance(); renderTopbar();
+  setText('econ-wallet', `${fmt(State.balance.wallet)} NC`);
+  setText('econ-bank',   `${fmt(State.balance.bank)} NC`);
+  setText('econ-total-label', `Total: ${fmt(State.balance.wallet + State.balance.bank)} NC`);
+  loadTx();
 }
 
-async function loadTransactions(page = 1) {
-  State.wallet.txPage = page;
-  const list = $('tx-list');
-  if (!list) { console.error('[Wallet] #tx-list no encontrado en el DOM'); return; }
-  list.innerHTML = '<p class="empty-state">Cargando…</p>';
-
+let _txType = 'all';
+async function loadTx(page = 1) {
+  State.economy.txPage = page;
+  setHTML('tx-list', '<p class="empty-state">Cargando...</p>');
   try {
-    const data = await get(`/wallet/transactions?page=${page}&limit=15`);
-    console.log('[Wallet] transactions response:', JSON.stringify(data).slice(0, 200));
-    const txs  = data.transactions || data.items || [];
-
-    if (!txs.length) {
-      list.innerHTML = '<p class="empty-state">Sin transacciones aún.</p>';
-      return;
-    }
-
-    list.innerHTML = txs.map(tx => {
-      const isCredit = tx.to_user === State.user?.username ||
-                       ['BONUS','DELIVERY'].includes(tx.type);
-      const sign     = isCredit ? '+' : '−';
-      const cls      = isCredit ? 'tx-row__amount--credit' : 'tx-row__amount--debit';
-      const label    = tx.note || `${tx.type} · ${isCredit ? tx.from_user : tx.to_user}`;
-
-      return `
-        <div class="tx-row">
-          <div class="tx-row__meta">
-            <span class="tx-row__label">${escHtml(label)}</span>
-            <span class="tx-row__date">${formatDate(tx.created_at)}</span>
-          </div>
-          <span class="tx-row__amount ${cls}">${sign}${formatNumber(tx.amount)} NC</span>
+    const d   = await GET(`/wallet/transactions?page=${page}&limit=20`);
+    let txs   = d.transactions || [];
+    if (_txType !== 'all') txs = txs.filter(t => t.type && t.type.startsWith(_txType));
+    if (!txs.length) { setHTML('tx-list', '<p class="empty-state">Sin transacciones.</p>'); return; }
+    setHTML('tx-list', txs.map(tx => {
+      const credit = tx.to_user === State.user?.username || ['BONUS','BANK_WITHDRAW'].includes(tx.type);
+      return `<div class="tx-row">
+        <div class="tx-row__meta">
+          <span class="tx-row__label">${esc(tx.note || tx.type)}</span>
+          <span class="tx-row__date">${fmtDate(tx.created_at)}</span>
         </div>
-      `;
-    }).join('');
-
-    if (data.total) {
-      renderPagination('tx-pagination', page, Math.ceil(data.total / 15), p => loadTransactions(p));
-    }
-  } catch (err) {
-    console.error('[Wallet] Error transacciones:', err);
-    list.innerHTML = `<p class="empty-state">Error: ${err.message}</p>`;
-  }
+        <span class="tx-row__amount ${credit ? 'tx-row__amount--credit' : 'tx-row__amount--debit'}">
+          ${credit ? '+' : '-'}${fmt(tx.amount)} NC
+        </span>
+      </div>`;
+    }).join(''));
+    if (d.total > 20) renderPagination('tx-pagination', page, Math.ceil(d.total / 20), n => loadTx(n));
+  } catch (err) { setHTML('tx-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
 }
 
-/* Transferencia */
-function initTransferForm() {
-  $('transfer-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    clearFeedback('transfer-feedback');
-    const toUser = $('transfer-to').value.trim();
-    const amount = parseInt($('transfer-amount').value, 10);
-    if (!toUser || !amount) return;
+function initEconomy() {
+  $('btn-to-bank')?.addEventListener('click',   () => openWalletAction('deposit'));
+  $('btn-from-bank')?.addEventListener('click', () => openWalletAction('withdraw'));
 
+  $('transfer-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    clearFb('transfer-feedback');
+    const to = $('transfer-to').value.trim();
+    const am = parseInt($('transfer-amount').value, 10);
+    if (!to || !am) return;
     try {
-      await post('/wallet/transfer', { fromUser: State.user.username, toUser, amount });
-      await refreshBalance();
-      renderTopbar();
-      $('wallet-amount').textContent = `${formatNumber(State.wallet.wallet)} NC`;
-      $('transfer-to').value     = '';
-      $('transfer-amount').value = '';
-      setFeedback('transfer-feedback', `Transferidos ${formatNumber(amount)} NC a ${toUser}`);
-      loadTransactions();
-      toast(`Transferidos ${formatNumber(amount)} NC a ${toUser}`, 'ok');
-    } catch (err) {
-      setFeedback('transfer-feedback', err.message, true);
-    }
+      await POST('/wallet/transfer', { fromUser: State.user.username, toUser: to, amount: am });
+      await refreshBalance(); renderTopbar();
+      $('transfer-to').value = ''; $('transfer-amount').value = '';
+      setText('econ-wallet', `${fmt(State.balance.wallet)} NC`);
+      setText('econ-total-label', `Total: ${fmt(State.balance.wallet + State.balance.bank)} NC`);
+      feedback('transfer-feedback', `Enviados ${fmt(am)} NC a ${to}`);
+      loadTx();
+    } catch (err) { feedback('transfer-feedback', err.message, true); }
+  });
+
+  // filtros de tipo
+  $('tx-type-filter')?.querySelectorAll('.tab-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      $('tx-type-filter').querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      _txType = b.dataset.type;
+      loadTx(1);
+    });
   });
 }
 
-/* Depositar / retirar del banco */
-let _walletAction = null; // 'deposit' | 'withdraw'
-
-function initWalletActionButtons() {
-  $('btn-deposit-bank').addEventListener('click', () => openWalletAction('deposit'));
-  $('btn-withdraw-bank').addEventListener('click', () => openWalletAction('withdraw'));
-  $('btn-bank-deposit').addEventListener('click',  () => openWalletAction('deposit'));
-  $('btn-bank-withdraw').addEventListener('click', () => openWalletAction('withdraw'));
-}
-
+/* ── Modal mover banco ──────────────────────────────────────────── */
+let _walletAction = null;
 function openWalletAction(action) {
   _walletAction = action;
-  clearFeedback('wallet-action-feedback');
+  clearFb('wallet-action-feedback');
   $('wallet-action-amount').value = '';
-  $('modal-wallet-action-title').textContent =
-    action === 'deposit' ? 'Depositar al banco' : 'Retirar del banco';
-  $('wallet-action-label').textContent =
-    action === 'deposit'
-      ? `Cantidad a depositar (tienes ${formatNumber(State.wallet.wallet)} NC en mano)`
-      : `Cantidad a retirar (tienes ${formatNumber(State.wallet.bank)} NC en banco)`;
+  setText('modal-wallet-action-title', action === 'deposit' ? 'Mover al banco' : 'Retirar del banco');
+  setText('wallet-action-label', action === 'deposit'
+    ? `Cuanto depositar al banco (tienes ${fmt(State.balance.wallet)} NC en mano)`
+    : `Cuanto retirar del banco (tienes ${fmt(State.balance.bank)} NC en banco)`);
   openModal('modal-wallet-action');
 }
-
 async function submitWalletAction(e) {
   e.preventDefault();
   const amount = parseInt($('wallet-action-amount').value, 10);
   if (!amount || amount < 1) return;
-  clearFeedback('wallet-action-feedback');
-
-  const endpoint = _walletAction === 'deposit' ? '/wallet/deposit-bank' : '/wallet/withdraw-bank';
-  const btn = e.submitter || e.target.querySelector('button[type=submit]');
-  if (btn) btn.disabled = true;
-
+  clearFb('wallet-action-feedback');
+  const btn = e.submitter; btn.disabled = true;
   try {
-    await post(endpoint, { amount });
-    await refreshBalance();
-    renderTopbar();
+    const ep = _walletAction === 'deposit' ? '/wallet/deposit-bank' : '/wallet/withdraw-bank';
+    await POST(ep, { amount });
+    await refreshBalance(); renderTopbar();
     closeModal('modal-wallet-action');
-    /* Actualizar ambas secciones */
-    $('wallet-amount').textContent        = `${formatNumber(State.wallet.wallet)} NC`;
-    $('bank-amount').textContent          = `${formatNumber(State.wallet.bank)} NC`;
-    $('bank-section-amount').textContent  = `${formatNumber(State.wallet.bank)} NC`;
-    toast(
-      _walletAction === 'deposit'
-        ? `Depositados ${formatNumber(amount)} NC al banco`
-        : `Retirados ${formatNumber(amount)} NC del banco`,
-      'ok'
-    );
-    loadTransactions();
-  } catch (err) {
-    setFeedback('wallet-action-feedback', err.message, true);
-  } finally {
-    if (btn) btn.disabled = false;
-  }
+    setText('econ-wallet', `${fmt(State.balance.wallet)} NC`);
+    setText('econ-bank',   `${fmt(State.balance.bank)} NC`);
+    setText('econ-total-label', `Total: ${fmt(State.balance.wallet + State.balance.bank)} NC`);
+    toast(`Operacion exitosa`);
+    loadTx();
+  } catch (err) { feedback('wallet-action-feedback', err.message, true); }
+  finally { btn.disabled = false; }
 }
 
-/* ── 16. BANCO ───────────────────────────────────────────────────────────── */
-async function loadBank() {
-  await refreshBalance();
-  $('bank-section-amount').textContent = `${formatNumber(State.wallet.bank)} NC`;
-
-  const list = $('bank-tx-list');
-  list.innerHTML = '<p class="empty-state">Cargando…</p>';
-
-  try {
-    const data = await get('/wallet/transactions?page=1&limit=20');
-    const txs  = (data.transactions || data.items || []).filter(tx =>
-      ['DEPOSIT','WITHDRAW'].includes(tx.type) ||
-      (tx.note && tx.note.toLowerCase().includes('banco'))
-    );
-
-    if (!txs.length) {
-      list.innerHTML = '<p class="empty-state">Sin movimientos bancarios.</p>';
-      return;
-    }
-
-    list.innerHTML = txs.map(tx => {
-      const isCredit = tx.to_user === State.user.username || tx.type === 'DEPOSIT';
-      const sign     = isCredit ? '+' : '−';
-      const cls      = isCredit ? 'tx-row__amount--credit' : 'tx-row__amount--debit';
-
-      return `
-        <div class="tx-row">
-          <div class="tx-row__meta">
-            <span class="tx-row__label">${escHtml(tx.note || tx.type)}</span>
-            <span class="tx-row__date">${formatDate(tx.created_at)}</span>
-          </div>
-          <span class="tx-row__amount ${cls}">${sign}${formatNumber(tx.amount)} NC</span>
-        </div>
-      `;
-    }).join('');
-  } catch (err) {
-    list.innerHTML = `<p class="empty-state">${err.message}</p>`;
-  }
-}
-
-/* ── 17. MIS PEDIDOS ─────────────────────────────────────────────────────── */
+/* ── MIS PEDIDOS ────────────────────────────────────────────────── */
 async function loadOrders(page = 1) {
-  const list = $('orders-list');
-  if (!list) { console.error('[Orders] #orders-list no encontrado'); return; }
-  list.innerHTML = '<p class="empty-state">Cargando…</p>';
-
+  setHTML('orders-list', '<p class="empty-state">Cargando...</p>');
   try {
-    const data = await get(`/orders?page=${page}`);
-    console.log('[Orders] response:', JSON.stringify(data).slice(0, 200));
-    const orders = data.orders || [];
-
-    if (!orders.length) {
-      list.innerHTML = '<p class="empty-state">Aún no tienes pedidos.</p>';
-      return;
-    }
-
-    list.innerHTML = orders.map(o => `
+    const d = await GET(`/orders?page=${page}`);
+    const orders = d.orders || [];
+    if (!orders.length) { setHTML('orders-list', '<p class="empty-state">Aun no tienes pedidos.</p>'); return; }
+    setHTML('orders-list', orders.map(o => `
       <div class="order-card">
         <div class="order-card__info">
-          <span class="order-card__name">${escHtml(o.item_title || o.item_id)}</span>
-          <span class="order-card__meta">
-            ${o.price_usdt ? `$${o.price_usdt} USDT` : `${formatNumber(o.price_coins)} NC`}
-            · ${formatDate(o.created_at)}
-          </span>
-          ${o.admin_note ? `<span class="order-card__meta" style="color:var(--text-muted);">${escHtml(o.admin_note)}</span>` : ''}
+          <span class="order-card__name">${esc(o.item_title || o.item_id)}</span>
+          <span class="order-card__meta">${o.price_usdt ? `$${o.price_usdt} USDT` : `${fmt(o.price_coins)} NC`} · ${fmtDate(o.created_at)}</span>
+          ${o.admin_note ? `<span class="order-card__note">${esc(o.admin_note)}</span>` : ''}
         </div>
         ${statusBadge(o.status)}
-      </div>
-    `).join('');
-
-    if (data.total) {
-      renderPagination('orders-pagination', page, Math.ceil(data.total / 10), p => loadOrders(p));
-    }
-  } catch (err) {
-    list.innerHTML = `<p class="empty-state">${err.message}</p>`;
-  }
+      </div>`).join(''));
+    if (d.total > 10) renderPagination('orders-pagination', page, Math.ceil(d.total / 10), n => loadOrders(n));
+  } catch (err) { setHTML('orders-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
 }
 
-/* ── 18. MI PERFIL ───────────────────────────────────────────────────────── */
+/* ── MI PERFIL ──────────────────────────────────────────────────── */
 async function loadProfile() {
   const u = State.user;
-  if (!u) { console.warn('[Profile] Sin usuario'); return; }
-  console.log('[Profile] Cargando perfil para:', u.username);
+  if (!u) return;
 
-  const card = $('profile-card');
-  if (!card) { console.error('[Profile] #profile-card no encontrado'); return; }
-
-  card.innerHTML = `
-    <div class="profile-avatar">${(u.display_name || u.username || '?')[0].toUpperCase()}</div>
-    <div class="profile-info">
-      <span class="profile-name">${escHtml(u.display_name || u.username)}</span>
-      <span class="profile-meta">@${escHtml(u.username)} · miembro desde ${formatDate(u.created_at).split(',')[0]}</span>
-      <div class="profile-badges">
-        ${u.linked  ? '<span class="profile-badge profile-badge--linked">✅ Minecraft vinculado</span>' : ''}
-        ${u.is_admin ? '<span class="profile-badge profile-badge--admin">⚙ Admin</span>'               : ''}
-      </div>
+  const name = u.display_name || u.username;
+  setHTML('profile-avatar-card', `
+    <div class="profile-avatar-wrap">
+      ${avatar(name, u.avatar, 80)}
     </div>
-  `;
+    <div class="profile-name-big">${esc(name)}</div>
+    <div class="profile-username">@${esc(u.username)}</div>
+    <div class="profile-stats">
+      <div class="profile-stat"><span class="profile-stat__val">${fmt(State.balance.wallet)}</span><span class="profile-stat__label">En mano</span></div>
+      <div class="profile-stat"><span class="profile-stat__val">${fmt(State.balance.bank)}</span><span class="profile-stat__label">En banco</span></div>
+    </div>
+    ${u.linked ? '<div class="profile-linked-badge">Cuenta MC vinculada</div>' : ''}
+  `);
 
-  /* Card de vinculación */
-  const linkCard = $('link-status');
+  setHTML('profile-info-card', `
+    <div class="profile-info-row"><span>Usuario</span><strong>${esc(u.username)}</strong></div>
+    <div class="profile-info-row"><span>Nombre</span><strong>${esc(name)}</strong></div>
+    <div class="profile-info-row"><span>Miembro desde</span><strong>${fmtDate(u.created_at).split(',')[0]}</strong></div>
+    <div class="profile-info-row"><span>Ultima actividad</span><strong>${fmtDate(u.last_active)}</strong></div>
+    ${u.is_admin ? '<div class="profile-info-row"><span>Rol</span><strong>Administrador</strong></div>' : ''}
+  `);
+
+  // prefill edit form
+  const dn = $('edit-display-name');
+  const av = $('edit-avatar-url');
+  if (dn) dn.value = u.display_name || '';
+  if (av) av.value = u.avatar || '';
+
+  // link status
   if (u.linked) {
-    linkCard.innerHTML = `
-      <p style="color:var(--success); font-size:0.88rem;">
-        ✅ Cuenta vinculada como <strong>${escHtml(u.display_name || u.username)}</strong>
-      </p>
-    `;
+    setHTML('link-status', `<p class="link-ok">Vinculado como <strong>${esc(name)}</strong></p>`);
   } else {
-    linkCard.innerHTML = `
-      <p style="color:var(--text-secondary); font-size:0.84rem; margin-bottom:14px;">
-        Vincula tu cuenta de Minecraft para recibir tus compras en el servidor.
-      </p>
-      <button class="btn btn-primary" id="btn-generate-link">Generar código de vinculación</button>
-      <div id="link-code-result"></div>
-    `;
-    $('btn-generate-link').addEventListener('click', generateLinkCode);
+    setHTML('link-status', `
+      <p class="link-hint">Vincula tu cuenta de Minecraft para recibir tus compras en el servidor.</p>
+      <button class="btn btn-primary btn-sm" id="btn-gen-link">Generar codigo de vinculacion</button>
+      <div id="link-code-result"></div>`);
+    $('btn-gen-link')?.addEventListener('click', genLinkCode);
   }
 }
 
-async function generateLinkCode() {
-  const btn = $('btn-generate-link');
-  btn.disabled = true;
-
+async function genLinkCode() {
+  const btn = $('btn-gen-link'); btn.disabled = true;
   try {
-    const data = await post('/auth/generate-link-code', {});
-    const expires = new Date(data.expiresAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+    const d = await POST('/auth/generate-link-code', {});
+    const exp = new Date(d.expiresAt).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' });
+    setHTML('link-code-result', `
+      <div class="link-code-display" style="margin-top:14px">
+        <code class="link-command">/link ${esc(d.code)}</code>
+      </div>
+      <p class="link-expires-note">Expira a las ${exp}</p>`);
+    btn.textContent = 'Regenerar codigo';
+  } catch (err) { toast(err.message, 'error'); }
+  finally { btn.disabled = false; }
+}
 
-    $('link-code-result').innerHTML = `
-      <div class="link-code-box" style="margin-top:16px;">
+function initProfileEdit() {
+  $('profile-edit-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    clearFb('profile-edit-feedback');
+    const display_name = $('edit-display-name').value.trim();
+    const avatar_url   = $('edit-avatar-url').value.trim();
+    const btn = e.submitter; btn.disabled = true;
+    try {
+      const body = {};
+      if (display_name) body.display_name = display_name;
+      if (avatar_url)   body.avatar       = avatar_url;
+      const d = await PATCH('/users/profile', body);
+      State.user = d.user;
+      saveSession(State.token, d.user);
+      renderNav(); renderTopbar();
+      feedback('profile-edit-feedback', 'Perfil actualizado');
+      loadProfile();
+    } catch (err) { feedback('profile-edit-feedback', err.message, true); }
+    finally { btn.disabled = false; }
+  });
+}
+
+/* ── JUGADORES ──────────────────────────────────────────────────── */
+async function loadPlayers() {
+  setHTML('players-results', '<p class="empty-state">Escribe un nombre para buscar.</p>');
+  const input = $('players-search');
+  if (input) input.value = '';
+}
+
+function initPlayersSearch() {
+  let db;
+  $('players-search')?.addEventListener('input', e => {
+    clearTimeout(db);
+    const q = e.target.value.trim();
+    if (!q) { setHTML('players-results', '<p class="empty-state">Escribe un nombre para buscar.</p>'); return; }
+    db = setTimeout(() => doSearchPlayers(q), 350);
+  });
+}
+
+async function doSearchPlayers(q) {
+  setHTML('players-results', '<p class="empty-state">Buscando...</p>');
+  try {
+    const d = await GET(`/users/search?q=${encodeURIComponent(q)}`, false);
+    const users = d.users || [];
+    if (!users.length) { setHTML('players-results', '<p class="empty-state">Sin resultados.</p>'); return; }
+    setHTML('players-results', `<div class="players-grid">${users.map(u => `
+      <div class="player-card" data-username="${esc(u.username)}">
+        <div class="player-card__avatar">${avatar(u.display_name || u.username, u.avatar, 42)}</div>
+        <div class="player-card__info">
+          <span class="player-card__name">${esc(u.display_name || u.username)}</span>
+          <span class="player-card__user">@${esc(u.username)}</span>
+        </div>
+        <div class="player-card__stats">
+          <span>${fmt(u.wallet)} NC</span>
+        </div>
+      </div>`).join('')}</div>`);
+    document.querySelectorAll('.player-card').forEach(c => c.addEventListener('click', () => openPlayerProfile(c.dataset.username)));
+  } catch (err) { setHTML('players-results', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
+}
+
+async function openPlayerProfile(username) {
+  setText('modal-player-profile-title', username);
+  setHTML('modal-player-profile-body', '<p class="empty-state">Cargando...</p>');
+  openModal('modal-player-profile');
+  try {
+    const d = await GET(`/users/profile/${encodeURIComponent(username)}`, false);
+    const u = d.user;
+    const name = u.display_name || u.username;
+    setHTML('modal-player-profile-body', `
+      <div class="modal-player-header">
+        ${avatar(name, u.avatar, 60)}
         <div>
-          <div class="link-code">${data.code}</div>
-          <p class="link-expires">Expira a las ${expires} · Escribe <code>/link ${data.code}</code> en el servidor MC</p>
+          <div class="modal-player-name">${esc(name)}</div>
+          <div class="modal-player-user">@${esc(u.username)}</div>
         </div>
       </div>
-    `;
-    btn.textContent = 'Regenerar código';
-  } catch (err) {
-    toast(err.message, 'error');
-  } finally {
-    btn.disabled = false;
-  }
+      <div class="modal-player-stats">
+        <div class="modal-player-stat"><span>NC en mano</span><strong>${fmt(u.wallet)}</strong></div>
+        <div class="modal-player-stat"><span>NC en banco</span><strong>${fmt(u.bank)}</strong></div>
+        <div class="modal-player-stat"><span>Total NC</span><strong>${fmt(u.wallet + u.bank)}</strong></div>
+        <div class="modal-player-stat"><span>MC vinculado</span><strong>${u.linked ? 'Si' : 'No'}</strong></div>
+      </div>`);
+  } catch { setHTML('modal-player-profile-body', '<p class="empty-state">No se pudo cargar el perfil.</p>'); }
 }
 
-/* ── 19. ESTADÍSTICAS (admin) ────────────────────────────────────────────── */
-async function loadStats() {
-  const grid = $('stats-grid');
-  grid.innerHTML = '<p class="empty-state">Cargando…</p>';
-
+/* ── LEADERBOARD ────────────────────────────────────────────────── */
+async function loadLeaderboard() {
+  setHTML('leaderboard-list', '<p class="empty-state">Cargando...</p>');
   try {
-    const data  = await get('/admin/stats');
-    const stats = data.stats || {};
-
-    const cards = [
-      { icon: '👥', value: stats.totalUsers,        label: 'Jugadores registrados' },
-      { icon: '🔗', value: stats.linkedUsers,        label: 'Cuentas vinculadas' },
-      { icon: '📦', value: stats.storeItems,         label: 'Productos activos' },
-      { icon: '📝', value: stats.pendingOrders,      label: 'Pedidos pendientes' },
-      { icon: '🚚', value: stats.pendingDeliveries,  label: 'Entregas pendientes' },
-      { icon: '💰', value: formatNumber(stats.ncCirculating), label: 'NC en circulación' },
-    ];
-
-    grid.innerHTML = cards.map(c => `
-      <div class="stat-card">
-        <span class="stat-card__icon">${c.icon}</span>
-        <span class="stat-card__value">${c.value ?? '—'}</span>
-        <span class="stat-card__label">${c.label}</span>
-      </div>
-    `).join('');
-  } catch (err) {
-    grid.innerHTML = `<p class="empty-state">${err.message}</p>`;
-  }
+    const d = await GET('/users/leaderboard?limit=30', false);
+    const lb = d.leaderboard || [];
+    if (!lb.length) { setHTML('leaderboard-list', '<p class="empty-state">Sin datos.</p>'); return; }
+    setHTML('leaderboard-list', lb.map((u, i) => {
+      const name  = u.display_name || u.username;
+      const total = (u.wallet || 0) + (u.bank || 0);
+      const medal = i === 0 ? 'rank-gold' : i === 1 ? 'rank-silver' : i === 2 ? 'rank-bronze' : '';
+      return `<div class="lb-row${medal ? ' ' + medal : ''}" data-username="${esc(u.username)}">
+        <span class="lb-rank">${i + 1}</span>
+        <div class="lb-avatar">${avatar(name, u.avatar, 36)}</div>
+        <div class="lb-info">
+          <span class="lb-name">${esc(name)}</span>
+          <span class="lb-user">@${esc(u.username)}</span>
+        </div>
+        <span class="lb-amount">${fmt(total)} NC</span>
+      </div>`;
+    }).join(''));
+    document.querySelectorAll('.lb-row').forEach(r => r.addEventListener('click', () => openPlayerProfile(r.dataset.username)));
+  } catch (err) { setHTML('leaderboard-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
 }
 
-/* ── 20. PEDIDOS USDT (admin) ────────────────────────────────────────────── */
+/* ── BUZÓN ──────────────────────────────────────────────────────── */
+async function loadInbox(page = 1) {
+  setHTML('inbox-list', '<p class="empty-state">Cargando...</p>');
+  try {
+    const d = await GET(`/users/inbox?page=${page}&limit=20`);
+    State.inbox.unread = d.unread ?? 0;
+    renderNav(); // actualizar badge
+    const msgs = d.messages || [];
+    if (!msgs.length) { setHTML('inbox-list', '<p class="empty-state">Buzon vacio.</p>'); return; }
+    setHTML('inbox-list', msgs.map(m => `
+      <div class="inbox-msg${m.read_at ? '' : ' inbox-msg--unread'}" data-id="${esc(m.id)}">
+        <div class="inbox-msg__header">
+          <span class="inbox-msg__from">${esc(m.from_user)}</span>
+          <span class="inbox-msg__date">${fmtDate(m.created_at)}</span>
+        </div>
+        ${m.subject ? `<div class="inbox-msg__subject">${esc(m.subject)}</div>` : ''}
+        <div class="inbox-msg__body">${esc(m.body || '')}</div>
+      </div>`).join(''));
+    document.querySelectorAll('.inbox-msg').forEach(m => m.addEventListener('click', async () => {
+      if (m.classList.contains('inbox-msg--unread')) {
+        m.classList.remove('inbox-msg--unread');
+        try { await POST(`/users/inbox/${m.dataset.id}/read`, {}); State.inbox.unread = Math.max(0, State.inbox.unread - 1); renderNav(); } catch { /* silent */ }
+      }
+    }));
+    if (d.total > 20) renderPagination('inbox-pagination', page, Math.ceil(d.total / 20), n => loadInbox(n));
+  } catch (err) { setHTML('inbox-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
+}
+
+function initInbox() {
+  $('btn-mark-all-read')?.addEventListener('click', async () => {
+    try {
+      await POST('/users/inbox/read-all', {});
+      State.inbox.unread = 0; renderNav();
+      document.querySelectorAll('.inbox-msg--unread').forEach(m => m.classList.remove('inbox-msg--unread'));
+      toast('Todo marcado como leido');
+    } catch (err) { toast(err.message, 'error'); }
+  });
+}
+
+/* ── ADMIN: estadísticas ────────────────────────────────────────── */
+async function loadStats() {
+  setHTML('stats-grid', '<p class="empty-state">Cargando...</p>');
+  try {
+    const d = await GET('/admin/stats');
+    const s = d.stats || {};
+    setHTML('stats-grid', [
+      ['Jugadores', s.totalUsers],
+      ['MC vinculados', s.linkedUsers],
+      ['Productos', s.storeItems],
+      ['Pedidos pendientes', s.pendingOrders],
+      ['Entregas pendientes', s.pendingDeliveries],
+      ['NC en circulacion', fmt(s.ncCirculating)],
+    ].map(([label, val]) => `
+      <div class="stat-card">
+        <span class="stat-card__value">${val ?? '—'}</span>
+        <span class="stat-card__label">${label}</span>
+      </div>`).join(''));
+  } catch (err) { setHTML('stats-grid', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
+}
+
+/* ── ADMIN: pedidos USDT ────────────────────────────────────────── */
 async function loadAdminOrders(page = 1) {
   State.adminOrders.page = page;
-  const list = $('admin-orders-list');
-  list.innerHTML = '<p class="empty-state">Cargando…</p>';
-
+  setHTML('admin-orders-list', '<p class="empty-state">Cargando...</p>');
   try {
     const { status } = State.adminOrders;
-    const data = await get(`/admin/orders?status=${status}&page=${page}&limit=15`);
-    const orders = data.orders || [];
-
-    if (!orders.length) {
-      list.innerHTML = '<p class="empty-state">No hay pedidos con este estado.</p>';
-      return;
-    }
-
-    list.innerHTML = orders.map(o => `
+    const d = await GET(`/admin/orders?status=${status}&page=${page}&limit=15`);
+    const orders = d.orders || [];
+    if (!orders.length) { setHTML('admin-orders-list', '<p class="empty-state">Sin pedidos.</p>'); return; }
+    setHTML('admin-orders-list', orders.map(o => `
       <div class="admin-order-card">
         <div class="admin-order-card__info">
-          <span class="admin-order-card__user">👤 ${escHtml(o.username)}</span>
-          <span class="admin-order-card__item">${escHtml(o.item_title || o.item_id)}${o.price_usdt ? ` · $${o.price_usdt} USDT` : ''}</span>
-          <span class="admin-order-card__meta">
-            TxID: ${o.txid ? escHtml(o.txid.slice(0, 20)) + '…' : '—'}
-            · ${formatDate(o.created_at)}
-          </span>
+          <span class="admin-order-card__user">${esc(o.username)}</span>
+          <span class="admin-order-card__item">${esc(o.item_title || o.item_id)}${o.price_usdt ? ` · $${o.price_usdt} USDT` : ''}</span>
+          <span class="admin-order-card__meta">TxID: ${o.txid ? esc(o.txid.slice(0,24)) + '...' : '—'} · ${fmtDate(o.created_at)}</span>
         </div>
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div class="admin-order-card__actions">
           ${statusBadge(o.status)}
           ${o.status === 'PENDING' ? `
-            <button class="btn btn-success btn-sm" data-approve="${o.id}">✓ Aprobar</button>
-            <button class="btn btn-danger  btn-sm" data-reject="${o.id}">✕ Rechazar</button>
-          ` : ''}
+            <button class="btn btn-success btn-sm" data-approve="${esc(o.id)}">Aprobar</button>
+            <button class="btn btn-danger btn-sm"  data-reject="${esc(o.id)}">Rechazar</button>` : ''}
         </div>
-      </div>
-    `).join('');
-
-    /* Eventos aprobar/rechazar */
-    list.querySelectorAll('[data-approve]').forEach(btn => {
-      btn.addEventListener('click', () => approveOrder(btn.dataset.approve));
-    });
-    list.querySelectorAll('[data-reject]').forEach(btn => {
-      btn.addEventListener('click', () => rejectOrder(btn.dataset.reject));
-    });
-
-    if (data.total) {
-      renderPagination('admin-orders-pagination', page, Math.ceil(data.total / 15), p => loadAdminOrders(p));
-    }
-  } catch (err) {
-    list.innerHTML = `<p class="empty-state">${err.message}</p>`;
-  }
+      </div>`).join(''));
+    document.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', () => approveOrder(b.dataset.approve)));
+    document.querySelectorAll('[data-reject]').forEach(b  => b.addEventListener('click', () => rejectOrder(b.dataset.reject)));
+    if (d.total > 15) renderPagination('admin-orders-pagination', page, Math.ceil(d.total / 15), n => loadAdminOrders(n));
+  } catch (err) { setHTML('admin-orders-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
 }
 
-async function approveOrder(orderId) {
-  try {
-    await post(`/admin/orders/${orderId}/approve`, {});
-    toast('Pedido aprobado', 'ok');
-    loadAdminOrders(State.adminOrders.page);
-  } catch (err) {
-    toast(err.message, 'error');
-  }
+async function approveOrder(id) {
+  try { await POST(`/admin/orders/${id}/approve`, {}); toast('Pedido aprobado'); loadAdminOrders(State.adminOrders.page); }
+  catch (err) { toast(err.message, 'error'); }
 }
-
-async function rejectOrder(orderId) {
+async function rejectOrder(id) {
   const note = prompt('Motivo de rechazo (opcional):') ?? '';
-  try {
-    await post(`/admin/orders/${orderId}/reject`, { note });
-    toast('Pedido rechazado', 'info');
-    loadAdminOrders(State.adminOrders.page);
-  } catch (err) {
-    toast(err.message, 'error');
-  }
+  try { await POST(`/admin/orders/${id}/reject`, { note }); toast('Pedido rechazado'); loadAdminOrders(State.adminOrders.page); }
+  catch (err) { toast(err.message, 'error'); }
 }
 
 function initAdminOrdersTabs() {
-  $('admin-orders-tabs').querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      $('admin-orders-tabs').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      State.adminOrders.status = btn.dataset.status;
-      State.adminOrders.page   = 1;
-      loadAdminOrders();
+  $('admin-orders-tabs')?.querySelectorAll('.tab-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      $('admin-orders-tabs').querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      State.adminOrders.status = b.dataset.status;
+      loadAdminOrders(1);
     });
   });
 }
 
-/* ── 21. JUGADORES (admin) ───────────────────────────────────────────────── */
+/* ── ADMIN: jugadores ───────────────────────────────────────────── */
 async function loadAdminUsers(search = '') {
-  const list = $('admin-users-list');
-  list.innerHTML = '<p class="empty-state">Cargando…</p>';
-
+  setHTML('admin-users-list', '<p class="empty-state">Cargando...</p>');
   try {
-    const params = new URLSearchParams({ limit: 30, page: 1 });
-    if (search) params.set('search', search);
-
-    const data  = await get(`/admin/users?${params}`);
-    const users = data.users || [];
-
-    if (!users.length) {
-      list.innerHTML = '<p class="empty-state">No se encontraron jugadores.</p>';
-      return;
-    }
-
-    list.innerHTML = users.map(u => `
+    const p = new URLSearchParams({ limit: 30, page: 1 });
+    if (search) p.set('search', search);
+    const d = await GET(`/admin/users?${p}`);
+    const users = d.users || [];
+    if (!users.length) { setHTML('admin-users-list', '<p class="empty-state">Sin jugadores.</p>'); return; }
+    setHTML('admin-users-list', users.map(u => `
       <div class="admin-user-row">
         <div class="admin-user-row__info">
-          <div class="admin-user-row__avatar">${(u.display_name || u.username)[0].toUpperCase()}</div>
+          <div class="admin-user-row__avatar">${avatar(u.display_name || u.username, u.avatar, 36)}</div>
           <div>
-            <div class="admin-user-row__name">
-              ${escHtml(u.display_name || u.username)}
-              ${u.is_admin  ? '<span class="profile-badge profile-badge--admin" style="margin-left:6px;">Admin</span>' : ''}
-              ${u.linked    ? '<span class="profile-badge profile-badge--linked" style="margin-left:4px;">MC</span>'   : ''}
-            </div>
-            <div class="admin-user-row__stats">
-              💰 ${formatNumber(u.wallet)} NC &nbsp;|&nbsp; 🏦 ${formatNumber(u.bank)} NC
-              &nbsp;·&nbsp; activo ${formatDate(u.last_active).split(',')[0]}
-            </div>
+            <div class="admin-user-row__name">${esc(u.display_name || u.username)}${u.is_admin ? ' <span class="badge badge--admin">Admin</span>' : ''}${u.linked ? ' <span class="badge badge--linked">MC</span>' : ''}</div>
+            <div class="admin-user-row__stats">${fmt(u.wallet)} + ${fmt(u.bank)} NC · ${fmtDate(u.last_active).split(',')[0]}</div>
           </div>
         </div>
-        <button class="btn btn-secondary btn-sm" data-edit-user="${u.id}"
-                data-wallet="${u.wallet}" data-bank="${u.bank}" data-name="${escHtml(u.username)}">
-          ✏ Editar
-        </button>
-      </div>
-    `).join('');
-
-    list.querySelectorAll('[data-edit-user]').forEach(btn => {
-      btn.addEventListener('click', () => openAdminUserModal(btn));
-    });
-  } catch (err) {
-    list.innerHTML = `<p class="empty-state">${err.message}</p>`;
-  }
+        <button class="btn btn-secondary btn-sm" data-eu="${esc(u.id)}" data-ew="${u.wallet}" data-eb="${u.bank}" data-en="${esc(u.username)}">Editar</button>
+      </div>`).join(''));
+    document.querySelectorAll('[data-eu]').forEach(b => b.addEventListener('click', () => openAdminUserModal(b)));
+  } catch (err) { setHTML('admin-users-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
 }
 
 function openAdminUserModal(btn) {
-  $('admin-user-id').value     = btn.dataset.editUser;
-  $('admin-user-wallet').value = btn.dataset.wallet;
-  $('admin-user-bank').value   = btn.dataset.bank;
-  $('modal-admin-user-title').textContent = `Editar: ${btn.dataset.name}`;
-  clearFeedback('admin-user-feedback');
+  $('admin-user-id').value     = btn.dataset.eu;
+  $('admin-user-wallet').value = btn.dataset.ew;
+  $('admin-user-bank').value   = btn.dataset.eb;
+  setText('modal-admin-user-title', `Editar: ${btn.dataset.en}`);
+  clearFb('admin-user-feedback');
   openModal('modal-admin-user');
 }
 
 async function submitAdminUser(e) {
   e.preventDefault();
-  const id     = $('admin-user-id').value;
-  const wallet = $('admin-user-wallet').value;
-  const bank   = $('admin-user-bank').value;
-  clearFeedback('admin-user-feedback');
-
-  const btn = e.submitter || e.target.querySelector('button[type=submit]');
-  if (btn) btn.disabled = true;
-
+  const id = $('admin-user-id').value;
+  clearFb('admin-user-feedback');
+  const btn = e.submitter; btn.disabled = true;
   try {
-    await post(`/admin/users/${id}/wallet`, { wallet: parseInt(wallet), bank: parseInt(bank) });
-    closeModal('modal-admin-user');
-    toast('Saldo actualizado', 'ok');
-    loadAdminUsers($('users-search').value.trim());
-  } catch (err) {
-    setFeedback('admin-user-feedback', err.message, true);
-  } finally {
-    if (btn) btn.disabled = false;
-  }
+    await POST(`/admin/users/${id}/wallet`, { wallet: parseInt($('admin-user-wallet').value), bank: parseInt($('admin-user-bank').value) });
+    closeModal('modal-admin-user'); toast('Guardado');
+    loadAdminUsers($('admin-users-search').value.trim());
+  } catch (err) { feedback('admin-user-feedback', err.message, true); }
+  finally { btn.disabled = false; }
 }
 
 function initAdminUsersSearch() {
-  let debounce;
-  $('users-search').addEventListener('input', e => {
-    clearTimeout(debounce);
-    debounce = setTimeout(() => loadAdminUsers(e.target.value.trim()), 350);
+  let db;
+  $('admin-users-search')?.addEventListener('input', e => {
+    clearTimeout(db);
+    db = setTimeout(() => loadAdminUsers(e.target.value.trim()), 350);
   });
 }
 
-/* ── 22. Paginación ──────────────────────────────────────────────────────── */
-function renderPagination(containerId, currentPage, totalPages, onPage) {
-  const container = $(containerId);
-  if (!container || totalPages <= 1) { if (container) container.innerHTML = ''; return; }
-
+/* ── Paginación ─────────────────────────────────────────────────── */
+function renderPagination(containerId, cur, total, onPage) {
+  const c = $(containerId);
+  if (!c || total <= 1) { if (c) c.innerHTML = ''; return; }
   const pages = [];
-  const range = 2;
-  const start = Math.max(1, currentPage - range);
-  const end   = Math.min(totalPages, currentPage + range);
-
+  const start = Math.max(1, cur - 2), end = Math.min(total, cur + 2);
   if (start > 1) pages.push(1);
-  if (start > 2) pages.push('…');
+  if (start > 2) pages.push('...');
   for (let i = start; i <= end; i++) pages.push(i);
-  if (end < totalPages - 1) pages.push('…');
-  if (end < totalPages) pages.push(totalPages);
-
-  container.innerHTML = pages.map(p =>
-    p === '…'
-      ? `<span class="page-btn" style="cursor:default;">…</span>`
-      : `<button class="page-btn ${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`
+  if (end < total - 1) pages.push('...');
+  if (end < total) pages.push(total);
+  c.innerHTML = pages.map(p => p === '...'
+    ? `<span class="page-btn page-btn--dot">...</span>`
+    : `<button class="page-btn${p === cur ? ' active' : ''}" data-p="${p}">${p}</button>`
   ).join('');
-
-  container.querySelectorAll('[data-page]').forEach(btn => {
-    btn.addEventListener('click', () => onPage(parseInt(btn.dataset.page, 10)));
-  });
+  c.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => onPage(parseInt(b.dataset.p))));
 }
 
-/* ── 23. Status badge ────────────────────────────────────────────────────── */
-function statusBadge(status) {
-  const map = {
-    PENDING:  { cls: 'status-badge--pending',  label: '⏳ Pendiente'  },
-    APPROVED: { cls: 'status-badge--approved', label: '✅ Aprobado'   },
-    REJECTED: { cls: 'status-badge--rejected', label: '✕ Rechazado'  },
-  };
-  const s = map[status] || { cls: '', label: status };
-  return `<span class="status-badge ${s.cls}">${s.label}</span>`;
-}
-
-/* ── 24. Escape HTML ─────────────────────────────────────────────────────── */
-function escHtml(str) {
-  return String(str ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-/* ── 25. Init ────────────────────────────────────────────────────────────── */
+/* ── Init ───────────────────────────────────────────────────────── */
 async function init() {
-  console.log('[Init] Arrancando Nodowa Tienda…');
-
-  /* Restaurar sesión desde localStorage */
   await restoreSession();
-  if (State.user) {
-    console.log('[Init] Usuario activo:', State.user.username, '| admin:', !!State.user.is_admin);
-    await refreshBalance();
-  } else {
-    console.log('[Init] Sin sesión activa');
-  }
+  if (State.user) { await Promise.all([refreshBalance(), fetchUnread()]); }
 
-  /* Render inicial */
-  renderSidebarNav();
+  renderNav();
   renderTopbar();
-
-  /* Inicializar módulos */
   initModals();
   initAuthModal();
   initCatalogSearch();
-  initTransferForm();
-  initWalletActionButtons();
+  initEconomy();
+  initProfileEdit();
+  initPlayersSearch();
+  initInbox();
   initAdminOrdersTabs();
   initAdminUsersSearch();
 
-  /* Eventos de formularios en modales */
-  $('modal-buy-nc-confirm').addEventListener('click', confirmBuyNC);
-  $('usdt-form').addEventListener('submit', submitUSDTOrder);
-  $('wallet-action-form').addEventListener('submit', submitWalletAction);
-  $('admin-user-form').addEventListener('submit', submitAdminUser);
+  $('modal-buy-nc-confirm')?.addEventListener('click', confirmBuyNC);
+  $('usdt-form')?.addEventListener('submit', submitUSDT);
+  $('wallet-action-form')?.addEventListener('submit', submitWalletAction);
+  $('admin-user-form')?.addEventListener('submit', submitAdminUser);
 
-  /* Sección inicial */
-  navigateTo('catalog');
+  go('catalog');
 }
 
 document.addEventListener('DOMContentLoaded', init);
