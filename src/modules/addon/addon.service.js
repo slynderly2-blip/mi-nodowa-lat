@@ -59,7 +59,6 @@ function ackDelivery(deliveryId) {
     log.warn(`[Addon] No se pudo registrar intento de ACK: ${e.message}`);
   }
 
-  // Usar FOR UPDATE para bloquear la fila y evitar race conditions
   const delivery = db.get('SELECT * FROM deliveries WHERE id = ?', [deliveryId]);
   if (!delivery) {
     log.warn(`[Addon] Intento de ACK en entrega inexistente: ${deliveryId}`);
@@ -81,9 +80,9 @@ function ackDelivery(deliveryId) {
     return { ok: false, error: `Estado inválido: ${delivery.status}` };
   }
 
-  log.info(`[Addon] 🎮 Procesando entrega ${deliveryId}: ${delivery.item_title} para ${delivery.username} (coins: ${delivery.give_coins || 0})`);
+  log.info(`[Addon] 🎮 Procesando entrega ${deliveryId}: ${delivery.item_title} para ${delivery.username}`);
 
-  // Usar transacción para evitar condiciones de carrera (entregas duplicadas)
+  // Usar transacción para marcar como entregada
   try {
     db.transaction(() => {
       // Marcar como entregada SOLO si está PENDING
@@ -100,19 +99,8 @@ function ackDelivery(deliveryId) {
         throw new Error('No se pudo procesar la entrega - ya fue procesada');
       }
 
-      // Si la entrega da coins, actualizar wallet
-      if (delivery.give_coins > 0) {
-        log.info(`[Addon] 💰 Otorgando ${delivery.give_coins} NC a ${delivery.username}`);
-        db.run(
-          `UPDATE users SET wallet = wallet + ? WHERE username = ? COLLATE NOCASE`,
-          [delivery.give_coins, delivery.username]
-        );
-        db.run(
-          `INSERT INTO transactions (id, from_user, to_user, amount, type, note)
-           VALUES (?, 'SYSTEM', ?, ?, 'DELIVERY', ?)`,
-          [genId('tx'), delivery.username, delivery.give_coins, `Entrega: ${delivery.item_title}`]
-        );
-      }
+      // YA NO DAMOS COINS AQUÍ - los coins se dan al comprar (en buyWithNC)
+      // Solo ejecutamos comandos de items
       
       // Registrar ACK exitoso
       db.run(`INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'SUCCESS', 'Entregado correctamente')`, [deliveryId]);

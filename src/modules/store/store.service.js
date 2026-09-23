@@ -51,14 +51,25 @@ function buyWithNC(username, itemId) {
     // Descontar NC
     db.run('UPDATE users SET wallet = wallet - ? WHERE id = ?', [item.price_coins, user.id]);
 
-    // Crear delivery
+    // Crear delivery YA MARCADA COMO PENDING (el addon la recogerá)
+    // NO dar coins aquí - el addon los dará cuando confirme
     db.run(
       `INSERT INTO deliveries (id, user_id, username, item_title, item_category, command, give_coins, price_coins, payment_method, source, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Nodocoins (NC)', 'STORE_NC', 'PENDING')`,
-      [deliveryId, user.id, user.username, item.name, item.category, item.command || '', item.give_coins || 0, item.price_coins]
+      [deliveryId, user.id, user.username, item.name, item.category, item.command || '', 0, item.price_coins]
     );
 
-    // Registrar transacción
+    // SI el item da coins (recarga de NC), darlos INMEDIATAMENTE aquí (no esperar al addon)
+    if (item.give_coins > 0) {
+      db.run('UPDATE users SET wallet = wallet + ? WHERE id = ?', [item.give_coins, user.id]);
+      db.run(
+        `INSERT INTO transactions (id, from_user, to_user, amount, type, note) VALUES (?, 'SYSTEM', ?, ?, 'COINS_PURCHASE', ?)`,
+        [genId('tx2'), username, item.give_coins, `Recarga: ${item.name}`]
+      );
+      log.info(`[Store] Coins otorgados inmediatamente: ${item.give_coins} NC a ${username}`);
+    }
+
+    // Registrar transacción de compra
     db.run(
       `INSERT INTO transactions (id, from_user, to_user, amount, type, note) VALUES (?, ?, 'STORE', ?, 'PURCHASE', ?)`,
       [txId, username, item.price_coins, `Compra: ${item.name}`]
@@ -72,7 +83,7 @@ function buyWithNC(username, itemId) {
         msgId, 
         username, 
         `Compra confirmada: ${item.name}`,
-        `Tu compra de "${item.name}" por ${item.price_coins} NC ha sido procesada. Recibirás tu artículo en el juego próximamente.`,
+        `Tu compra de "${item.name}" por ${item.price_coins} NC ha sido procesada. ${item.give_coins > 0 ? `Recibiste ${item.give_coins} NC. ` : ''}${item.command ? 'Recibirás el item en el juego.' : ''}`,
         deliveryId,
       ]
     );
