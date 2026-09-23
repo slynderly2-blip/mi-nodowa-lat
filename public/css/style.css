@@ -1987,7 +1987,7 @@ input::placeholder { color: var(--text-muted); }
   }
   .sidebar-overlay.show { display: block; }
   
-  .main-wrapper { width: 100%; margin-left: 0 !important; }
+  .main-wrapper { width: 100%; margin-left: 0 !important; overflow: visible; }
   .topbar { padding: 0 12px; gap: 8px; }
   .topbar-title { font-size: 0.9rem; }
   .main-content { padding: 14px 12px 30px; }
