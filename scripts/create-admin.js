@@ -1,73 +1,44 @@
 #!/usr/bin/env node
-/**
- * Script para crear un usuario administrador directamente
- * Uso: node scripts/create-admin.js <username> <password>
- */
+'use strict';
 
+const db = require('../src/config/database');
 const bcrypt = require('bcryptjs');
-const path = require('path');
-const fs = require('fs');
 
-async function createAdmin(username, password) {
-  if (!username || !password) {
-    console.error('❌ Uso: node scripts/create-admin.js <username> <password>');
-    process.exit(1);
+async function createAdmin() {
+  await db.initDB();
+  
+  const username = process.argv[2] || 'admin';
+  const password = process.argv[3] || 'admin123';
+  
+  // Verificar si existe
+  const existing = db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [username]);
+  
+  const hash = await bcrypt.hash(password, 10);
+  
+  if (existing) {
+    // Actualizar
+    db.run('UPDATE users SET password_hash = ?, is_admin = 1 WHERE username = ? COLLATE NOCASE', [hash, username]);
+    console.log(`✅ Usuario "${username}" actualizado como admin`);
+  } else {
+    // Crear nuevo
+    db.run(
+      `INSERT INTO users (username, display_name, password_hash, wallet, bank, linked, is_admin) 
+       VALUES (?, ?, ?, 0, 0, 0, 1)`,
+      [username, username, hash]
+    );
+    console.log(`✅ Usuario admin "${username}" creado`);
   }
-
-  // Importar módulos necesarios
-  const { initDB, run, get, persistDB } = require('../src/config/database');
-
-  try {
-    // Inicializar BD
-    await initDB();
-    console.log('✅ Base de datos inicializada');
-
-    // Verificar si el usuario ya existe
-    const existing = get('SELECT id, username, is_admin FROM users WHERE username = ? COLLATE NOCASE', [username]);
-
-    if (existing) {
-      console.log(`⚠️  Usuario "${username}" ya existe`);
-      
-      if (existing.is_admin) {
-        console.log('   El usuario ya es administrador');
-        
-        // Actualizar contraseña
-        const hash = await bcrypt.hash(password, 10);
-        run('UPDATE users SET password_hash = ? WHERE id = ?', [hash, existing.id]);
-        persistDB();
-        console.log('✅ Contraseña actualizada');
-      } else {
-        // Convertir en admin y actualizar contraseña
-        const hash = await bcrypt.hash(password, 10);
-        run('UPDATE users SET is_admin = 1, password_hash = ? WHERE id = ?', [hash, existing.id]);
-        persistDB();
-        console.log('✅ Usuario convertido en administrador y contraseña actualizada');
-      }
-    } else {
-      // Crear nuevo usuario admin
-      const hash = await bcrypt.hash(password, 10);
-      run(
-        `INSERT INTO users (username, display_name, password_hash, wallet, bank, linked, is_admin) 
-         VALUES (?, ?, ?, 0, 0, 0, 1)`,
-        [username, username, hash]
-      );
-      persistDB();
-      console.log(`✅ Usuario administrador "${username}" creado exitosamente`);
-    }
-
-    console.log('\n📋 Detalles:');
-    console.log(`   Usuario: ${username}`);
-    console.log(`   Contraseña: ${password}`);
-    console.log(`   Rol: Administrador`);
-    console.log('\n🔐 Ahora puedes iniciar sesión en la aplicación con estas credenciales');
-    
-    process.exit(0);
-  } catch (error) {
-    console.error('❌ Error:', error.message);
-    process.exit(1);
-  }
+  
+  console.log(`\n📋 CREDENCIALES DE ACCESO:`);
+  console.log(`   Usuario:    ${username}`);
+  console.log(`   Contraseña: ${password}`);
+  console.log(`\nURL: https://tienda.nodowa.lat`);
+  
+  db.persistDB();
+  process.exit(0);
 }
 
-// Ejecutar
-const [,, username, password] = process.argv;
-createAdmin(username, password);
+createAdmin().catch(err => {
+  console.error('❌ Error:', err.message);
+  process.exit(1);
+});
