@@ -72,6 +72,21 @@ function executeDelivery(deliveryId) {
   const d = db.get('SELECT * FROM deliveries WHERE id = ?', [deliveryId]);
   log.ok(`[Deliveries] ✅ Ejecutando: ${deliveryId} → ${d.username} (${d.item_title})`);
 
+  // FIX CRÍTICO: acreditar give_coins en la wallet AHORA, dentro de la misma transacción.
+  // Antes esto nunca ocurría — el addon recibía giveCoins pero nunca lo aplicaba.
+  if (d.give_coins > 0) {
+    db.run('UPDATE users SET wallet = wallet + ? WHERE username = ? COLLATE NOCASE', [d.give_coins, d.username]);
+    db.run(
+      `INSERT INTO transactions (id, from_user, to_user, amount, type, note) VALUES (?, 'SYSTEM', ?, ?, 'DELIVERY_COINS', ?)`,
+      [genId('tx'), d.username, d.give_coins, `Entrega: ${d.item_title}`]
+    );
+    db.run(
+      `INSERT INTO messages (id, from_user, to_user, subject, body, ref_id, ref_type) VALUES (?, 'SYSTEM', ?, ?, ?, ?, 'DELIVERY')`,
+      [genId('msg'), d.username, `Nodocoins acreditados: ${d.item_title}`, `Se acreditaron ${d.give_coins} NC a tu billetera.`, d.id]
+    );
+    log.ok(`[Deliveries] 💰 +${d.give_coins} NC acreditados a ${d.username}`);
+  }
+
   return {
     ok: true,
     delivery: {

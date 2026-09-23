@@ -148,6 +148,15 @@
         <!-- ESTADÍSTICAS (admin) -->
         <section id="section-stats" class="content-section" data-title="Estadisticas">
           <div class="stats-grid" id="stats-grid"></div>
+          <div class="card mt-4">
+            <div class="card-header">
+              <h2 class="card-title">Configuración de pagos</h2>
+              <button class="btn btn-secondary btn-sm" id="btn-open-binance-config">Configurar Binance Pay</button>
+            </div>
+            <div id="binance-config-preview" class="binance-config-preview">
+              <!-- Se rellena por JS al cargar stats -->
+            </div>
+          </div>
         </section>
 
         <!-- PEDIDOS USDT (admin) -->
@@ -170,6 +179,20 @@
             <input type="search" id="admin-users-search" placeholder="Buscar jugador..." aria-label="Buscar jugador" />
           </div>
           <div class="admin-users-list" id="admin-users-list"><p class="empty-state">Cargando...</p></div>
+        </section>
+
+        <!-- RECLAMOS (admin) -->
+        <section id="section-admin-issues" class="content-section" data-title="Reclamos">
+          <div class="toolbar-row">
+            <div class="filter-tabs" id="admin-issues-tabs">
+              <button class="tab-btn active" data-status="pending">Pendientes</button>
+              <button class="tab-btn" data-status="resolved">Resueltos</button>
+              <button class="tab-btn" data-status="ignored">Ignorados</button>
+              <button class="tab-btn" data-status="ALL">Todos</button>
+            </div>
+          </div>
+          <div id="admin-issues-list"><p class="empty-state">Cargando...</p></div>
+          <div class="pagination" id="admin-issues-pagination"></div>
         </section>
 
       </main>
@@ -241,12 +264,58 @@
       <button class="modal-close" id="modal-buy-usdt-close" aria-label="Cerrar">&#x2715;</button>
       <h2 class="modal-title" id="modal-buy-usdt-title">Pagar con USDT</h2>
       <div id="modal-buy-usdt-body"></div>
+      <!-- Info de pago dinámica (Binance ID + QR) -->
+      <div id="modal-usdt-payment-info" class="usdt-payment-info"></div>
       <form id="usdt-form" class="modal-form" novalidate>
         <label for="usdt-txid">Hash / TxID de la transferencia</label>
-        <input type="text" id="usdt-txid" required placeholder="0x..." />
+        <input type="text" id="usdt-txid" placeholder="0x..." />
+        <label for="usdt-receipt">Comprobante de pago (imagen)</label>
+        <div class="file-upload-area" id="usdt-receipt-area">
+          <input type="file" id="usdt-receipt" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;" />
+          <div class="file-upload-placeholder" id="usdt-receipt-placeholder">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Toca para subir comprobante</span>
+            <span class="file-upload-hint">JPG, PNG, WEBP · máx 10 MB</span>
+          </div>
+          <img id="usdt-receipt-preview" class="file-upload-preview" style="display:none;" alt="Vista previa del comprobante" />
+        </div>
         <button type="submit" class="btn btn-primary btn-full">Enviar pedido</button>
       </form>
       <p class="form-feedback" id="buy-usdt-feedback" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- Ver comprobante (admin) -->
+  <div class="modal-backdrop" id="modal-receipt-view" role="dialog" aria-modal="true" hidden>
+    <div class="modal">
+      <button class="modal-close" id="modal-receipt-view-close" aria-label="Cerrar">&#x2715;</button>
+      <h2 class="modal-title">Comprobante de pago</h2>
+      <div id="modal-receipt-view-body" style="text-align:center;"></div>
+    </div>
+  </div>
+
+  <!-- Config Binance (admin) -->
+  <div class="modal-backdrop" id="modal-binance-config" role="dialog" aria-modal="true" hidden>
+    <div class="modal">
+      <button class="modal-close" id="modal-binance-config-close" aria-label="Cerrar">&#x2715;</button>
+      <h2 class="modal-title">Configurar pago Binance</h2>
+      <form id="binance-config-form" class="modal-form" novalidate>
+        <label for="binance-pay-id-input">Binance Pay ID</label>
+        <input type="text" id="binance-pay-id-input" placeholder="Ej: 1255344898" />
+        <label for="binance-wallet-input">Tipo de billetera</label>
+        <input type="text" id="binance-wallet-input" placeholder="Ej: USDT (TRC20)" />
+        <label>QR de pago</label>
+        <div class="file-upload-area" id="binance-qr-area">
+          <input type="file" id="binance-qr-file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;" />
+          <div class="file-upload-placeholder" id="binance-qr-placeholder">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Toca para subir QR</span>
+          </div>
+          <img id="binance-qr-preview" class="file-upload-preview" style="display:none;max-width:200px;margin:0 auto;" alt="QR actual" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Guardar configuración</button>
+      </form>
+      <p class="form-feedback" id="binance-config-feedback" aria-live="polite"></p>
     </div>
   </div>
 
@@ -291,6 +360,39 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Modal reembolso (admin) -->
+  <div class="modal-backdrop" id="modal-refund" role="dialog" aria-modal="true" hidden>
+    <div class="modal modal--sm">
+      <button class="modal-close" id="modal-refund-close" aria-label="Cerrar">&#x2715;</button>
+      <h2 class="modal-title">Reembolsar reclamo</h2>
+      <p id="modal-refund-player" style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:12px;"></p>
+      <form id="refund-form" class="modal-form" novalidate>
+        <input type="hidden" id="refund-issue-id" />
+        <label for="refund-amount">Cantidad a reembolsar (NC) — pon 0 para solo cerrar el reclamo</label>
+        <input type="number" id="refund-amount" min="0" placeholder="Ej: 5000" required />
+        <button type="submit" class="btn btn-primary btn-full">Confirmar reembolso</button>
+      </form>
+      <p class="form-feedback" id="refund-feedback" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- Modal reportar problema (usuario) -->
+  <div class="modal-backdrop" id="modal-report-issue" role="dialog" aria-modal="true" hidden>
+    <div class="modal modal--sm">
+      <button class="modal-close" id="modal-report-issue-close" aria-label="Cerrar">&#x2715;</button>
+      <h2 class="modal-title">Reportar problema</h2>
+      <p style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:12px;">El equipo admin revisará tu reclamo y te notificará por el buzón.</p>
+      <form id="report-issue-form" class="modal-form" novalidate>
+        <input type="hidden" id="report-issue-item-title" />
+        <input type="hidden" id="report-issue-delivery-id" />
+        <label for="report-issue-note">Describe el problema</label>
+        <textarea id="report-issue-note" rows="3" placeholder="Ej: Compré 5000 NC pero no los recibí en el juego..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;resize:vertical;"></textarea>
+        <button type="submit" class="btn btn-primary btn-full" style="margin-top:10px">Enviar reclamo</button>
+      </form>
+      <p class="form-feedback" id="report-issue-feedback" aria-live="polite"></p>
+    </div>
+  </div>
 
   <script src="/js/app.js"></script>
 </body>

@@ -141,6 +141,101 @@ function listDeliveries(status = 'PENDING', page = 1, limit = 30) {
   return { ok: true, deliveries: rows };
 }
 
+// ── Zona de reclamos (delivery_issues) ───────────────────────────────────────
+
+function listIssues(status = 'pending', page = 1, limit = 30) {
+  const offset = (page - 1) * limit;
+  const where  = status !== 'ALL' ? 'WHERE di.status = ?' : '';
+  const params = status !== 'ALL' ? [status, limit, offset] : [limit, offset];
+  const rows = db.query(
+    `SELECT di.*, d.give_coins, d.command, d.payment_method, d.source
+     FROM delivery_issues di
+     LEFT JOIN deliveries d ON d.id = di.delivery_id
+     ${where} ORDER BY di.created_at DESC LIMIT ? OFFSET ?`,
+    params
+  );
+  const count = db.get(
+    `SELECT COUNT(*) as c FROM delivery_issues${status !== 'ALL' ? ' WHERE status = ?' : ''}`,
+    status !== 'ALL' ? [status] : []
+  );
+  return { ok: true, issues: rows, total: count?.c || 0 };
+}
+
+function requeueIssue(issueId, adminUsername) {
+  const issue = db.get('SELECT * FROM delivery_issues WHERE id = ?', [issueId]);
+  if (!issue) throw new NotFound('Reclamo no encontrado');
+
+  // Crear una nueva delivery PENDING para reenviar
+  const delId = manager.createDelivery({
+    username:      issue.player,
+    itemTitle:     issue.item_title,
+    itemCategory:  'requeue',
+    command:       issue.command || '',
+    giveCoins:     0,
+    priceCoins:    0,
+    paymentMethod: 'REQUEUE',
+    source:        'ADMIN_REQUEUE',
+  });
+
+  db.transaction(() => {
+    db.run(`UPDATE delivery_issues SET status = 'resolved', note = ? WHERE id = ?`,
+      [`Reencolado por ${adminUsername}. Nueva delivery: ${delId}`, issueId]);
+    db.run(`INSERT INTO messages (id, from_user, to_user, subject, body, ref_id, ref_type) VALUES (?, 'SYSTEM', ?, ?, ?, ?, 'DELIVERY')`,
+      [genId('msg'), issue.player, `Reclamo procesado: ${issue.item_title}`, `Tu reclamo fue revisado. Se te reenviará el artículo. Reclámalo con /tienda.`, delId]);
+  });
+
+  log.ok(`[Admin] Reencolar reclamo ${issueId} → nueva delivery ${delId} (por ${adminUsername})`);
+  return { ok: true, deliveryId: delId };
+}
+
+function refundIssue(issueId, refundAmount, adminUsername) {
+  const issue = db.get('SELECT * FROM delivery_issues WHERE id = ?', [issueId]);
+  if (!issue) throw new NotFound('Reclamo no encontrado');
+  const amt = parseInt(refundAmount, 10);
+  if (isNaN(amt) || amt < 0) throw new BadRequest('Monto de reembolso inválido');
+
+  db.transaction(() => {
+    if (amt > 0) {
+      db.run('UPDATE users SET wallet = wallet + ? WHERE username = ? COLLATE NOCASE', [amt, issue.player]);
+      db.run(`INSERT INTO transactions (id, from_user, to_user, amount, type, note) VALUES (?, 'SYSTEM', ?, ?, 'REFUND', ?)`,
+        [genId('tx'), issue.player, amt, `Reembolso: ${issue.item_title}`]);
+    }
+    db.run(`UPDATE delivery_issues SET status = 'resolved', note = ? WHERE id = ?`,
+      [`Reembolsado ${amt} NC por ${adminUsername}`, issueId]);
+    db.run(`INSERT INTO messages (id, from_user, to_user, subject, body, ref_id, ref_type) VALUES (?, 'SYSTEM', ?, ?, ?, ?, 'DELIVERY')`,
+      [genId('msg'), issue.player,
+       `Reembolso: ${issue.item_title}`,
+       amt > 0 ? `Se te reembolsaron ${amt} NC por tu reclamo.` : `Tu reclamo fue procesado por el administrador.`,
+       issue.id]);
+  });
+
+  log.ok(`[Admin] Reembolso reclamo ${issueId} → ${amt} NC a ${issue.player} (por ${adminUsername})`);
+  return { ok: true };
+}
+
+function ignoreIssue(issueId, adminNote, adminUsername) {
+  const issue = db.get('SELECT * FROM delivery_issues WHERE id = ?', [issueId]);
+  if (!issue) throw new NotFound('Reclamo no encontrado');
+  db.run(`UPDATE delivery_issues SET status = 'ignored', note = ? WHERE id = ?`,
+    [adminNote || `Ignorado por ${adminUsername}`, issueId]);
+  log.warn(`[Admin] Ignorar reclamo ${issueId} (por ${adminUsername})`);
+  return { ok: true };
+}
+
+function createIssue({ deliveryId, player, itemTitle, command, note }) {
+  if (!player || !itemTitle) throw new BadRequest('player e itemTitle requeridos');
+  const id = genId('iss');
+  db.run(
+    `INSERT INTO delivery_issues (id, delivery_id, player, item_title, command, note, status)
+     VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
+    [id, deliveryId || null, player, itemTitle, command || '', note || '']
+  );
+  // Notificar a admins via mensaje interno a SYSTEM (log)
+  log.info(`[Issues] Nuevo reclamo ${id}: ${player} → ${itemTitle}`);
+  return { ok: true, id };
+}
+
+
 function getConfig() {
   const rows = db.query('SELECT key, value FROM config', []);
   const cfg  = {};
@@ -153,4 +248,4 @@ function setConfig(key, value) {
   return { ok: true };
 }
 
-module.exports = { getStats, listOrders, approveOrder, rejectOrder, listUsers, setWallet, createAdminUser, listAllItems, createItem, updateItem, deleteItem, listDeliveries, getConfig, setConfig };
+module.exports = { getStats, listOrders, approveOrder, rejectOrder, listUsers, setWallet, createAdminUser, listAllItems, createItem, updateItem, deleteItem, listDeliveries, getConfig, setConfig, listIssues, requeueIssue, refundIssue, ignoreIssue, createIssue };

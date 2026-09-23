@@ -95,4 +95,20 @@ router.post('/inbox/read-all', requireAuth, (req, res, next) => {
   try { res.json(svc.markAllRead(req.user.username)); } catch (e) { next(e); }
 });
 
+// POST /api/users/report-issue — usuario reporta un problema genérico (desde buzón)
+router.post('/report-issue', requireAuth, (req, res, next) => {
+  try {
+    const adminSvc = require('../admin/admin.service');
+    const { itemTitle, deliveryId, note } = req.body;
+    if (!itemTitle) return res.status(400).json({ ok: false, error: 'itemTitle requerido' });
+    res.json(adminSvc.createIssue({
+      deliveryId: deliveryId || null,
+      player:    req.user.username,
+      itemTitle,
+      command:   '',
+      note:      note || 'Problema reportado desde buzón',
+    }));
+  } catch (e) { next(e); }
+});
+
 module.exports = router;

@@ -13,6 +13,7 @@ const State = {
   economy: { txFilter: 'all', txPage: 1 },
   adminOrders: { status: 'PENDING', page: 1 },
   inbox:   { unread: 0 },
+  adminIssuesBadge: '',
 };
 
 /* ── API ────────────────────────────────────────────────────────── */
@@ -101,15 +102,86 @@ function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── Avatares SVG ─────────────────────────────────────────────────
+// 6 diseños coloridos asignados deterministicamente por username.
+// Se usan como fallback cuando no hay foto, o cuando la foto no carga.
+const AVATAR_PALETTES = [
+  { bg: '#7C3AED', fg: '#fff', accent: '#a78bfa' }, // violeta
+  { bg: '#0D9488', fg: '#fff', accent: '#5eead4' }, // teal
+  { bg: '#DC2626', fg: '#fff', accent: '#fca5a5' }, // rojo
+  { bg: '#D97706', fg: '#fff', accent: '#fcd34d' }, // ámbar
+  { bg: '#2563EB', fg: '#fff', accent: '#93c5fd' }, // azul
+  { bg: '#059669', fg: '#fff', accent: '#6ee7b7' }, // verde
+];
+
+// Patrones SVG para cada índice (0-5)
+function _avatarSvgPattern(idx, initial, size) {
+  const p = AVATAR_PALETTES[idx];
+  const r = size / 2;
+  const fs = Math.round(size * 0.4);
+  const patterns = [
+    // 0 — círculos concéntricos
+    `<circle cx="${r}" cy="${r}" r="${r}" fill="${p.bg}"/>
+     <circle cx="${r}" cy="${r}" r="${r*0.65}" fill="none" stroke="${p.accent}" stroke-width="${size*0.07}" opacity="0.7"/>
+     <circle cx="${r}" cy="${r}" r="${r*0.35}" fill="none" stroke="${p.accent}" stroke-width="${size*0.07}" opacity="0.5"/>`,
+    // 1 — diamante
+    `<circle cx="${r}" cy="${r}" r="${r}" fill="${p.bg}"/>
+     <polygon points="${r},${size*0.18} ${size*0.82},${r} ${r},${size*0.82} ${size*0.18},${r}" fill="${p.accent}" opacity="0.45"/>`,
+    // 2 — hexágono
+    `<circle cx="${r}" cy="${r}" r="${r}" fill="${p.bg}"/>
+     <polygon points="${r},${size*0.1} ${size*0.84},${size*0.27} ${size*0.84},${size*0.73} ${r},${size*0.9} ${size*0.16},${size*0.73} ${size*0.16},${size*0.27}" fill="${p.accent}" opacity="0.4"/>`,
+    // 3 — cruz/+
+    `<circle cx="${r}" cy="${r}" r="${r}" fill="${p.bg}"/>
+     <rect x="${r*0.6}" y="${size*0.15}" width="${size*0.2}" height="${size*0.7}" rx="${size*0.04}" fill="${p.accent}" opacity="0.55"/>
+     <rect x="${size*0.15}" y="${r*0.6}" width="${size*0.7}" height="${size*0.2}" rx="${size*0.04}" fill="${p.accent}" opacity="0.55"/>`,
+    // 4 — triángulo
+    `<circle cx="${r}" cy="${r}" r="${r}" fill="${p.bg}"/>
+     <polygon points="${r},${size*0.15} ${size*0.85},${size*0.82} ${size*0.15},${size*0.82}" fill="${p.accent}" opacity="0.45"/>`,
+    // 5 — estrella
+    `<circle cx="${r}" cy="${r}" r="${r}" fill="${p.bg}"/>
+     <polygon points="${r},${size*0.12} ${size*0.61},${size*0.38} ${size*0.88},${size*0.38} ${size*0.65},${size*0.58} ${size*0.74},${size*0.86} ${r},${size*0.68} ${size*0.26},${size*0.86} ${size*0.35},${size*0.58} ${size*0.12},${size*0.38} ${size*0.39},${size*0.38}" fill="${p.accent}" opacity="0.5"/>`,
+  ];
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block;border-radius:50%;flex-shrink:0;">
+    ${patterns[idx]}
+    <text x="${r}" y="${r}" dominant-baseline="central" text-anchor="middle"
+          font-family="system-ui,sans-serif" font-size="${fs}" font-weight="700"
+          fill="${p.fg}" opacity="0.92">${initial}</text>
+  </svg>`;
+}
+
+// Devuelve el índice de avatar (0-5) determinístico para un username
+function avatarIndex(name) {
+  let h = 0;
+  const s = String(name || '?');
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) & 0xffffffff;
+  return Math.abs(h) % 6;
+}
+
+// Genera el SVG inline como data URI para usar en onerror
+function avatarFallbackDataUri(name, size) {
+  const initial = String(name || '?')[0].toUpperCase();
+  const idx     = avatarIndex(name);
+  const svg     = _avatarSvgPattern(idx, initial, size);
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+// Componente avatar principal — usa foto si existe, SVG inline si no
 function avatar(name, url, size = 40) {
-  // Si tiene imagen personalizada subida, usarla primero
+  const initial  = String(name || '?')[0].toUpperCase();
+  const idx      = avatarIndex(name);
+  const fallback = avatarFallbackDataUri(name, size);
+
   if (url) {
-    return `<img src="${esc(url)}" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.src='https://crafatar.com/avatars/${esc(name)}?overlay&default=MHF_Steve&size=${size*2}'">`;
+    // Tiene foto — mostrarla, con fallback al SVG si no carga
+    return `<img src="${esc(url)}" alt="${esc(name)}"
+               width="${size}" height="${size}"
+               style="border-radius:50%;object-fit:cover;display:block;flex-shrink:0;"
+               onerror="this.onerror=null;this.src='${fallback.replace(/'/g, "\\'")}'"
+            >`;
   }
-  // Usar Crafatar con el nombre real de Minecraft del usuario
-  // Crafatar soporta nombres de usuario directamente, no necesita UUID
-  // Si el usuario no existe, usa skin de Steve por defecto
-  return `<img src="https://crafatar.com/avatars/${esc(name)}?overlay&default=MHF_Steve&size=${size*2}" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;image-rendering:pixelated;" onerror="this.onerror=null;this.src='/img/default-avatar.svg'">`;
+
+  // Sin foto — SVG inline directo (sin request de red)
+  return _avatarSvgPattern(idx, initial, size);
 }
 
 function statusBadge(s) {
@@ -150,7 +222,6 @@ function initModals() {
     if (e.key === 'Escape') document.querySelectorAll('.modal-backdrop:not([hidden])').forEach(m => { m.hidden = true; });
   });
 }
-
 /* ── Sesión ─────────────────────────────────────────────────────── */
 function saveSession(token, user) {
   State.token = token; State.user = user;
@@ -205,6 +276,7 @@ const ICONS = {
   stats:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12.5l4-4 3 2.5 4-6 3 2"/></svg>`,
   adminOrders:   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h6"/><circle cx="13" cy="11" r="2.5"/><path d="M13 9.5v1.5l1 1"/></svg>`,
   adminUsers:    `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/><path d="M11 7l1.5 1.5L15 6"/></svg>`,
+  adminIssues:   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3.5"/><circle cx="8" cy="11.5" r=".75" fill="currentColor" stroke="none"/></svg>`,
   login:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/><path d="M11 11l3-3-3-3M14 8H6"/></svg>`,
   logout:        `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 14h3a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1h-3"/><path d="M7 11l-3-3 3-3M4 8h8"/></svg>`,
   admin:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L2 4v4c0 3.3 2.7 5.7 6 6.5 3.3-.8 6-3.2 6-6.5V4z"/></svg>`,
@@ -253,7 +325,8 @@ function renderNav() {
       <span class="nav-section-label">Admin</span>
       ${navItem('stats','Estadisticas', s==='stats')}
       ${navItem('admin-orders','Pedidos USDT', s==='admin-orders')}
-      ${navItem('admin-users','Jugadores', s==='admin-users')}`;
+      ${navItem('admin-users','Jugadores', s==='admin-users')}
+      ${navItem('admin-issues','Reclamos', s==='admin-issues', State.adminIssuesBadge || '')}`;
     }
 
     html += `<div class="nav-divider"></div>
@@ -299,8 +372,8 @@ function renderTopbar() {
 }
 
 /* ── Navegación ─────────────────────────────────────────────────── */
-const PRIVATE = new Set(['economy','orders','profile','inbox','stats','admin-orders','admin-users']);
-const ADMIN   = new Set(['stats','admin-orders','admin-users']);
+const PRIVATE = new Set(['economy','orders','profile','inbox','stats','admin-orders','admin-users','admin-issues']);
+const ADMIN   = new Set(['stats','admin-orders','admin-users','admin-issues']);
 
 function go(sectionId) {
   if (PRIVATE.has(sectionId) && !State.user) { openModal('modal-login'); return; }
@@ -320,16 +393,17 @@ function go(sectionId) {
   document.querySelectorAll('.nav-item[data-section]').forEach(b => b.classList.toggle('active', b.dataset.section === sectionId));
 
   const loaders = {
-    catalog:       loadCatalog,
-    economy:       loadEconomy,
-    orders:        loadOrders,
-    profile:       loadProfile,
-    players:       loadPlayers,
-    leaderboard:   loadLeaderboard,
-    inbox:         loadInbox,
-    stats:         loadStats,
-    'admin-orders':loadAdminOrders,
-    'admin-users': loadAdminUsers,
+    'catalog':       loadCatalog,
+    'economy':       loadEconomy,
+    'orders':        loadOrders,
+    'profile':       loadProfile,
+    'players':       loadPlayers,
+    'leaderboard':   loadLeaderboard,
+    'inbox':         loadInbox,
+    'stats':         loadStats,
+    'admin-orders':  loadAdminOrders,
+    'admin-users':   loadAdminUsers,
+    'admin-issues':  loadAdminIssues,
   };
   loaders[sectionId]?.();
 }
@@ -567,31 +641,131 @@ async function confirmBuyNC() {
 
 /* ── Compra USDT ────────────────────────────────────────────────── */
 let _buyUSDT = null;
+let _receiptUrl = null; // URL del comprobante ya subido
+
 function openBuyUSDT(id) {
   if (!State.user) { openModal('modal-login'); return; }
   const item = State.catalog.items.find(i => i.id === id);
   if (!item) return;
-  _buyUSDT = id; clearFb('buy-usdt-feedback'); $('usdt-txid').value = '';
+  _buyUSDT = id;
+  _receiptUrl = null;
+  clearFb('buy-usdt-feedback');
+  $('usdt-txid').value = '';
+  // Reset preview
+  $('usdt-receipt-preview').style.display = 'none';
+  $('usdt-receipt-placeholder').style.display = 'flex';
+  $('usdt-receipt').value = '';
+
   setHTML('modal-buy-usdt-body', `
     <div class="confirm-row"><span class="confirm-name">${esc(item.name)}</span></div>
     ${item.description ? `<p class="confirm-desc">${esc(item.description)}</p>` : ''}
     <div class="confirm-price">
       <span>Total</span><span class="price-tag price-tag--usdt">$${item.price_usdt} USDT</span>
-    </div>
-    <p class="modal-note">Envia el pago a la billetera USDT del servidor y pega el hash de la transaccion abajo.</p>`);
+    </div>`);
+
+  // Cargar info de pago (Binance ID + QR) dinámicamente
+  loadUSDTPaymentInfo();
   openModal('modal-buy-usdt');
 }
+
+async function loadUSDTPaymentInfo() {
+  try {
+    const d = await GET('/admin/config', false);
+    const cfg = d.config || {};
+    const binanceId  = cfg.binance_pay_id  || '—';
+    const walletType = cfg.binance_wallet   || 'USDT';
+    const qrUrl      = cfg.binance_qr_url  || '';
+
+    setHTML('modal-usdt-payment-info', `
+      <div class="usdt-payment-info">
+        <div class="usdt-payment-info__qr">
+          ${qrUrl
+            ? `<img src="${esc(qrUrl)}" alt="QR Binance Pay">`
+            : `<div class="usdt-payment-info__qr-placeholder">Sin QR</div>`}
+        </div>
+        <div class="usdt-payment-info__details">
+          <div class="usdt-payment-info__label">Envía el pago a</div>
+          <div class="usdt-payment-info__value">${esc(walletType)}</div>
+          <div class="usdt-payment-info__label" style="margin-top:8px">Binance Pay ID</div>
+          <div class="usdt-payment-info__id">${esc(binanceId)}</div>
+          <div class="usdt-payment-info__label" style="margin-top:8px;font-size:0.75rem;color:#b45309">
+            Luego sube tu comprobante y el TxID abajo.
+          </div>
+        </div>
+      </div>`);
+  } catch { /* silencioso — no bloquear el modal si falla */ }
+}
+
+function initUSDTReceiptUpload() {
+  const area        = $('usdt-receipt-area');
+  const input       = $('usdt-receipt');
+  const preview     = $('usdt-receipt-preview');
+  const placeholder = $('usdt-receipt-placeholder');
+
+  if (!area) return;
+
+  // Click en el área abre el file picker
+  area.addEventListener('click', () => input.click());
+
+  // Drag & drop
+  area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
+  area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
+  area.addEventListener('drop', e => {
+    e.preventDefault();
+    area.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleReceiptFile(file);
+  });
+
+  input.addEventListener('change', () => {
+    if (input.files[0]) handleReceiptFile(input.files[0]);
+  });
+
+  function handleReceiptFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      placeholder.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
 async function submitUSDT(e) {
   e.preventDefault();
   if (!_buyUSDT) return;
-  const txid = $('usdt-txid').value.trim(); if (!txid) return;
+  const txid = $('usdt-txid').value.trim();
   clearFb('buy-usdt-feedback');
-  const btn = e.submitter; btn.disabled = true;
+  const btn = e.submitter; btn.disabled = true; btn.textContent = 'Enviando...';
+
   try {
-    await POST('/store/submit-order', { itemId: _buyUSDT, txid });
-    closeModal('modal-buy-usdt'); toast('Pedido enviado. El admin lo revisara pronto.', 'info'); _buyUSDT = null;
-  } catch (err) { feedback('buy-usdt-feedback', err.message, true); }
-  finally { btn.disabled = false; }
+    // 1. Subir comprobante si se seleccionó uno
+    const fileInput = $('usdt-receipt');
+    if (fileInput.files[0]) {
+      feedback('buy-usdt-feedback', 'Subiendo comprobante...');
+      const formData = new FormData();
+      formData.append('receipt', fileInput.files[0]);
+      const uploadRes = await fetch('/api/store/upload-receipt', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${State.token}` },
+        body: formData
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error(uploadData.error || 'Error al subir imagen');
+      _receiptUrl = uploadData.url;
+    }
+
+    // 2. Enviar pedido con txid + receiptImage
+    await POST('/store/submit-order', { itemId: _buyUSDT, txid, receiptImage: _receiptUrl || '' });
+    closeModal('modal-buy-usdt');
+    toast('Pedido enviado. El admin lo revisara pronto.', 'info');
+    _buyUSDT = null; _receiptUrl = null;
+  } catch (err) {
+    feedback('buy-usdt-feedback', err.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Enviar pedido';
+  }
 }
 
 /* ── ECONOMÍA ───────────────────────────────────────────────────── */
@@ -706,8 +880,14 @@ async function loadOrders(page = 1) {
           <span class="order-card__meta">${o.price_usdt ? `$${o.price_usdt} USDT` : `${fmt(o.price_coins)} NC`} · ${fmtDate(o.created_at)}</span>
           ${o.admin_note ? `<span class="order-card__note">${esc(o.admin_note)}</span>` : ''}
         </div>
-        ${statusBadge(o.status)}
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          ${statusBadge(o.status)}
+          ${o.status === 'APPROVED' ? `<button class="btn btn-ghost btn-sm" style="font-size:0.78rem;color:var(--danger)" data-report-order="${esc(o.id)}" data-report-title="${esc(o.item_title || o.item_id)}">Reportar problema</button>` : ''}
+        </div>
       </div>`).join(''));
+    document.querySelectorAll('[data-report-order]').forEach(b => b.addEventListener('click', () =>
+      openReportIssueModal(b.dataset.reportTitle, null)
+    ));
     if (d.total > 10) renderPagination('orders-pagination', page, Math.ceil(d.total / 10), n => loadOrders(n));
   } catch (err) { setHTML('orders-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
 }
@@ -970,12 +1150,24 @@ async function loadInbox(page = 1) {
         </div>
         ${m.subject ? `<div class="inbox-msg__subject">${esc(m.subject)}</div>` : ''}
         <div class="inbox-msg__body">${esc(m.body || '')}</div>
+        ${(m.ref_type === 'DELIVERY' || m.ref_type === 'ORDER') ? `
+          <div style="margin-top:6px;">
+            <button class="btn btn-ghost btn-sm" style="font-size:0.75rem;color:var(--danger)"
+              data-report-inbox="${esc(m.subject || 'Artículo')}" data-report-ref="${esc(m.ref_id || '')}">
+              Reportar problema
+            </button>
+          </div>` : ''}
       </div>`).join(''));
     document.querySelectorAll('.inbox-msg').forEach(m => m.addEventListener('click', async () => {
       if (m.classList.contains('inbox-msg--unread')) {
         m.classList.remove('inbox-msg--unread');
         try { await POST(`/users/inbox/${m.dataset.id}/read`, {}); State.inbox.unread = Math.max(0, State.inbox.unread - 1); renderNav(); } catch { /* silent */ }
       }
+    }));
+    // Botones reportar en buzón (no propagar al click del mensaje)
+    document.querySelectorAll('[data-report-inbox]').forEach(b => b.addEventListener('click', e => {
+      e.stopPropagation();
+      openReportIssueModal(b.dataset.reportInbox, b.dataset.reportRef);
     }));
     if (d.total > 20) renderPagination('inbox-pagination', page, Math.ceil(d.total / 20), n => loadInbox(n));
   } catch (err) { setHTML('inbox-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
@@ -992,12 +1184,44 @@ function initInbox() {
   });
 }
 
+/* ── Modal reportar problema (usuario) ──────────────────────────── */
+function openReportIssueModal(itemTitle, deliveryId) {
+  $('report-issue-item-title').value   = itemTitle || '';
+  $('report-issue-delivery-id').value  = deliveryId || '';
+  $('report-issue-note').value         = '';
+  clearFb('report-issue-feedback');
+  openModal('modal-report-issue');
+}
+
+function initReportIssueModal() {
+  $('modal-report-issue-close')?.addEventListener('click', () => closeModal('modal-report-issue'));
+  $('report-issue-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    clearFb('report-issue-feedback');
+    const itemTitle  = $('report-issue-item-title').value;
+    const deliveryId = $('report-issue-delivery-id').value;
+    const note       = $('report-issue-note').value.trim();
+    const btn = e.submitter; btn.disabled = true;
+    try {
+      await POST('/users/report-issue', { itemTitle, deliveryId, note });
+      closeModal('modal-report-issue');
+      toast('Reclamo enviado. El admin te notificará pronto.', 'info');
+    } catch (err) { feedback('report-issue-feedback', err.message, true); }
+    finally { btn.disabled = false; }
+  });
+}
+
 /* ── ADMIN: estadísticas ────────────────────────────────────────── */
 async function loadStats() {
   setHTML('stats-grid', '<p class="empty-state">Cargando...</p>');
   try {
-    const d = await GET('/admin/stats');
-    const s = d.stats || {};
+    const [statsRes, cfgRes] = await Promise.all([
+      GET('/admin/stats'),
+      GET('/admin/config'),
+    ]);
+    const s   = statsRes.stats || {};
+    const cfg = cfgRes.config  || {};
+
     setHTML('stats-grid', [
       ['Jugadores', s.totalUsers],
       ['MC vinculados', s.linkedUsers],
@@ -1010,7 +1234,96 @@ async function loadStats() {
         <span class="stat-card__value">${val ?? '—'}</span>
         <span class="stat-card__label">${label}</span>
       </div>`).join(''));
+
+    // Preview config Binance
+    const qrUrl     = cfg.binance_qr_url  || '';
+    const payId     = cfg.binance_pay_id  || '—';
+    const walletTyp = cfg.binance_wallet  || 'USDT';
+    setHTML('binance-config-preview', `
+      ${qrUrl ? `<img src="${esc(qrUrl)}" alt="QR Binance">` : '<span style="color:var(--text-muted);font-size:0.82rem">Sin QR configurado</span>'}
+      <div class="binance-config-preview__info">
+        <div>Binance Pay ID: <strong>${esc(payId)}</strong></div>
+        <div>Billetera: <strong>${esc(walletTyp)}</strong></div>
+      </div>`);
+
+    // Prefill modal config
+    $('binance-pay-id-input').value  = cfg.binance_pay_id  || '';
+    $('binance-wallet-input').value  = cfg.binance_wallet  || '';
+    if (qrUrl) {
+      $('binance-qr-preview').src = qrUrl;
+      $('binance-qr-preview').style.display = 'block';
+      $('binance-qr-placeholder').style.display = 'none';
+    }
   } catch (err) { setHTML('stats-grid', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
+}
+
+function initBinanceConfig() {
+  // Abrir modal
+  $('btn-open-binance-config')?.addEventListener('click', () => openModal('modal-binance-config'));
+  $('modal-binance-config-close')?.addEventListener('click', () => closeModal('modal-binance-config'));
+
+  // Click en área del QR
+  const qrArea    = $('binance-qr-area');
+  const qrInput   = $('binance-qr-file');
+  const qrPreview = $('binance-qr-preview');
+  const qrHolder  = $('binance-qr-placeholder');
+
+  qrArea?.addEventListener('click', () => qrInput.click());
+  qrInput?.addEventListener('change', () => {
+    const file = qrInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      qrPreview.src = e.target.result;
+      qrPreview.style.display = 'block';
+      qrHolder.style.display  = 'none';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Submit config
+  $('binance-config-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    clearFb('binance-config-feedback');
+    const btn = e.submitter; btn.disabled = true; btn.textContent = 'Guardando...';
+
+    try {
+      const payId     = $('binance-pay-id-input').value.trim();
+      const walletTyp = $('binance-wallet-input').value.trim();
+
+      // Guardar ID y wallet en config
+      if (payId)     await POST('/admin/config', { key: 'binance_pay_id', value: payId });
+      if (walletTyp) await POST('/admin/config', { key: 'binance_wallet',  value: walletTyp });
+
+      // Subir QR si se seleccionó uno
+      if (qrInput.files[0]) {
+        feedback('binance-config-feedback', 'Subiendo QR...');
+        const fd = new FormData();
+        fd.append('qr', qrInput.files[0]);
+        const res = await fetch('/api/admin/config/upload-qr', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${State.token}` },
+          body: fd
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al subir QR');
+      }
+
+      feedback('binance-config-feedback', 'Configuracion guardada');
+      toast('Configuracion de Binance actualizada', 'success');
+      closeModal('modal-binance-config');
+      loadStats(); // refrescar preview
+    } catch (err) {
+      feedback('binance-config-feedback', err.message, true);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Guardar configuración';
+    }
+  });
+}
+
+// Cerrar modal comprobante
+function initReceiptModal() {
+  $('modal-receipt-view-close')?.addEventListener('click', () => closeModal('modal-receipt-view'));
 }
 
 /* ── ADMIN: pedidos USDT ────────────────────────────────────────── */
@@ -1022,12 +1335,22 @@ async function loadAdminOrders(page = 1) {
     const d = await GET(`/admin/orders?status=${status}&page=${page}&limit=15`);
     const orders = d.orders || [];
     if (!orders.length) { setHTML('admin-orders-list', '<p class="empty-state">Sin pedidos.</p>'); return; }
-    setHTML('admin-orders-list', orders.map(o => `
-      <div class="admin-order-card">
+    setHTML('admin-orders-list', orders.map(o => {
+      const receiptHtml = o.receipt_image
+        ? `<div class="admin-order-card__receipt">
+             <img src="${esc(o.receipt_image)}" alt="Comprobante" data-receipt="${esc(o.receipt_image)}" data-txid="${esc(o.txid || '')}" title="Ver comprobante">
+             <button class="btn-view-receipt" data-receipt="${esc(o.receipt_image)}" data-txid="${esc(o.txid || '')}">Ver comprobante completo</button>
+           </div>`
+        : (o.txid ? `<div class="admin-order-card__receipt"><span style="font-size:0.8rem;color:var(--text-muted)">Sin imagen · TxID: ${esc(o.txid.slice(0,20))}...</span></div>` : '');
+
+      return `<div class="admin-order-card">
         <div class="admin-order-card__info">
           <span class="admin-order-card__user">${esc(o.username)}</span>
           <span class="admin-order-card__item">${esc(o.item_title || o.item_id)}${o.price_usdt ? ` · $${o.price_usdt} USDT` : ''}</span>
-          <span class="admin-order-card__meta">TxID: ${o.txid ? esc(o.txid.slice(0,24)) + '...' : '—'} · ${fmtDate(o.created_at)}</span>
+          <span class="admin-order-card__meta">${fmtDate(o.created_at)}</span>
+          ${o.txid ? `<span class="admin-order-card__meta" style="font-size:0.78rem;word-break:break-all">TxID: ${esc(o.txid)}</span>` : ''}
+          ${receiptHtml}
+          ${o.admin_note ? `<span class="admin-order-card__note">Nota: ${esc(o.admin_note)}</span>` : ''}
         </div>
         <div class="admin-order-card__actions">
           ${statusBadge(o.status)}
@@ -1035,11 +1358,28 @@ async function loadAdminOrders(page = 1) {
             <button class="btn btn-success btn-sm" data-approve="${esc(o.id)}">Aprobar</button>
             <button class="btn btn-danger btn-sm"  data-reject="${esc(o.id)}">Rechazar</button>` : ''}
         </div>
-      </div>`).join(''));
+      </div>`;
+    }).join(''));
+
+    // Botones aprobar/rechazar
     document.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', () => approveOrder(b.dataset.approve)));
     document.querySelectorAll('[data-reject]').forEach(b  => b.addEventListener('click', () => rejectOrder(b.dataset.reject)));
+
+    // Ver comprobante
+    document.querySelectorAll('[data-receipt]').forEach(el => el.addEventListener('click', () => {
+      openReceiptModal(el.dataset.receipt, el.dataset.txid);
+    }));
+
     if (d.total > 15) renderPagination('admin-orders-pagination', page, Math.ceil(d.total / 15), n => loadAdminOrders(n));
   } catch (err) { setHTML('admin-orders-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
+}
+
+function openReceiptModal(receiptUrl, txid) {
+  setHTML('modal-receipt-view-body', `
+    <img src="${esc(receiptUrl)}" alt="Comprobante de pago">
+    ${txid ? `<p class="receipt-txid">TxID: ${esc(txid)}</p>` : ''}
+  `);
+  openModal('modal-receipt-view');
 }
 
 async function approveOrder(id) {
@@ -1050,6 +1390,98 @@ async function rejectOrder(id) {
   const note = prompt('Motivo de rechazo (opcional):') ?? '';
   try { await POST(`/admin/orders/${id}/reject`, { note }); toast('Pedido rechazado'); loadAdminOrders(State.adminOrders.page); }
   catch (err) { toast(err.message, 'error'); }
+}
+
+/* ── ADMIN: reclamos ────────────────────────────────────────────── */
+const _adminIssuesState = { status: 'pending', page: 1 };
+
+async function loadAdminIssues(page = 1) {
+  _adminIssuesState.page = page;
+  setHTML('admin-issues-list', '<p class="empty-state">Cargando...</p>');
+  try {
+    const d = await GET(`/admin/issues?status=${_adminIssuesState.status}&page=${page}&limit=20`);
+    const issues = d.issues || [];
+
+    // Actualizar badge en nav
+    if (_adminIssuesState.status === 'pending') {
+      State.adminIssuesBadge = d.total > 0 ? d.total : '';
+      renderNav();
+    }
+
+    if (!issues.length) { setHTML('admin-issues-list', '<p class="empty-state">Sin reclamos.</p>'); return; }
+
+    setHTML('admin-issues-list', issues.map(iss => {
+      const isPending = iss.status === 'pending';
+      const statusColor = { pending: '#d97706', resolved: '#16a34a', ignored: '#6b7280' }[iss.status] || '';
+      return `<div class="admin-order-card" style="border-left:3px solid ${statusColor}">
+        <div class="admin-order-card__info">
+          <span class="admin-order-card__user">${esc(iss.player)}</span>
+          <span class="admin-order-card__item">${esc(iss.item_title)}</span>
+          <span class="admin-order-card__meta">${fmtDate(iss.created_at)} · <strong style="color:${statusColor}">${esc(iss.status)}</strong></span>
+          ${iss.note ? `<span class="admin-order-card__meta" style="font-style:italic">"${esc(iss.note)}"</span>` : ''}
+          ${iss.delivery_id ? `<span class="admin-order-card__meta" style="font-size:0.75rem">Delivery: ${esc(iss.delivery_id)}</span>` : ''}
+        </div>
+        <div class="admin-order-card__actions">
+          ${isPending ? `
+            <button class="btn btn-primary btn-sm"  data-requeue="${esc(iss.id)}" title="Crear nueva entrega para este jugador">Reencolar</button>
+            <button class="btn btn-teal btn-sm"     data-refund-issue="${esc(iss.id)}" data-refund-player="${esc(iss.player)}" data-refund-item="${esc(iss.item_title)}">Reembolsar</button>
+            <button class="btn btn-ghost btn-sm"    data-ignore="${esc(iss.id)}">Ignorar</button>
+          ` : ''}
+        </div>
+      </div>`;
+    }).join(''));
+
+    document.querySelectorAll('[data-requeue]').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm(`¿Reencolar entrega para ${b.closest('.admin-order-card').querySelector('.admin-order-card__user').textContent}?`)) return;
+      try { await POST(`/admin/issues/${b.dataset.requeue}/requeue`, {}); toast('Reencolado — jugador recibirá el item'); loadAdminIssues(_adminIssuesState.page); }
+      catch (e) { toast(e.message, 'error'); }
+    }));
+
+    document.querySelectorAll('[data-refund-issue]').forEach(b => b.addEventListener('click', () => {
+      $('refund-issue-id').value = b.dataset.refundIssue;
+      $('refund-amount').value   = '';
+      setText('modal-refund-player', `Jugador: ${b.dataset.refundPlayer} · Item: ${b.dataset.refundItem}`);
+      clearFb('refund-feedback');
+      openModal('modal-refund');
+    }));
+
+    document.querySelectorAll('[data-ignore]').forEach(b => b.addEventListener('click', async () => {
+      const note = prompt('Motivo (opcional):') ?? '';
+      try { await POST(`/admin/issues/${b.dataset.ignore}/ignore`, { note }); toast('Reclamo ignorado'); loadAdminIssues(_adminIssuesState.page); }
+      catch (e) { toast(e.message, 'error'); }
+    }));
+
+    if (d.total > 20) renderPagination('admin-issues-pagination', page, Math.ceil(d.total / 20), n => loadAdminIssues(n));
+  } catch (err) { setHTML('admin-issues-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
+}
+
+function initAdminIssuesTabs() {
+  $('admin-issues-tabs')?.querySelectorAll('.tab-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      $('admin-issues-tabs').querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      _adminIssuesState.status = b.dataset.status;
+      loadAdminIssues(1);
+    });
+  });
+}
+
+function initRefundModal() {
+  $('modal-refund-close')?.addEventListener('click', () => closeModal('modal-refund'));
+  $('refund-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    clearFb('refund-feedback');
+    const id     = $('refund-issue-id').value;
+    const amount = $('refund-amount').value;
+    const btn    = e.submitter; btn.disabled = true;
+    try {
+      await POST(`/admin/issues/${id}/refund`, { amount });
+      closeModal('modal-refund');
+      toast('Reembolso aplicado');
+      loadAdminIssues(_adminIssuesState.page);
+    } catch (err) { feedback('refund-feedback', err.message, true); }
+    finally { btn.disabled = false; }
+  });
 }
 
 function initAdminOrdersTabs() {
@@ -1151,6 +1583,12 @@ async function init() {
   initInbox();
   initAdminOrdersTabs();
   initAdminUsersSearch();
+  initAdminIssuesTabs();
+  initRefundModal();
+  initReportIssueModal();
+  initReceiptModal();
+  initBinanceConfig();
+  initUSDTReceiptUpload();
 
   $('modal-buy-nc-confirm')?.addEventListener('click', confirmBuyNC);
   $('usdt-form')?.addEventListener('submit', submitUSDT);
