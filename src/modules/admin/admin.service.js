@@ -50,6 +50,7 @@ function approveOrder(orderId, adminUsername) {
   if (!order) throw new NotFound('Pedido pendiente no encontrado');
 
   const delId = genId('del');
+  const msgId = genId('msg');
 
   db.transaction(() => {
     // Marcar orden aprobada
@@ -58,21 +59,25 @@ function approveOrder(orderId, adminUsername) {
       [orderId]
     );
 
-    // Crear entrega
+    // Crear entrega - NO incluir give_coins aquí porque se darán cuando se procese la entrega
     db.run(
       `INSERT INTO deliveries (id, username, item_title, item_category, command, give_coins, price_coins, payment_method, source, status)
        VALUES (?, ?, ?, 'store', ?, ?, 0, 'USDT/Binance', 'STORE_USDT', 'PENDING')`,
       [delId, order.username, order.item_title, order.command || '', order.give_coins || 0]
     );
-
-    // Si da coins, otorgar inmediatamente
-    if (order.give_coins > 0) {
-      db.run('UPDATE users SET wallet = wallet + ? WHERE username = ? COLLATE NOCASE', [order.give_coins, order.username]);
-      db.run(
-        `INSERT INTO transactions (id, from_user, to_user, amount, type, note) VALUES (?, 'SYSTEM', ?, ?, 'DELIVERY', ?)`,
-        [genId('tx'), order.username, order.give_coins, `Compra aprobada: ${order.item_title}`]
-      );
-    }
+    
+    // Notificar al usuario
+    db.run(
+      `INSERT INTO messages (id, from_user, to_user, subject, body, action, ref_id, ref_type)
+       VALUES (?, 'SYSTEM', ?, ?, ?, 'VIEW_DELIVERY', ?, 'DELIVERY')`,
+      [
+        msgId,
+        order.username,
+        `¡Pedido aprobado! ${order.item_title}`,
+        `Tu pedido de "${order.item_title}" ha sido aprobado. Recibirás tu artículo en el juego próximamente.`,
+        delId,
+      ]
+    );
   });
 
   log.ok(`[Admin] Orden aprobada: ${orderId} por ${adminUsername}`);
@@ -83,10 +88,27 @@ function rejectOrder(orderId, note, adminUsername) {
   const order = db.get("SELECT * FROM orders WHERE id = ? AND status = 'PENDING'", [orderId]);
   if (!order) throw new NotFound('Pedido pendiente no encontrado');
 
-  db.run(
-    `UPDATE orders SET status = 'REJECTED', admin_note = ?, reviewed_at = datetime('now') WHERE id = ?`,
-    [note || 'Rechazado por el Administrador', orderId]
-  );
+  const msgId = genId('msg');
+  
+  db.transaction(() => {
+    db.run(
+      `UPDATE orders SET status = 'REJECTED', admin_note = ?, reviewed_at = datetime('now') WHERE id = ?`,
+      [note || 'Rechazado por el Administrador', orderId]
+    );
+    
+    // Notificar al usuario
+    db.run(
+      `INSERT INTO messages (id, from_user, to_user, subject, body, action, ref_id, ref_type)
+       VALUES (?, 'SYSTEM', ?, ?, ?, 'VIEW_ORDER', ?, 'ORDER')`,
+      [
+        msgId,
+        order.username,
+        `Pedido rechazado: ${order.item_title}`,
+        `Tu pedido de "${order.item_title}" ha sido rechazado. Motivo: ${note || 'No especificado'}. Contacta con soporte si necesitas ayuda.`,
+        orderId,
+      ]
+    );
+  });
 
   log.warn(`[Admin] Orden rechazada: ${orderId} por ${adminUsername}`);
   return { ok: true };

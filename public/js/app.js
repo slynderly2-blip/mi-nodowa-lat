@@ -58,12 +58,14 @@ function esc(s) {
 }
 
 function avatar(name, url, size = 40) {
-  // Si tiene URL personalizada (incluyendo avatares subidos), usarla primero
+  // Si tiene imagen personalizada subida, usarla primero
   if (url) {
-    return `<img src="${esc(url)}" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.src='/img/default-avatar.svg'">`;
+    return `<img src="${esc(url)}" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.src='https://crafatar.com/avatars/${esc(name)}?overlay&default=MHF_Steve&size=${size*2}'">`;
   }
-  // Usar imagen default local (rostro pixelado estilo Minecraft)
-  return `<img src="/img/default-avatar.svg" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;image-rendering:pixelated;">`;
+  // Usar Crafatar con el nombre real de Minecraft del usuario
+  // Crafatar soporta nombres de usuario directamente, no necesita UUID
+  // Si el usuario no existe, usa skin de Steve por defecto
+  return `<img src="https://crafatar.com/avatars/${esc(name)}?overlay&default=MHF_Steve&size=${size*2}" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;image-rendering:pixelated;" onerror="this.onerror=null;this.src='/img/default-avatar.svg'">`;
 }
 
 function statusBadge(s) {
@@ -679,9 +681,7 @@ async function loadProfile() {
 
   // prefill edit form
   const dn = $('edit-display-name');
-  const av = $('edit-avatar-url');
   if (dn) dn.value = u.display_name || '';
-  if (av) av.value = u.avatar || '';
 
   // link status
   if (u.linked) {
@@ -715,11 +715,12 @@ function initProfileEdit() {
     e.preventDefault();
     clearFb('profile-edit-feedback');
     const display_name = $('edit-display-name').value.trim();
-    const avatar_url   = $('edit-avatar-url').value.trim();
     const avatar_file  = $('edit-avatar-file').files[0];
     const btn = e.submitter; btn.disabled = true;
     
     try {
+      let updated = false;
+      
       // Si hay un archivo, subirlo primero
       if (avatar_file) {
         const formData = new FormData();
@@ -737,29 +738,29 @@ function initProfileEdit() {
         }
         
         const uploadData = await uploadRes.json();
-        feedback('profile-edit-feedback', 'Avatar subido correctamente');
-        
-        // Actualizar estado del usuario
         State.user = uploadData.user;
         saveSession(State.token, uploadData.user);
+        updated = true;
       }
       
-      // Luego actualizar display_name y/o avatar_url si se proporcionaron
-      if (display_name || avatar_url) {
-        const body = {};
-        if (display_name) body.display_name = display_name;
-        if (avatar_url)   body.avatar       = avatar_url;
+      // Actualizar display_name si se proporcionó
+      if (display_name) {
+        const body = { display_name };
         const d = await PATCH('/users/profile', body);
         State.user = d.user;
         saveSession(State.token, d.user);
-        feedback('profile-edit-feedback', 'Perfil actualizado');
+        updated = true;
       }
       
-      renderNav(); renderTopbar();
-      loadProfile();
-      
-      // Limpiar el input de archivo
-      $('edit-avatar-file').value = '';
+      if (updated) {
+        renderNav(); renderTopbar();
+        loadProfile();
+        feedback('profile-edit-feedback', 'Perfil actualizado');
+        // Limpiar el input de archivo
+        $('edit-avatar-file').value = '';
+      } else {
+        feedback('profile-edit-feedback', 'No hay cambios para guardar');
+      }
       
     } catch (err) { 
       feedback('profile-edit-feedback', err.message, true); 
@@ -771,9 +772,37 @@ function initProfileEdit() {
 
 /* ── JUGADORES ──────────────────────────────────────────────────── */
 async function loadPlayers() {
-  setHTML('players-results', '<p class="empty-state">Escribe un nombre para buscar.</p>');
+  setHTML('players-results', '<p class="empty-state">Cargando jugadores...</p>');
   const input = $('players-search');
   if (input) input.value = '';
+  
+  // Cargar todos los jugadores por defecto (usando leaderboard)
+  try {
+    const d = await GET('/users/leaderboard?limit=50', false);
+    const users = d.leaderboard || [];
+    if (!users.length) { 
+      setHTML('players-results', '<p class="empty-state">No hay jugadores registrados.</p>'); 
+      return; 
+    }
+    renderPlayersList(users);
+  } catch (err) { 
+    setHTML('players-results', `<p class="empty-state">Error al cargar jugadores: ${esc(err.message)}</p>`); 
+  }
+}
+
+function renderPlayersList(users) {
+  setHTML('players-results', `<div class="players-grid">${users.map(u => `
+    <div class="player-card" data-username="${esc(u.username)}">
+      <div class="player-card__avatar">${avatar(u.display_name || u.username, u.avatar, 42)}</div>
+      <div class="player-card__info">
+        <span class="player-card__name">${esc(u.display_name || u.username)}</span>
+        <span class="player-card__user">@${esc(u.username)}</span>
+      </div>
+      <div class="player-card__stats">
+        <span>${fmt(u.wallet)} NC</span>
+      </div>
+    </div>`).join('')}</div>`);
+  document.querySelectorAll('.player-card').forEach(c => c.addEventListener('click', () => openPlayerProfile(c.dataset.username)));
 }
 
 function initPlayersSearch() {
@@ -781,7 +810,10 @@ function initPlayersSearch() {
   $('players-search')?.addEventListener('input', e => {
     clearTimeout(db);
     const q = e.target.value.trim();
-    if (!q) { setHTML('players-results', '<p class="empty-state">Escribe un nombre para buscar.</p>'); return; }
+    if (!q) { 
+      loadPlayers(); // Recargar lista completa si se borra la búsqueda
+      return; 
+    }
     db = setTimeout(() => doSearchPlayers(q), 350);
   });
 }
@@ -792,18 +824,7 @@ async function doSearchPlayers(q) {
     const d = await GET(`/users/search?q=${encodeURIComponent(q)}`, false);
     const users = d.users || [];
     if (!users.length) { setHTML('players-results', '<p class="empty-state">Sin resultados.</p>'); return; }
-    setHTML('players-results', `<div class="players-grid">${users.map(u => `
-      <div class="player-card" data-username="${esc(u.username)}">
-        <div class="player-card__avatar">${avatar(u.display_name || u.username, u.avatar, 42)}</div>
-        <div class="player-card__info">
-          <span class="player-card__name">${esc(u.display_name || u.username)}</span>
-          <span class="player-card__user">@${esc(u.username)}</span>
-        </div>
-        <div class="player-card__stats">
-          <span>${fmt(u.wallet)} NC</span>
-        </div>
-      </div>`).join('')}</div>`);
-    document.querySelectorAll('.player-card').forEach(c => c.addEventListener('click', () => openPlayerProfile(c.dataset.username)));
+    renderPlayersList(users);
   } catch (err) { setHTML('players-results', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
 }
 

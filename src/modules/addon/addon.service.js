@@ -51,25 +51,34 @@ function ackDelivery(deliveryId) {
 
   const delivery = db.get('SELECT * FROM deliveries WHERE id = ?', [deliveryId]);
   if (!delivery) return { ok: false, error: 'Entrega no encontrada' };
-  if (delivery.status === 'DELIVERED') return { ok: true, already: true };
-
-  db.run(
-    `UPDATE deliveries SET status = 'DELIVERED', delivered_at = datetime('now') WHERE id = ?`,
-    [deliveryId]
-  );
-
-  // Si la entrega da coins, actualizar wallet
-  if (delivery.give_coins > 0) {
-    db.run(
-      `UPDATE users SET wallet = wallet + ? WHERE username = ? COLLATE NOCASE`,
-      [delivery.give_coins, delivery.username]
-    );
-    db.run(
-      `INSERT INTO transactions (id, from_user, to_user, amount, type, note)
-       VALUES (?, 'SYSTEM', ?, ?, 'DELIVERY', ?)`,
-      [genId('tx'), delivery.username, delivery.give_coins, `Entrega: ${delivery.item_title}`]
-    );
+  
+  // Si ya fue entregada, no hacer nada más
+  if (delivery.status === 'DELIVERED') {
+    log.info(`[Addon] Entrega ${deliveryId} ya procesada - ignorando duplicado`);
+    return { ok: true, already: true };
   }
+
+  // Usar transacción para evitar condiciones de carrera (entregas duplicadas)
+  db.transaction(() => {
+    // Marcar como entregada
+    db.run(
+      `UPDATE deliveries SET status = 'DELIVERED', delivered_at = datetime('now') WHERE id = ? AND status = 'PENDING'`,
+      [deliveryId]
+    );
+
+    // Si la entrega da coins, actualizar wallet
+    if (delivery.give_coins > 0) {
+      db.run(
+        `UPDATE users SET wallet = wallet + ? WHERE username = ? COLLATE NOCASE`,
+        [delivery.give_coins, delivery.username]
+      );
+      db.run(
+        `INSERT INTO transactions (id, from_user, to_user, amount, type, note)
+         VALUES (?, 'SYSTEM', ?, ?, 'DELIVERY', ?)`,
+        [genId('tx'), delivery.username, delivery.give_coins, `Entrega: ${delivery.item_title}`]
+      );
+    }
+  });
 
   log.ok(`[Addon] Entrega ACK: ${deliveryId} para ${delivery.username}`);
   return { ok: true };

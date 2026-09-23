@@ -45,6 +45,7 @@ function buyWithNC(username, itemId) {
 
   const deliveryId = genId('del');
   const txId       = genId('tx');
+  const msgId      = genId('msg');
 
   db.transaction(() => {
     // Descontar NC
@@ -62,6 +63,19 @@ function buyWithNC(username, itemId) {
       `INSERT INTO transactions (id, from_user, to_user, amount, type, note) VALUES (?, ?, 'STORE', ?, 'PURCHASE', ?)`,
       [txId, username, item.price_coins, `Compra: ${item.name}`]
     );
+    
+    // Crear mensaje de notificación en el buzón
+    db.run(
+      `INSERT INTO messages (id, from_user, to_user, subject, body, action, ref_id, ref_type)
+       VALUES (?, 'SYSTEM', ?, ?, ?, 'VIEW_DELIVERY', ?, 'DELIVERY')`,
+      [
+        msgId, 
+        username, 
+        `Compra confirmada: ${item.name}`,
+        `Tu compra de "${item.name}" por ${item.price_coins} NC ha sido procesada. Recibirás tu artículo en el juego próximamente.`,
+        deliveryId,
+      ]
+    );
   });
 
   log.ok(`[Store] Compra NC: ${username} compró ${item.name} x ${item.price_coins} NC`);
@@ -78,11 +92,28 @@ function submitOrder(username, itemId, txid, receiptImage) {
   if (!item.price_usdt || item.price_usdt <= 0) throw new BadRequest('Este artículo no se puede comprar con USDT');
 
   const orderId = genId('ord');
-  db.run(
-    `INSERT INTO orders (id, user_id, username, item_id, item_title, price_usdt, give_coins, command, txid, receipt_image, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')`,
-    [orderId, user.id, user.username, item.id, item.name, item.price_usdt, item.give_coins || 0, item.command || '', txid || '', receiptImage || '']
-  );
+  const msgId   = genId('msg');
+  
+  db.transaction(() => {
+    db.run(
+      `INSERT INTO orders (id, user_id, username, item_id, item_title, price_usdt, give_coins, command, txid, receipt_image, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')`,
+      [orderId, user.id, user.username, item.id, item.name, item.price_usdt, item.give_coins || 0, item.command || '', txid || '', receiptImage || '']
+    );
+    
+    // Crear mensaje de notificación
+    db.run(
+      `INSERT INTO messages (id, from_user, to_user, subject, body, action, ref_id, ref_type)
+       VALUES (?, 'SYSTEM', ?, ?, ?, 'VIEW_ORDER', ?, 'ORDER')`,
+      [
+        msgId,
+        username,
+        `Pedido recibido: ${item.name}`,
+        `Tu pedido de "${item.name}" por $${item.price_usdt} USDT ha sido recibido y está en revisión. Te notificaremos cuando sea aprobado.`,
+        orderId,
+      ]
+    );
+  });
 
   log.ok(`[Store] Orden USDT: ${username} → ${item.name} = $${item.price_usdt}`);
   return { ok: true, orderId, status: 'PENDING', message: 'Tu pedido fue recibido y está en revisión.' };
