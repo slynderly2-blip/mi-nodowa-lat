@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Fondo cabeza -->
+  <rect x="16" y="16" width="32" height="32" fill="#8B7355"/>
+  <!-- Cara -->
+  <rect x="20" y="20" width="24" height="24" fill="#C5A880"/>
+  <!-- Ojos -->
+  <rect x="24" y="28" width="4" height="4" fill="#4A90E2"/>
+  <rect x="36" y="28" width="4" height="4" fill="#4A90E2"/>
+  <!-- Nariz -->
+  <rect x="30" y="32" width="4" height="6" fill="#AA8866"/>
+  <!-- Boca -->
+  <rect x="28" y="40" width="8" height="2" fill="#654321"/>
+  <!-- Cabello -->
+  <rect x="20" y="16" width="24" height="4" fill="#3D2817"/>
+  <rect x="16" y="20" width="4" height="8" fill="#3D2817"/>
+  <rect x="44" y="20" width="4" height="8" fill="#3D2817"/>
+</svg>

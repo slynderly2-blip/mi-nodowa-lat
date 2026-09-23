@@ -85,6 +85,9 @@ async function start() {
 
   // 5. Archivos estáticos (frontend)
   app.use(express.static(path.join(__dirname, '../public')));
+  
+  // 5b. Servir archivos subidos (avatares, etc.)
+  app.use('/data/uploads', express.static(path.join(__dirname, '../data/uploads')));
 
   // 6. API routes
   app.use('/api/auth',       authRoutes);

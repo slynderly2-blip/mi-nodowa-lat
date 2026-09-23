@@ -56,33 +56,14 @@ function fmtDate(s) {
 function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-// Genera UUID determinista a partir del nombre del usuario (siempre el mismo para el mismo nombre)
-function hashUser(name) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = ((hash << 5) - hash) + name.charCodeAt(i);
-    hash = hash & hash;
-  }
-  // Convertir a UUID formato: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-  const hex = Math.abs(hash).toString(16).padStart(8, '0');
-  const parts = [
-    hex.slice(0,8),
-    hex.slice(0,4),
-    '4' + hex.slice(1,4), // Version 4
-    ((parseInt(hex[0], 16) & 0x3) | 0x8).toString(16) + hex.slice(1,4),
-    hex.repeat(3).slice(0,12)
-  ];
-  return parts.join('-');
-}
 
 function avatar(name, url, size = 40) {
-  // Si tiene URL personalizada, usarla primero
+  // Si tiene URL personalizada (incluyendo avatares subidos), usarla primero
   if (url) {
-    return `<img src="${esc(url)}" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.src='https://crafatar.com/avatars/${hashUser(name)}?overlay&size=${size*2}'">`;
+    return `<img src="${esc(url)}" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.src='/img/default-avatar.svg'">`;
   }
-  // Usar Crafatar para generar un rostro de Minecraft determinista
-  const uuid = hashUser(name);
-  return `<img src="https://crafatar.com/avatars/${uuid}?overlay&size=${size*2}" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;image-rendering:pixelated;">`;
+  // Usar imagen default local (rostro pixelado estilo Minecraft)
+  return `<img src="/img/default-avatar.svg" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;image-rendering:pixelated;">`;
 }
 
 function statusBadge(s) {
@@ -735,19 +716,56 @@ function initProfileEdit() {
     clearFb('profile-edit-feedback');
     const display_name = $('edit-display-name').value.trim();
     const avatar_url   = $('edit-avatar-url').value.trim();
+    const avatar_file  = $('edit-avatar-file').files[0];
     const btn = e.submitter; btn.disabled = true;
+    
     try {
-      const body = {};
-      if (display_name) body.display_name = display_name;
-      if (avatar_url)   body.avatar       = avatar_url;
-      const d = await PATCH('/users/profile', body);
-      State.user = d.user;
-      saveSession(State.token, d.user);
+      // Si hay un archivo, subirlo primero
+      if (avatar_file) {
+        const formData = new FormData();
+        formData.append('avatar', avatar_file);
+        
+        const uploadRes = await fetch('/api/users/profile/upload-avatar', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${State.token}` },
+          body: formData
+        });
+        
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json();
+          throw new Error(err.error || 'Error al subir la imagen');
+        }
+        
+        const uploadData = await uploadRes.json();
+        feedback('profile-edit-feedback', 'Avatar subido correctamente');
+        
+        // Actualizar estado del usuario
+        State.user = uploadData.user;
+        saveSession(State.token, uploadData.user);
+      }
+      
+      // Luego actualizar display_name y/o avatar_url si se proporcionaron
+      if (display_name || avatar_url) {
+        const body = {};
+        if (display_name) body.display_name = display_name;
+        if (avatar_url)   body.avatar       = avatar_url;
+        const d = await PATCH('/users/profile', body);
+        State.user = d.user;
+        saveSession(State.token, d.user);
+        feedback('profile-edit-feedback', 'Perfil actualizado');
+      }
+      
       renderNav(); renderTopbar();
-      feedback('profile-edit-feedback', 'Perfil actualizado');
       loadProfile();
-    } catch (err) { feedback('profile-edit-feedback', err.message, true); }
-    finally { btn.disabled = false; }
+      
+      // Limpiar el input de archivo
+      $('edit-avatar-file').value = '';
+      
+    } catch (err) { 
+      feedback('profile-edit-feedback', err.message, true); 
+    } finally { 
+      btn.disabled = false; 
+    }
   });
 }
 
