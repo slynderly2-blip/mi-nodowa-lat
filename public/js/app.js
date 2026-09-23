@@ -682,6 +682,18 @@ async function loadProfile() {
   // prefill edit form
   const dn = $('edit-display-name');
   if (dn) dn.value = u.display_name || '';
+  
+  // Mostrar avatar actual en el preview
+  const preview = $('avatar-preview');
+  if (preview && u.avatar) {
+    preview.innerHTML = `<img src="${esc(u.avatar)}" style="width:100%;height:100%;object-fit:cover;" alt="Avatar actual" onerror="this.parentElement.innerHTML='<span style=\\'color:#6b7280;font-size:14px;text-align:center;padding:8px;\\'>Haz clic para subir foto</span>'">`;
+    preview.style.border = '2px solid #7C3AED';
+  } else if (preview) {
+    // Intentar mostrar skin de Minecraft
+    const skinUrl = `https://crafatar.com/avatars/${esc(u.username)}?overlay&default=MHF_Steve&size=200`;
+    preview.innerHTML = `<img src="${skinUrl}" style="width:100%;height:100%;object-fit:cover;" alt="Skin de Minecraft" onerror="this.parentElement.innerHTML='<span style=\\'color:#6b7280;font-size:14px;text-align:center;padding:8px;\\'>Haz clic para subir foto</span>'">`;
+    preview.style.border = '2px dashed #9ca3af';
+  }
 
   // link status
   if (u.linked) {
@@ -711,6 +723,20 @@ async function genLinkCode() {
 }
 
 function initProfileEdit() {
+  // Preview de avatar cuando se selecciona archivo
+  $('edit-avatar-file')?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const preview = $('avatar-preview');
+        preview.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;" alt="Preview">`;
+        preview.style.border = '2px solid #7C3AED';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
   $('profile-edit-form')?.addEventListener('submit', async e => {
     e.preventDefault();
     clearFb('profile-edit-feedback');
