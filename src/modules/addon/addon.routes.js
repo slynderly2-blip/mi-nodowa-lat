@@ -19,17 +19,24 @@ router.get('/pending-deliveries', addonLimiter, (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// POST /api/addon/claim-delivery
+// POST /api/addon/execute-delivery  ← nuevo endpoint principal
+router.post('/execute-delivery', addonLimiter, (req, res, next) => {
+  try {
+    res.json(svc.executeDelivery(req.body.deliveryId));
+  } catch (e) { next(e); }
+});
+
+// POST /api/addon/claim-delivery  (legacy no-op)
 router.post('/claim-delivery', addonLimiter, (req, res, next) => {
   try {
     res.json(svc.claimDelivery(req.body.deliveryId));
   } catch (e) { next(e); }
 });
 
-// POST /api/addon/ack-delivery
+// POST /api/addon/ack-delivery  (legacy no-op)
 router.post('/ack-delivery', addonLimiter, (req, res, next) => {
   try {
-    res.json(svc.ackDelivery(req.body.deliveryId, req.body.claimToken));
+    res.json(svc.ackDelivery(req.body.deliveryId));
   } catch (e) { next(e); }
 });
 

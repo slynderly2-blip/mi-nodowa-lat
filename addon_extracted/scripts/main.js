@@ -108,27 +108,26 @@ async function fetchPendingDeliveries(player) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function executeDelivery(player, del) {
-  // Marcar como DELIVERED en backend PRIMERO (atómico)
-  // Si ya estaba entregado, el backend retorna ok:false y NO ejecutamos nada
-  const claimResult = await httpPost(`${BACKEND_URL}/api/addon/claim-delivery`, { deliveryId: del.id });
-  
-  if (!claimResult || !claimResult.ok) {
-    // Ya fue entregada antes - silencioso, no dar error al jugador
-    console.warn(`[NodowaEconomy] Delivery ${del.id} bloqueada: ${claimResult?.error}`);
+  // Llamar al backend UNA SOLA VEZ — marca DELIVERED atómicamente
+  // Si ya fue procesada, el backend devuelve ok:false y no ejecutamos nada
+  const result = await httpPost(`${BACKEND_URL}/api/addon/execute-delivery`, { deliveryId: del.id });
+
+  if (!result) {
+    player.sendMessage("§c[Nodowa] Sin respuesta del servidor. Intenta más tarde.");
     return;
   }
 
-  // Backend confirmó - ahora sí ejecutar comandos
-  const cmds = [
-    ...(typeof del.command === "string" && del.command.trim() ? [del.command] : []),
-    ...(Array.isArray(del.commands)
-      ? del.commands.filter(c => typeof c === "string" && c.trim())
-      : [])
-  ];
+  if (!result.ok) {
+    // already:true = ya fue entregada antes, silencioso
+    if (result.already) return;
+    player.sendMessage(`§c[Nodowa] No se pudo procesar: ${result.error || 'error desconocido'}`);
+    return;
+  }
 
-  for (const cmd of cmds) {
-    const c = cmd.trim().replace(/\{player\}/g, `"${player.name}"`);
-    const exec = c.startsWith("/") ? c.slice(1) : c;
+  // Backend confirmó — ejecutar comando UNA sola vez
+  const cmd = del.command || '';
+  if (cmd.trim()) {
+    const exec = cmd.trim().replace(/\{player\}/g, `"${player.name}"`).replace(/^\//, '');
     try {
       player.dimension.runCommand(exec);
     } catch (_) {
@@ -211,9 +210,7 @@ async function openBuzonMenu(player) {
 
 // ── CONFIRMACIÓN DE ENTREGA INDIVIDUAL ───────────────────────────────────────
 // Set para trackear deliveries que ya están siendo procesadas en este cliente
-const _processingDeliveries = new Set();
-
-function openDeliveryConfirm(player, del, totalCount) {
+const _processingDeliveries = new Set();function openDeliveryConfirm(player, del, totalCount) {
   const productName = del.productName ?? del.product ?? "Compra de tienda";
   const productDesc = del.description ? `\n§7Detalle: §f${del.description}` : "";
 
@@ -246,12 +243,9 @@ function openDeliveryConfirm(player, del, totalCount) {
     }
 
     if (res.selection === 0) {
-      // PROTECCIÓN CRÍTICA: Si ya está procesando este delivery, ignorar
+      // PROTECCIÓN CLIENTE: bloquear si ya está procesando este delivery
       const deliveryKey = `${p.name}:${del.id}`;
-      if (_processingDeliveries.has(deliveryKey)) {
-        console.warn(`[NodowaEconomy] ⚠️ BLOQUEADO doble click en delivery ${del.id}`);
-        return;
-      }
+      if (_processingDeliveries.has(deliveryKey)) return;
       _processingDeliveries.add(deliveryKey);
 
       try {
@@ -262,7 +256,6 @@ function openDeliveryConfirm(player, del, totalCount) {
         showDeliverySuccess(p, productName, remaining.length);
       } catch (err) {
         console.error("[NodowaEconomy] Error entregando:", err);
-        // Solo mostrar error si NO fue un bloqueo de duplicado
         if (!String(err.message).includes('bloqueada')) {
           p.sendMessage("§c[Nodowa] Error al procesar la entrega. Intenta nuevamente.");
         }
