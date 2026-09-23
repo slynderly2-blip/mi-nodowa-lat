@@ -1304,6 +1304,7 @@ input::placeholder { color: var(--text-muted); }
 
   .main-wrapper {
     width: 100%;
+    margin-left: 0;
   }
 
   .items-grid { grid-template-columns: 1fr; }
