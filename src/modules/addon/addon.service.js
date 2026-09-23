@@ -1,8 +1,6 @@
 'use strict';
 /**
  * src/modules/addon/addon.service.js
- * Endpoints consumidos directamente por el addon de Minecraft Bedrock.
- * Estos son los más críticos — deben ser rápidos y sin auth.
  */
 
 const db  = require('../../config/database');
@@ -13,10 +11,7 @@ const log = require('../../shared/logger');
 // ── GET /api/addon/get-balance ────────────────────────────────────────────────
 function getBalance(playerName) {
   if (!playerName) return { ok: false, wallet: 0 };
-  const user = db.get(
-    'SELECT wallet FROM users WHERE username = ? COLLATE NOCASE',
-    [playerName]
-  );
+  const user = db.get('SELECT wallet FROM users WHERE username = ? COLLATE NOCASE', [playerName]);
   return { ok: true, wallet: user ? (user.wallet || 0) : 0 };
 }
 
@@ -45,74 +40,44 @@ function getPendingDeliveries(playerName) {
   return { ok: true, deliveries };
 }
 
-// ── POST /api/addon/claim-delivery ───────────────────────────────────────────
+// ── POST /api/addon/claim-delivery ────────────────────────────────────────────
+// Marca la entrega como DELIVERED atómicamente ANTES de que el addon ejecute comandos.
+// Si ya estaba DELIVERED, retorna ok:false → addon no ejecuta nada.
 function claimDelivery(deliveryId) {
   if (!deliveryId) throw new BadRequest('deliveryId requerido');
 
-  const delivery = db.get('SELECT * FROM deliveries WHERE id = ?', [deliveryId]);
-  if (!delivery) return { ok: false, error: 'Entrega no encontrada' };
-  if (delivery.status === 'DELIVERED') {
-    log.warn(`[Addon] ⚠️ BLOQUEADO: ${deliveryId} ya entregada`);
+  // Un solo UPDATE atómico: solo funciona si status = 'PENDING'
+  const result = db.run(
+    `UPDATE deliveries SET status = 'DELIVERED', delivered_at = datetime('now')
+     WHERE id = ? AND status = 'PENDING'`,
+    [deliveryId]
+  );
+
+  if (result.changes === 0) {
+    // Ya fue entregada (o no existe) - bloquear
+    const d = db.get('SELECT status FROM deliveries WHERE id = ?', [deliveryId]);
+    if (!d) {
+      log.warn(`[Addon] claim: delivery ${deliveryId} no existe`);
+      return { ok: false, error: 'not_found' };
+    }
+    log.warn(`[Addon] ⚠️ BLOQUEADO duplicado: ${deliveryId} status=${d.status}`);
     return { ok: false, error: 'already_delivered' };
   }
 
-  // Si está atascada en DELIVERING, resetear a PENDING para que pueda reintentarse
-  if (delivery.status === 'DELIVERING') {
-    log.warn(`[Addon] Reseteando delivery atascada ${deliveryId}`);
-    db.run(`UPDATE deliveries SET status = 'PENDING' WHERE id = ? AND status = 'DELIVERING'`, [deliveryId]);
-  }
-
-  // Marcar atómicamente como DELIVERING
-  const result = db.run(
-    `UPDATE deliveries SET status = 'DELIVERING' WHERE id = ? AND status = 'PENDING'`,
-    [deliveryId]
-  );
-
-  if (result.changes === 0) {
-    const d = db.get('SELECT status FROM deliveries WHERE id = ?', [deliveryId]);
-    log.warn(`[Addon] ⚠️ No se pudo hacer claim de ${deliveryId}, status=${d?.status}`);
-    if (d?.status === 'DELIVERED') return { ok: false, error: 'already_delivered' };
-    return { ok: false, error: 'already_claiming' };
-  }
-
-  log.info(`[Addon] 🔒 Delivery ${deliveryId} tomada`);
-  return { ok: true, claimToken: deliveryId };
-}
-
-// ── POST /api/addon/ack-delivery ─────────────────────────────────────────────
-function ackDelivery(deliveryId, claimToken) {
-  if (!deliveryId) throw new BadRequest('deliveryId requerido');
-
-  const delivery = db.get('SELECT * FROM deliveries WHERE id = ?', [deliveryId]);
-  if (!delivery) return { ok: false, error: 'Entrega no encontrada' };
-  
-  if (delivery.status === 'DELIVERED') {
-    log.warn(`[Addon] ⚠️ DUPLICADO BLOQUEADO: ${deliveryId} ya entregada`);
-    return { ok: true, already: true };
-  }
-
-  // Aceptar tanto DELIVERING (nuevo) como PENDING (fallback por si claim falló)
-  if (delivery.status !== 'DELIVERING' && delivery.status !== 'PENDING') {
-    log.error(`[Addon] ❌ Status inválido para ack: ${deliveryId} = ${delivery.status}`);
-    return { ok: false, error: `Status inválido: ${delivery.status}` };
-  }
-
-  const result = db.run(
-    `UPDATE deliveries SET status = 'DELIVERED', delivered_at = datetime('now')
-     WHERE id = ? AND status IN ('DELIVERING', 'PENDING')`,
-    [deliveryId]
-  );
-
-  if (result.changes === 0) {
-    log.warn(`[Addon] ⚠️ Race condition en ack: ${deliveryId}`);
-    return { ok: true, already: true };
-  }
-
-  log.ok(`[Addon] ✅ Entregado: ${deliveryId} → ${delivery.username} (${delivery.item_title})`);
+  log.ok(`[Addon] ✅ claim: ${deliveryId} marcada DELIVERED - addon puede ejecutar`);
   return { ok: true };
 }
 
-// ── POST /api/wallet/transfer (addon) ─────────────────────────────────────────
+// ── POST /api/addon/ack-delivery ──────────────────────────────────────────────
+// Mantener por compatibilidad con addon viejo. Ya no hace nada crítico.
+function ackDelivery(deliveryId) {
+  if (!deliveryId) throw new BadRequest('deliveryId requerido');
+  // Con el nuevo sistema, claim ya marcó DELIVERED. Esto es no-op.
+  log.info(`[Addon] ack recibido para ${deliveryId} (ya procesado por claim)`);
+  return { ok: true };
+}
+
+// ── POST /api/wallet/transfer ─────────────────────────────────────────────────
 function addonTransfer(fromUser, toUser, amount) {
   const from = fromUser || '';
   const to   = toUser   || '';
@@ -126,13 +91,9 @@ function addonTransfer(fromUser, toUser, amount) {
   if (!sender) return { ok: false, error: 'Usuario remitente no encontrado' };
   if (sender.wallet < amt) return { ok: false, error: `Saldo insuficiente. Tienes ${sender.wallet} NC.` };
 
-  // Crear o auto-crear destinatario (jugadores que no tienen cuenta web aún)
   let recipient = db.get('SELECT id, username FROM users WHERE username = ? COLLATE NOCASE', [to]);
   if (!recipient) {
-    db.run(
-      `INSERT INTO users (username, display_name, wallet, bank, linked, is_admin) VALUES (?, ?, 0, 0, 0, 0)`,
-      [to, to]
-    );
+    db.run(`INSERT INTO users (username, display_name, wallet, bank, linked, is_admin) VALUES (?, ?, 0, 0, 0, 0)`, [to, to]);
     recipient = db.get('SELECT id, username FROM users WHERE username = ? COLLATE NOCASE', [to]);
   }
 
@@ -141,8 +102,7 @@ function addonTransfer(fromUser, toUser, amount) {
     db.run('UPDATE users SET wallet = wallet - ? WHERE id = ?', [amt, sender.id]);
     db.run('UPDATE users SET wallet = wallet + ? WHERE id = ?', [amt, recipient.id]);
     db.run(
-      `INSERT INTO transactions (id, from_user, to_user, amount, type, note)
-       VALUES (?, ?, ?, ?, 'TRANSFER', 'Transferencia en juego')`,
+      `INSERT INTO transactions (id, from_user, to_user, amount, type, note) VALUES (?, ?, ?, ?, 'TRANSFER', 'Transferencia en juego')`,
       [txId, sender.username, recipient.username, amt]
     );
   });

@@ -108,22 +108,17 @@ async function fetchPendingDeliveries(player) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function executeDelivery(player, del) {
-  // NUEVO FLUJO: Primero reclamar en el backend para obtener lock
+  // Marcar como DELIVERED en backend PRIMERO (atómico)
+  // Si ya estaba entregado, el backend retorna ok:false y NO ejecutamos nada
   const claimResult = await httpPost(`${BACKEND_URL}/api/addon/claim-delivery`, { deliveryId: del.id });
   
   if (!claimResult || !claimResult.ok) {
-    const errMsg = claimResult?.message || claimResult?.error || 'Error al reclamar';
-    if (claimResult?.error === 'already_delivered' || claimResult?.error === 'already_claiming') {
-      // Ya fue procesada, no mostrar error al jugador
-      console.warn(`[NodowaEconomy] Delivery ${del.id} ya fue procesada`);
-      return;
-    }
-    throw new Error(errMsg);
+    // Ya fue entregada antes - silencioso, no dar error al jugador
+    console.warn(`[NodowaEconomy] Delivery ${del.id} bloqueada: ${claimResult?.error}`);
+    return;
   }
 
-  const claimToken = claimResult.claimToken;
-  
-  // Ahora sí ejecutar los comandos (items, permisos, etc)
+  // Backend confirmó - ahora sí ejecutar comandos
   const cmds = [
     ...(typeof del.command === "string" && del.command.trim() ? [del.command] : []),
     ...(Array.isArray(del.commands)
@@ -137,17 +132,9 @@ async function executeDelivery(player, del) {
     try {
       player.dimension.runCommand(exec);
     } catch (_) {
-      try {
-        world.getDimension("minecraft:overworld").runCommand(exec);
-      } catch (_) {}
+      try { world.getDimension("minecraft:overworld").runCommand(exec); } catch (_) {}
     }
   }
-
-  // Finalmente confirmar al backend que se ejecutaron los comandos
-  await httpPost(`${BACKEND_URL}/api/addon/ack-delivery`, { 
-    deliveryId: del.id,
-    claimToken: claimToken
-  });
 }
 
 // ── BUZÓN PRINCIPAL ──────────────────────────────────────────────────────────
@@ -271,15 +258,15 @@ function openDeliveryConfirm(player, del, totalCount) {
         await executeDelivery(p, del);
         await syncBalance(p);
         try { p.playSound("random.levelup", { volume: 1.0, pitch: 1.2 }); } catch (_) {}
-
-        // Consultar cuántos quedan para ofrecer seguir abriendo
         const remaining = await fetchPendingDeliveries(p);
         showDeliverySuccess(p, productName, remaining.length);
       } catch (err) {
         console.error("[NodowaEconomy] Error entregando:", err);
-        p.sendMessage("§c[Nodowa] Ocurrió un error al procesar la entrega. Intenta nuevamente.");
+        // Solo mostrar error si NO fue un bloqueo de duplicado
+        if (!String(err.message).includes('bloqueada')) {
+          p.sendMessage("§c[Nodowa] Error al procesar la entrega. Intenta nuevamente.");
+        }
       } finally {
-        // Liberar el lock de este delivery
         _processingDeliveries.delete(deliveryKey);
       }
     }
