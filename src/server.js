@@ -28,6 +28,9 @@ async function start() {
   // 1. Inicializar DB
   await initDB();
 
+  // 2. Auto-seed: cargar items si la tienda está vacía
+  await autoSeed();
+
   const app = express();
 
   // 2. Middlewares globales
