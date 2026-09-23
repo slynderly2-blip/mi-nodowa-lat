@@ -1,0 +1,31 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno — NUNCA subir al repo
+.env
+.env.*
+!.env.example
+
+# Base de datos y datos persistidos
+data/
+*.db
+*.db-shm
+*.db-wal
+*.db.tmp
+
+# Uploads de usuarios
+uploads/
+
+# Logs
+*.log
+logs/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Builds / dist
+dist/
+build/
