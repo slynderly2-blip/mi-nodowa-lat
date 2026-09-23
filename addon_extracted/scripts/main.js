@@ -223,6 +223,9 @@ async function openBuzonMenu(player) {
 }
 
 // ── CONFIRMACIÓN DE ENTREGA INDIVIDUAL ───────────────────────────────────────
+// Set para trackear deliveries que ya están siendo procesadas en este cliente
+const _processingDeliveries = new Set();
+
 function openDeliveryConfirm(player, del, totalCount) {
   const productName = del.productName ?? del.product ?? "Compra de tienda";
   const productDesc = del.description ? `\n§7Detalle: §f${del.description}` : "";
@@ -256,6 +259,14 @@ function openDeliveryConfirm(player, del, totalCount) {
     }
 
     if (res.selection === 0) {
+      // PROTECCIÓN CRÍTICA: Si ya está procesando este delivery, ignorar
+      const deliveryKey = `${p.name}:${del.id}`;
+      if (_processingDeliveries.has(deliveryKey)) {
+        console.warn(`[NodowaEconomy] ⚠️ BLOQUEADO doble click en delivery ${del.id}`);
+        return;
+      }
+      _processingDeliveries.add(deliveryKey);
+
       try {
         await executeDelivery(p, del);
         await syncBalance(p);
@@ -267,6 +278,9 @@ function openDeliveryConfirm(player, del, totalCount) {
       } catch (err) {
         console.error("[NodowaEconomy] Error entregando:", err);
         p.sendMessage("§c[Nodowa] Ocurrió un error al procesar la entrega. Intenta nuevamente.");
+      } finally {
+        // Liberar el lock de este delivery
+        _processingDeliveries.delete(deliveryKey);
       }
     }
   });

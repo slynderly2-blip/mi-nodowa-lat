@@ -90,15 +90,15 @@ function ackDelivery(deliveryId, claimToken) {
     return { ok: true, already: true };
   }
 
-  // Solo procesar si está en DELIVERING (fue correctamente reclamada antes)
-  if (delivery.status !== 'DELIVERING') {
+  // Aceptar tanto DELIVERING (nuevo) como PENDING (fallback por si claim falló)
+  if (delivery.status !== 'DELIVERING' && delivery.status !== 'PENDING') {
     log.error(`[Addon] ❌ Status inválido para ack: ${deliveryId} = ${delivery.status}`);
     return { ok: false, error: `Status inválido: ${delivery.status}` };
   }
 
   const result = db.run(
     `UPDATE deliveries SET status = 'DELIVERED', delivered_at = datetime('now')
-     WHERE id = ? AND status = 'DELIVERING'`,
+     WHERE id = ? AND status IN ('DELIVERING', 'PENDING')`,
     [deliveryId]
   );
 
