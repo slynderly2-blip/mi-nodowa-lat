@@ -50,40 +50,65 @@
 
         <!-- ECONOMÍA (billetera + banco combinados) -->
         <section id="section-economy" class="content-section" data-title="Economía">
-          <div class="economy-header">
-            <div class="balance-card balance-card--wallet">
-              <span class="balance-label">En mano</span>
-              <span class="balance-amount" id="econ-wallet">— NC</span>
-              <div class="balance-actions">
-                <button class="btn btn-secondary btn-sm" id="btn-to-bank">Mover al banco</button>
-                <button class="btn btn-secondary btn-sm" id="btn-from-bank">Retirar del banco</button>
+
+          <!-- Resumen de saldos -->
+          <div class="econ-balances">
+            <div class="econ-bal-card econ-bal-card--wallet">
+              <div class="econ-bal-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M21 7H3a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/><path d="M16 3H8L3 7h18L16 3z"/><circle cx="17" cy="13" r="1.5" fill="currentColor" stroke="none"/></svg>
+              </div>
+              <div class="econ-bal-card__info">
+                <span class="econ-bal-card__label">Billetera</span>
+                <span class="econ-bal-card__amount" id="econ-wallet">— NC</span>
+              </div>
+              <div class="econ-bal-card__actions">
+                <button class="btn btn-secondary btn-sm" id="btn-to-bank">Al banco</button>
               </div>
             </div>
-            <div class="balance-card balance-card--bank">
-              <span class="balance-label">En banco</span>
-              <span class="balance-amount" id="econ-bank">— NC</span>
-              <div class="balance-meta" id="econ-total-label">Total: — NC</div>
+            <div class="econ-bal-card econ-bal-card--bank">
+              <div class="econ-bal-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+              </div>
+              <div class="econ-bal-card__info">
+                <span class="econ-bal-card__label">Banco</span>
+                <span class="econ-bal-card__amount" id="econ-bank">— NC</span>
+              </div>
+              <div class="econ-bal-card__actions">
+                <button class="btn btn-secondary btn-sm" id="btn-from-bank">Retirar</button>
+              </div>
             </div>
-            <div class="balance-card balance-card--transfer">
-              <span class="balance-label">Transferir NC</span>
-              <form id="transfer-form" class="transfer-form" novalidate>
-                <input type="text"   id="transfer-to"     placeholder="Usuario destino" required />
-                <input type="number" id="transfer-amount" placeholder="Cantidad"        min="1" required />
-                <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
-              </form>
-              <p class="form-feedback" id="transfer-feedback" aria-live="polite"></p>
+            <div class="econ-bal-card econ-bal-card--total">
+              <div class="econ-bal-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              </div>
+              <div class="econ-bal-card__info">
+                <span class="econ-bal-card__label">Total NC</span>
+                <span class="econ-bal-card__amount" id="econ-total-label">— NC</span>
+              </div>
             </div>
           </div>
 
+          <!-- Transferir -->
+          <div class="card econ-transfer-card">
+            <h2 class="card-title">Transferir Nodocoins</h2>
+            <form id="transfer-form" class="econ-transfer-form" novalidate>
+              <input type="text"   id="transfer-to"     placeholder="Nombre del destinatario" required />
+              <input type="number" id="transfer-amount" placeholder="Cantidad (NC)" min="1" required />
+              <button type="submit" class="btn btn-primary">Enviar NC</button>
+            </form>
+            <p class="form-feedback" id="transfer-feedback" aria-live="polite"></p>
+          </div>
+
+          <!-- Historial -->
           <div class="card mt-4">
             <div class="card-header">
-              <h2 class="card-title">Historial de transacciones</h2>
+              <h2 class="card-title">Historial</h2>
               <div class="tx-type-filter" id="tx-type-filter">
                 <button class="tab-btn active" data-type="all">Todas</button>
                 <button class="tab-btn" data-type="BONUS">Bonos</button>
                 <button class="tab-btn" data-type="PURCHASE">Compras</button>
                 <button class="tab-btn" data-type="BANK">Banco</button>
-                <button class="tab-btn" data-type="TRANSFER">Transferencias</button>
+                <button class="tab-btn" data-type="TRANSFER">Envíos</button>
               </div>
             </div>
             <div class="tx-list" id="tx-list"><p class="empty-state">Cargando...</p></div>

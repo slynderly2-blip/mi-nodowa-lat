@@ -102,9 +102,9 @@ function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Avatares SVG ─────────────────────────────────────────────────
-// 6 diseños coloridos asignados deterministicamente por username.
-// Se usan como fallback cuando no hay foto, o cuando la foto no carga.
+// ── Avatares SVG estilo Minecraft ────────────────────────────────
+// 6 íconos de Minecraft en SVG pixel-art asignados por username.
+// Se usan como fallback cuando no hay foto o cuando no carga.
 const AVATAR_PALETTES = [
   { bg: '#7C3AED', fg: '#fff', accent: '#a78bfa' }, // violeta
   { bg: '#0D9488', fg: '#fff', accent: '#5eead4' }, // teal
@@ -114,42 +114,34 @@ const AVATAR_PALETTES = [
   { bg: '#059669', fg: '#fff', accent: '#6ee7b7' }, // verde
 ];
 
-// Patrones SVG para cada índice (0-5)
-function _avatarSvgPattern(idx, initial, size) {
-  const p = AVATAR_PALETTES[idx];
-  const r = size / 2;
-  const fs = Math.round(size * 0.4);
-  const patterns = [
-    // 0 — círculos concéntricos
-    `<circle cx="${r}" cy="${r}" r="${r}" fill="${p.bg}"/>
-     <circle cx="${r}" cy="${r}" r="${r*0.65}" fill="none" stroke="${p.accent}" stroke-width="${size*0.07}" opacity="0.7"/>
-     <circle cx="${r}" cy="${r}" r="${r*0.35}" fill="none" stroke="${p.accent}" stroke-width="${size*0.07}" opacity="0.5"/>`,
-    // 1 — diamante
-    `<circle cx="${r}" cy="${r}" r="${r}" fill="${p.bg}"/>
-     <polygon points="${r},${size*0.18} ${size*0.82},${r} ${r},${size*0.82} ${size*0.18},${r}" fill="${p.accent}" opacity="0.45"/>`,
-    // 2 — hexágono
-    `<circle cx="${r}" cy="${r}" r="${r}" fill="${p.bg}"/>
-     <polygon points="${r},${size*0.1} ${size*0.84},${size*0.27} ${size*0.84},${size*0.73} ${r},${size*0.9} ${size*0.16},${size*0.73} ${size*0.16},${size*0.27}" fill="${p.accent}" opacity="0.4"/>`,
-    // 3 — cruz/+
-    `<circle cx="${r}" cy="${r}" r="${r}" fill="${p.bg}"/>
-     <rect x="${r*0.6}" y="${size*0.15}" width="${size*0.2}" height="${size*0.7}" rx="${size*0.04}" fill="${p.accent}" opacity="0.55"/>
-     <rect x="${size*0.15}" y="${r*0.6}" width="${size*0.7}" height="${size*0.2}" rx="${size*0.04}" fill="${p.accent}" opacity="0.55"/>`,
-    // 4 — triángulo
-    `<circle cx="${r}" cy="${r}" r="${r}" fill="${p.bg}"/>
-     <polygon points="${r},${size*0.15} ${size*0.85},${size*0.82} ${size*0.15},${size*0.82}" fill="${p.accent}" opacity="0.45"/>`,
-    // 5 — estrella
-    `<circle cx="${r}" cy="${r}" r="${r}" fill="${p.bg}"/>
-     <polygon points="${r},${size*0.12} ${size*0.61},${size*0.38} ${size*0.88},${size*0.38} ${size*0.65},${size*0.58} ${size*0.74},${size*0.86} ${r},${size*0.68} ${size*0.26},${size*0.86} ${size*0.35},${size*0.58} ${size*0.12},${size*0.38} ${size*0.39},${size*0.38}" fill="${p.accent}" opacity="0.5"/>`,
-  ];
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block;border-radius:50%;flex-shrink:0;">
-    ${patterns[idx]}
-    <text x="${r}" y="${r}" dominant-baseline="central" text-anchor="middle"
-          font-family="system-ui,sans-serif" font-size="${fs}" font-weight="700"
-          fill="${p.fg}" opacity="0.92">${initial}</text>
+// Íconos Minecraft pixel-art en SVG (viewBox 16x16, escalado al size deseado)
+const _MC_ICONS = [
+  // 0 — Espada de diamante
+  `<rect x="7" y="1" width="2" height="2" fill="#5af"/><rect x="6" y="3" width="4" height="2" fill="#5af"/><rect x="7" y="5" width="2" height="6" fill="#aef"/><rect x="6" y="11" width="4" height="1" fill="#8c6"/><rect x="7" y="12" width="2" height="3" fill="#a96"/>`,
+  // 1 — Cara de Creeper
+  `<rect x="3" y="2" width="10" height="10" fill="#5a5"/><rect x="5" y="5" width="2" height="2" fill="#111"/><rect x="9" y="5" width="2" height="2" fill="#111"/><rect x="6" y="8" width="4" height="1" fill="#111"/><rect x="5" y="9" width="2" height="2" fill="#111"/><rect x="9" y="9" width="2" height="2" fill="#111"/>`,
+  // 2 — Gema de diamante
+  `<rect x="5" y="2" width="6" height="1" fill="#5af"/><rect x="3" y="3" width="10" height="1" fill="#7cf"/><rect x="2" y="4" width="12" height="5" fill="#5af"/><rect x="3" y="9" width="10" height="2" fill="#3ad"/><rect x="5" y="11" width="6" height="2" fill="#2bc"/><rect x="7" y="13" width="2" height="1" fill="#1ab"/>`,
+  // 3 — Lingote de oro
+  `<rect x="3" y="4" width="10" height="8" fill="#fb3"/><rect x="4" y="5" width="8" height="6" fill="#fc5"/><rect x="5" y="6" width="2" height="2" fill="#fd8"/><rect x="3" y="12" width="10" height="1" fill="#c90"/>`,
+  // 4 — Corazón (vida)
+  `<rect x="2" y="4" width="4" height="4" fill="#f44"/><rect x="10" y="4" width="4" height="4" fill="#f44"/><rect x="1" y="6" width="14" height="4" fill="#f44"/><rect x="3" y="10" width="10" height="3" fill="#f44"/><rect x="5" y="13" width="6" height="1" fill="#f44"/><rect x="7" y="14" width="2" height="1" fill="#f44"/><rect x="3" y="5" width="2" height="2" fill="#f88"/><rect x="11" y="5" width="2" height="2" fill="#f88"/>`,
+  // 5 — Cofre del tesoro
+  `<rect x="2" y="7" width="12" height="7" fill="#c73"/><rect x="2" y="4" width="12" height="4" fill="#e85"/><rect x="3" y="5" width="10" height="2" fill="#f96"/><rect x="6" y="9" width="4" height="3" fill="#8b4"/><rect x="7" y="9" width="2" height="3" fill="#6a3"/><rect x="6" y="9" width="4" height="1" fill="#ab5"/>`,
+];
+
+function _avatarSvgPattern(idx, _initial, size) {
+  const p   = AVATAR_PALETTES[idx];
+  const ico = _MC_ICONS[idx];
+  const scale = size / 16;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 16 16"
+    style="display:block;border-radius:${Math.round(size*0.22)}px;flex-shrink:0;image-rendering:pixelated;">
+    <rect width="16" height="16" fill="${p.bg}" rx="2"/>
+    ${ico}
   </svg>`;
 }
 
-// Devuelve el índice de avatar (0-5) determinístico para un username
+// Devuelve índice (0-5) determinístico para un username
 function avatarIndex(name) {
   let h = 0;
   const s = String(name || '?');
@@ -157,31 +149,26 @@ function avatarIndex(name) {
   return Math.abs(h) % 6;
 }
 
-// Genera el SVG inline como data URI para usar en onerror
+// Data URI del SVG para usar en onerror de <img>
 function avatarFallbackDataUri(name, size) {
-  const initial = String(name || '?')[0].toUpperCase();
-  const idx     = avatarIndex(name);
-  const svg     = _avatarSvgPattern(idx, initial, size);
+  const idx = avatarIndex(name);
+  const svg = _avatarSvgPattern(idx, '', size);
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 
-// Componente avatar principal — usa foto si existe, SVG inline si no
+// Componente avatar principal
 function avatar(name, url, size = 40) {
-  const initial  = String(name || '?')[0].toUpperCase();
-  const idx      = avatarIndex(name);
   const fallback = avatarFallbackDataUri(name, size);
+  const idx      = avatarIndex(name);
 
   if (url) {
-    // Tiene foto — mostrarla, con fallback al SVG si no carga
     return `<img src="${esc(url)}" alt="${esc(name)}"
                width="${size}" height="${size}"
-               style="border-radius:50%;object-fit:cover;display:block;flex-shrink:0;"
+               style="border-radius:${Math.round(size*0.22)}px;object-fit:cover;display:block;flex-shrink:0;image-rendering:auto;"
                onerror="this.onerror=null;this.src='${fallback.replace(/'/g, "\\'")}'"
             >`;
   }
-
-  // Sin foto — SVG inline directo (sin request de red)
-  return _avatarSvgPattern(idx, initial, size);
+  return _avatarSvgPattern(idx, '', size);
 }
 
 function statusBadge(s) {
@@ -354,19 +341,26 @@ function renderTopbar() {
     return;
   }
 
-  const name = State.user.display_name || State.user.username || '?';
-  const av   = State.user.avatar || '';
+  const name    = State.user.display_name || State.user.username || '?';
+  const uname   = State.user.username || '?';
+  const av      = State.user.avatar || '';
   const isAdmin = State.user.is_admin;
+  const fallbackUri = avatarFallbackDataUri(uname, 32);
+
+  // El topbar avatar siempre muestra imagen (propia o SVG fallback)
+  const avatarSrc = av || fallbackUri;
 
   actions.innerHTML = `
-    <div class="topbar-balance" title="En mano">
+    <div class="topbar-balance" title="Billetera en mano">
       <span class="balance-icon-svg">${ICONS.economy}</span>
       <span id="tb-balance">${fmt(State.balance.wallet)} NC</span>
     </div>
     ${isAdmin ? `<button class="btn btn-secondary btn-sm" id="tb-admin">${ICONS.admin} Admin</button>` : ''}
     <button class="topbar-avatar" id="tb-avatar" title="${esc(name)}" aria-label="Mi perfil">
-      ${av ? `<img src="${esc(av)}" alt="${esc(name)}" onerror="this.style.display='none'" style="width:100%;height:100%;border-radius:50%;object-fit:cover">` : ''}
-      <span class="avatar-initial">${esc(name[0].toUpperCase())}</span>
+      <img src="${esc(avatarSrc)}" alt="${esc(name)}"
+           style="width:100%;height:100%;border-radius:50%;object-fit:cover;image-rendering:${av ? 'auto' : 'pixelated'};"
+           onerror="this.onerror=null;this.src='${fallbackUri.replace(/'/g, "\\'")}'"
+      >
     </button>`;
 
   $('tb-avatar')?.addEventListener('click', () => go('profile'));

@@ -1778,3 +1778,216 @@ input::placeholder { color: var(--text-muted); }
   transition: background 0.15s;
 }
 .btn-report:hover { background: rgba(185,28,28,0.07); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOPBAR AVATAR — siempre muestra imagen, sin .avatar-initial
+   ═══════════════════════════════════════════════════════════════════════════ */
+.topbar-avatar {
+  overflow: hidden;
+  background: var(--bg-elevated);
+  padding: 0;
+}
+.topbar-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+/* Ocultar la inicial vieja si quedara */
+.topbar-avatar .avatar-initial { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECCIÓN ECONOMÍA — mobile-first redesign
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Tarjetas de balance */
+.econ-balances {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.econ-bal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  transition: box-shadow 0.2s;
+}
+.econ-bal-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.1); }
+
+.econ-bal-card--wallet { border-top: 3px solid var(--violet); }
+.econ-bal-card--bank   { border-top: 3px solid var(--teal); }
+.econ-bal-card--total  { border-top: 3px solid var(--warning); }
+
+.econ-bal-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+}
+.econ-bal-card--wallet .econ-bal-card__icon { color: var(--violet); background: var(--violet-dim); }
+.econ-bal-card--bank   .econ-bal-card__icon { color: var(--teal);   background: var(--teal-dim); }
+.econ-bal-card--total  .econ-bal-card__icon { color: var(--warning); background: rgba(180,83,9,0.08); }
+
+.econ-bal-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.econ-bal-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.econ-bal-card__amount {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+.econ-bal-card__actions { margin-top: auto; }
+
+/* Tarjeta de transferencia */
+.econ-transfer-card {
+  margin-bottom: 0;
+}
+.econ-transfer-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  margin-top: 12px;
+}
+.econ-transfer-form input {
+  flex: 1;
+  min-width: 160px;
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  transition: border-color 0.15s;
+}
+.econ-transfer-form input:focus {
+  outline: none;
+  border-color: var(--violet);
+}
+.econ-transfer-form .btn {
+  flex-shrink: 0;
+  padding: 9px 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE MOBILE (≤ 640px)
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Layout principal — sidebar colapsa */
+  .app-layout {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: visible;
+    padding: 0;
+  }
+  .sidebar-logo { padding: 10px 16px; }
+
+  /* Nav horizontal en móvil */
+  .sidebar-nav {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 6px 8px;
+    gap: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .sidebar-nav::-webkit-scrollbar { display: none; }
+  .nav-section-label, .nav-divider { display: none; }
+  .nav-item {
+    flex-direction: column;
+    padding: 6px 10px;
+    min-width: 56px;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .nav-icon { width: 18px; height: 18px; }
+  .nav-label { font-size: 0.62rem; }
+
+  /* Topbar en móvil */
+  .topbar { padding: 0 12px; }
+  .topbar-title { font-size: 0.88rem; }
+  .topbar-balance { font-size: 0.78rem; padding: 3px 9px; }
+  #tb-balance { display: inline; }
+
+  /* Contenido */
+  .main-content { padding: 14px 12px 30px; }
+
+  /* Economía — columna en móvil */
+  .econ-balances {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .econ-bal-card--total {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+  .econ-bal-card__amount { font-size: 1.1rem; }
+  .econ-transfer-form { flex-direction: column; }
+  .econ-transfer-form input,
+  .econ-transfer-form .btn { width: 100%; }
+
+  /* Catálogo */
+  .items-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+
+  /* Perfil */
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* Modales */
+  .modal {
+    max-width: calc(100vw - 24px);
+    padding: 20px 16px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Admin pedidos */
+  .admin-order-card { flex-direction: column; gap: 10px; }
+  .admin-order-card__actions { flex-direction: row; flex-wrap: wrap; }
+
+  /* Paginación */
+  .page-btn { padding: 5px 9px; font-size: 0.8rem; }
+
+  /* Estadísticas */
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 400px) {
+  .econ-balances { grid-template-columns: 1fr; }
+  .econ-bal-card--total { grid-column: auto; }
+}

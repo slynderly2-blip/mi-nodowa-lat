@@ -34,9 +34,15 @@ function approveOrder(orderId, adminUsername) {
   const order = db.get("SELECT * FROM orders WHERE id = ? AND status = 'PENDING'", [orderId]);
   if (!order) throw new NotFound('Pedido no encontrado');
 
+  // ── Detectar si es entrega de solo-NC (sin comando) ──────────────────────
+  // En ese caso, acreditar los NC AHORA directamente sin dejar delivery PENDING.
+  // El jugador no necesita entrar al juego para recibir monedas web.
+  const isCoinsOnly = (order.give_coins > 0) && !order.command?.trim();
+
   let delId;
   db.transaction(() => {
     db.run(`UPDATE orders SET status = 'APPROVED', reviewed_at = datetime('now') WHERE id = ?`, [orderId]);
+
     delId = manager.createDelivery({
       username:      order.username,
       itemTitle:     order.item_title,
@@ -45,14 +51,45 @@ function approveOrder(orderId, adminUsername) {
       giveCoins:     order.give_coins || 0,
       priceCoins:    0,
       paymentMethod: 'USDT',
-      source:        'STORE_USDT',
+      source:        isCoinsOnly ? 'STORE_USDT_AUTO' : 'STORE_USDT',
     });
-    db.run(`INSERT INTO messages (id, from_user, to_user, subject, body, ref_id, ref_type) VALUES (?, 'SYSTEM', ?, ?, ?, ?, 'DELIVERY')`,
-      [genId('msg'), order.username, `Pedido aprobado: ${order.item_title}`, `Tu pedido fue aprobado. Reclámalo en /tienda.`, delId]);
+
+    if (isCoinsOnly) {
+      // Entrega automática: marcar DELIVERED inmediatamente y acreditar wallet
+      db.run(
+        `UPDATE deliveries SET status = 'DELIVERED', delivered_at = datetime('now') WHERE id = ?`,
+        [delId]
+      );
+      db.run(
+        'UPDATE users SET wallet = wallet + ? WHERE username = ? COLLATE NOCASE',
+        [order.give_coins, order.username]
+      );
+      db.run(
+        `INSERT INTO transactions (id, from_user, to_user, amount, type, note) VALUES (?, 'SYSTEM', ?, ?, 'COINS_PURCHASE', ?)`,
+        [genId('tx'), order.username, order.give_coins, `Recarga USDT: ${order.item_title}`]
+      );
+      db.run(
+        `INSERT INTO messages (id, from_user, to_user, subject, body, ref_id, ref_type) VALUES (?, 'SYSTEM', ?, ?, ?, ?, 'DELIVERY')`,
+        [genId('msg'), order.username,
+         `¡Recarga procesada! ${order.item_title}`,
+         `Se acreditaron ${order.give_coins} Nodocoins a tu billetera automáticamente.`,
+         delId]
+      );
+      log.ok(`[Admin] Orden NC auto-entregada: ${orderId} → +${order.give_coins} NC a ${order.username}`);
+    } else {
+      // Entrega normal: queda PENDING, el jugador la reclama en /buzon
+      db.run(
+        `INSERT INTO messages (id, from_user, to_user, subject, body, ref_id, ref_type) VALUES (?, 'SYSTEM', ?, ?, ?, ?, 'DELIVERY')`,
+        [genId('msg'), order.username,
+         `Pedido aprobado: ${order.item_title}`,
+         `Tu pedido fue aprobado. Reclámalo en el servidor con /tienda.`,
+         delId]
+      );
+      log.ok(`[Admin] Orden aprobada (delivery PENDING): ${orderId} por ${adminUsername}`);
+    }
   });
 
-  log.ok(`[Admin] Orden aprobada: ${orderId} por ${adminUsername}`);
-  return { ok: true, deliveryId: delId };
+  return { ok: true, deliveryId: delId, autoDelivered: isCoinsOnly };
 }
 
 function rejectOrder(orderId, note, adminUsername) {
