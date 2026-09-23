@@ -83,6 +83,11 @@ router.get('/deliveries', requireAuth, requireAdmin, (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// POST /api/admin/deliveries/deduplicate
+router.post('/deliveries/deduplicate', requireAuth, requireAdmin, (req, res, next) => {
+  try { res.json(svc.deduplicateDeliveries()); } catch (e) { next(e); }
+});
+
 // GET /api/admin/config
 router.get('/config', requireAuth, requireAdmin, (req, res, next) => {
   try { res.json(svc.getConfig()); } catch (e) { next(e); }

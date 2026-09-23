@@ -209,6 +209,33 @@ function listDeliveries(status = 'PENDING', page = 1, limit = 30) {
   return { ok: true, deliveries: rows };
 }
 
+// Eliminar deliveries duplicadas (mismo usuario + mismo item + PENDING, dejar solo la más reciente)
+function deduplicateDeliveries() {
+  // Encontrar duplicados: mismo username + item_title + status PENDING
+  const dupes = db.query(
+    `SELECT username, item_title, COUNT(*) as cnt, MIN(id) as oldest_id
+     FROM deliveries WHERE status = 'PENDING'
+     GROUP BY username, item_title
+     HAVING COUNT(*) > 1`,
+    []
+  );
+
+  let removed = 0;
+  for (const dupe of dupes) {
+    // Marcar las más viejas como DELIVERED (ya entregadas) para que no aparezcan más
+    const result = db.run(
+      `UPDATE deliveries SET status = 'DELIVERED', delivered_at = datetime('now')
+       WHERE username = ? AND item_title = ? AND status = 'PENDING' AND id = ?`,
+      [dupe.username, dupe.item_title, dupe.oldest_id]
+    );
+    removed += result.changes;
+    log.warn(`[Admin] Dedup: eliminado duplicado ${dupe.oldest_id} (${dupe.username} - ${dupe.item_title})`);
+  }
+
+  log.ok(`[Admin] Deduplicación: ${removed} deliveries duplicadas eliminadas`);
+  return { ok: true, removed, dupes: dupes.length };
+}
+
 // ── Config ────────────────────────────────────────────────────────────────────
 function getConfig() {
   const rows = db.query('SELECT key, value FROM config', []);
@@ -222,4 +249,4 @@ function setConfig(key, value) {
   return { ok: true };
 }
 
-module.exports = { getStats, listOrders, approveOrder, rejectOrder, listUsers, setWallet, createAdminUser, listAllItems, createItem, updateItem, deleteItem, listDeliveries, getConfig, setConfig };
+module.exports = { getStats, listOrders, approveOrder, rejectOrder, listUsers, setWallet, createAdminUser, listAllItems, createItem, updateItem, deleteItem, listDeliveries, deduplicateDeliveries, getConfig, setConfig };
