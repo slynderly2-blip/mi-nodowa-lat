@@ -1704,19 +1704,45 @@ async function loadAdminProducts(page = 1) {
 
 function openItemModal(itemId) {
   _editingItemId = itemId || null;
-  const item = itemId ? _allItems.find(i => i.id === itemId) : null;
+
+  // Buscar en el array local primero; si no está, limpiar formulario
+  const item = itemId ? (_allItems.find(i => i.id === itemId) || null) : null;
+
   setText('item-modal-title', item ? `Editar: ${item.name}` : 'Nuevo producto');
-  $('item-form-id').value          = item?.id          || '';
-  $('item-form-name').value        = item?.name        || '';
-  $('item-form-category').value    = item?.category    || '';
-  $('item-form-price-nc').value    = item?.price_coins || 0;
-  $('item-form-price-usdt').value  = item?.price_usdt  || 0;
-  $('item-form-give-coins').value  = item?.give_coins  || 0;
-  $('item-form-command').value     = item?.command     || '';
-  $('item-form-desc').value        = item?.description || '';
-  $('item-form-badge').value       = item?.badge       || '';
-  $('item-form-order').value       = item?.sort_order  || 0;
+  $('item-form-id').value          = item?.id          ?? '';
+  $('item-form-name').value        = item?.name        ?? '';
+  $('item-form-category').value    = item?.category    ?? '';
+  $('item-form-price-nc').value    = item?.price_coins ?? 0;
+  $('item-form-price-usdt').value  = item?.price_usdt  ?? 0;
+  $('item-form-give-coins').value  = item?.give_coins  ?? 0;
+  $('item-form-command').value     = item?.command     ?? '';
+  $('item-form-desc').value        = item?.description ?? '';
+  $('item-form-badge').value       = item?.badge       ?? '';
+  $('item-form-order').value       = item?.sort_order  ?? 0;
   $('item-form-id').readOnly       = !!item;
+
+  // Si tenemos el ID pero no encontramos en local (ej: recarga), cargar desde API
+  if (itemId && !item) {
+    GET(`/admin/items?page=1&limit=500`).then(d => {
+      const found = (d.items || []).find(i => i.id === itemId);
+      if (found) {
+        _allItems = d.items; // actualizar cache
+        setText('item-modal-title', `Editar: ${found.name}`);
+        $('item-form-id').value          = found.id          ?? '';
+        $('item-form-name').value        = found.name        ?? '';
+        $('item-form-category').value    = found.category    ?? '';
+        $('item-form-price-nc').value    = found.price_coins ?? 0;
+        $('item-form-price-usdt').value  = found.price_usdt  ?? 0;
+        $('item-form-give-coins').value  = found.give_coins  ?? 0;
+        $('item-form-command').value     = found.command     ?? '';
+        $('item-form-desc').value        = found.description ?? '';
+        $('item-form-badge').value       = found.badge       ?? '';
+        $('item-form-order').value       = found.sort_order  ?? 0;
+        $('item-form-id').readOnly       = true;
+      }
+    }).catch(() => {});
+  }
+
   clearFb('item-modal-feedback');
   openModal('modal-item-edit');
 }

@@ -222,7 +222,7 @@ input, button, select, textarea { font-size: inherit; }
   flex-shrink: 0;
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 201; /* encima del sidebar y del overlay en mobile */
 }
 
 .topbar-title {
@@ -1879,6 +1879,8 @@ input::placeholder { color: var(--text-muted); }
   border-radius: 8px;
   cursor: pointer;
   flex-shrink: 0;
+  position: relative;
+  z-index: 300; /* encima del overlay y del sidebar */
 }
 .sidebar-toggle:hover { background: var(--bg-hover); }
 .sidebar-overlay { display: none; }
@@ -1985,7 +1987,7 @@ input::placeholder { color: var(--text-muted); }
   }
   .sidebar-overlay.show { display: block; }
   
-  .main-wrapper { width: 100%; margin-left: 0; }
+  .main-wrapper { width: 100%; margin-left: 0 !important; }
   .topbar { padding: 0 12px; gap: 8px; }
   .topbar-title { font-size: 0.9rem; }
   .main-content { padding: 14px 12px 30px; }
