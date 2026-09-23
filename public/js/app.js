@@ -36,13 +36,25 @@ async function api(method, path, body = null, auth = true) {
   const opts = { method, headers };
   if (body) opts.body = JSON.stringify(body);
 
-  const res = await fetch(`${API_BASE}${path}`, opts);
-  const data = await res.json().catch(() => ({}));
+  const url = `${API_BASE}${path}`;
+  console.log(`[API] ${method} ${url}`);
 
-  if (!res.ok) {
-    throw new Error(data.message || data.error || `Error ${res.status}`);
+  try {
+    const res  = await fetch(url, opts);
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      console.error(`[API] ❌ ${method} ${url} → ${res.status}:`, data);
+      throw new Error(data.message || data.error || `Error ${res.status}`);
+    }
+    console.log(`[API] ✅ ${method} ${url} → ${res.status}`);
+    return data;
+  } catch (err) {
+    if (err.message.startsWith('Error ') || err.message.includes('fetch')) {
+      console.error(`[API] 🔥 ${method} ${url} → NETWORK ERROR:`, err.message);
+    }
+    throw err;
   }
-  return data;
 }
 
 const get  = (path, auth)       => api('GET',    path, null, auth);
@@ -53,12 +65,38 @@ function saveSession(token, user) {
   State.token = token;
   State.user  = user;
   localStorage.setItem('nodowa_token', token);
+  localStorage.removeItem('nodowa_pending_code'); // limpiar código pendiente
+  console.log('[Auth] Sesión guardada para:', user.username);
 }
 
 function clearSession() {
   State.token = null;
   State.user  = null;
   localStorage.removeItem('nodowa_token');
+  console.log('[Auth] Sesión limpiada');
+}
+
+function savePendingCode(code, username, expiresAt) {
+  localStorage.setItem('nodowa_pending_code', JSON.stringify({ code, username, expiresAt }));
+  console.log('[Auth] Código pendiente guardado:', code, 'para', username);
+}
+
+function getPendingCode() {
+  try {
+    const raw = localStorage.getItem('nodowa_pending_code');
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (new Date(data.expiresAt) < new Date()) {
+      localStorage.removeItem('nodowa_pending_code');
+      console.log('[Auth] Código pendiente expirado, limpiado');
+      return null;
+    }
+    return data;
+  } catch { return null; }
+}
+
+function clearPendingCode() {
+  localStorage.removeItem('nodowa_pending_code');
 }
 
 function parseJwt(token) {
@@ -68,21 +106,45 @@ function parseJwt(token) {
 }
 
 async function restoreSession() {
+  // 1. Intentar restaurar sesión activa
   const token = localStorage.getItem('nodowa_token');
-  if (!token) return;
-
-  const payload = parseJwt(token);
-  if (!payload || payload.exp * 1000 < Date.now()) {
-    clearSession();
-    return;
+  if (token) {
+    const payload = parseJwt(token);
+    if (!payload || payload.exp * 1000 < Date.now()) {
+      console.log('[Auth] Token expirado, limpiando sesión');
+      clearSession();
+    } else {
+      State.token = token;
+      try {
+        const data = await get('/auth/me');
+        State.user = data.user;
+        console.log('[Auth] Sesión restaurada para:', State.user.username);
+        return;
+      } catch (err) {
+        console.warn('[Auth] /me falló, limpiando sesión:', err.message);
+        clearSession();
+      }
+    }
   }
 
-  State.token = token;
-  try {
-    const data = await get('/auth/me');
-    State.user = data.user;
-  } catch {
-    clearSession();
+  // 2. Si hay código pendiente, reanudar polling
+  const pending = getPendingCode();
+  if (pending) {
+    console.log('[Auth] Código pendiente encontrado:', pending.code, '— reanudando polling');
+    // Abrir modal mostrando el código y reanudar polling
+    _linkCode = pending.code;
+    // Mostrar modal en step 2 automáticamente después del init
+    setTimeout(() => {
+      openModal('modal-login');
+      $('login-step-1').hidden    = true;
+      $('login-step-2').hidden    = false;
+      $('login-admin-panel').hidden = true;
+      $('modal-link-code').textContent = pending.code;
+      const expires = new Date(pending.expiresAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+      $('link-expires-note').textContent = `El código expira a las ${expires}`;
+      $('link-wait-text').textContent = 'Esperando confirmación… (¿ya pusiste /link en Minecraft?)';
+      startLinkPolling(pending.code);
+    }, 300);
   }
 }
 
@@ -308,6 +370,7 @@ function renderTopbar() {
 
 /* ── 9. Navegación de secciones ──────────────────────────────────────────── */
 function navigateTo(sectionId) {
+  console.log('[Nav] →', sectionId);
   /* Requiere auth para secciones privadas */
   const privateSections = ['wallet','bank','orders','profile','stats','admin-orders','admin-users'];
   if (privateSections.includes(sectionId) && !State.user) {
@@ -432,6 +495,9 @@ function showLinkStep2(data) {
   $('link-expires-note').textContent = `El código expira a las ${expires}`;
   $('link-wait-text').textContent = 'Esperando confirmación…';
 
+  // Guardar en localStorage para que persista si cierran la pestaña
+  savePendingCode(data.code, data.username, data.expiresAt);
+
   startLinkPolling(data.code);
 }
 
@@ -449,6 +515,7 @@ function startLinkPolling(code) {
 
       if (data.ok && data.status === 'linked') {
         stopLinkPolling();
+        clearPendingCode();
         $('link-wait-text').textContent = '¡Vinculado!';
         saveSession(data.token, data.user);
         closeModal('modal-login');
@@ -1258,9 +1325,16 @@ function escHtml(str) {
 
 /* ── 25. Init ────────────────────────────────────────────────────────────── */
 async function init() {
+  console.log('[Init] Arrancando Nodowa Tienda…');
+
   /* Restaurar sesión desde localStorage */
   await restoreSession();
-  if (State.user) await refreshBalance();
+  if (State.user) {
+    console.log('[Init] Usuario activo:', State.user.username, '| admin:', !!State.user.is_admin);
+    await refreshBalance();
+  } else {
+    console.log('[Init] Sin sesión activa');
+  }
 
   /* Render inicial */
   renderSidebarNav();
