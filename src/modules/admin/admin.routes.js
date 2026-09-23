@@ -46,6 +46,19 @@ router.get('/deliveries',             requireAuth, requireAdmin, (req, res, next
 router.get('/config',                 requireAuth, requireAdmin, (req, res, next) => { try { res.json(svc.getConfig()); } catch(e) { next(e); } });
 router.post('/config',                requireAuth, requireAdmin, (req, res, next) => { try { res.json(svc.setConfig(req.body.key, req.body.value)); } catch(e) { next(e); } });
 
+// GET /api/admin/config/payment — público, solo expone datos de pago (QR, Pay ID, billetera)
+router.get('/config/payment', (req, res, next) => {
+  try {
+    const cfg = svc.getConfig().config;
+    res.json({
+      ok: true,
+      binance_pay_id: cfg.binance_pay_id || '',
+      binance_wallet: cfg.binance_wallet || 'USDT',
+      binance_qr_url: cfg.binance_qr_url || '',
+    });
+  } catch(e) { next(e); }
+});
+
 // POST /api/admin/config/upload-qr  — sube QR de Binance Pay
 router.post('/config/upload-qr', requireAuth, requireAdmin, uploadQR.single('qr'), (req, res, next) => {
   try {

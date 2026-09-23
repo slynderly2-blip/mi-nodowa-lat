@@ -667,10 +667,10 @@ function openBuyUSDT(id) {
 
 async function loadUSDTPaymentInfo() {
   try {
-    const d = await GET('/admin/config', false);
-    const cfg = d.config || {};
-    const binanceId  = cfg.binance_pay_id  || '—';
-    const walletType = cfg.binance_wallet   || 'USDT';
+    // Endpoint público — no requiere auth, cualquier comprador puede verlo
+    const cfg = await GET('/admin/config/payment', false);
+    const binanceId  = cfg.binance_pay_id || '—';
+    const walletType = cfg.binance_wallet  || 'USDT';
     const qrUrl      = cfg.binance_qr_url  || '';
 
     setHTML('modal-usdt-payment-info', `
@@ -684,13 +684,21 @@ async function loadUSDTPaymentInfo() {
           <div class="usdt-payment-info__label">Envía el pago a</div>
           <div class="usdt-payment-info__value">${esc(walletType)}</div>
           <div class="usdt-payment-info__label" style="margin-top:8px">Binance Pay ID</div>
-          <div class="usdt-payment-info__id">${esc(binanceId)}</div>
+          <div class="usdt-payment-info__id" style="font-size:1rem;font-weight:700;color:var(--text-primary)">${esc(binanceId)}</div>
           <div class="usdt-payment-info__label" style="margin-top:8px;font-size:0.75rem;color:#b45309">
             Luego sube tu comprobante y el TxID abajo.
           </div>
         </div>
       </div>`);
-  } catch { /* silencioso — no bloquear el modal si falla */ }
+  } catch {
+    setHTML('modal-usdt-payment-info', `
+      <div class="usdt-payment-info" style="background:rgba(180,83,9,0.06);">
+        <div class="usdt-payment-info__details">
+          <div class="usdt-payment-info__label">Método de pago</div>
+          <div style="font-size:0.82rem;color:var(--text-muted)">Contacta al admin para obtener los datos de pago.</div>
+        </div>
+      </div>`);
+  }
 }
 
 function initUSDTReceiptUpload() {
