@@ -46,7 +46,8 @@ function getPendingDeliveries(playerName) {
 }
 
 // ── POST /api/addon/claim-delivery ───────────────────────────────────────────
-// Este endpoint se llama ANTES de ejecutar comandos para prevenir duplicación
+// NOTA: Este endpoint requiere que la migración 004 haya sido aplicada
+// Si no existe claim_token, el sistema caerá back al modo simple en ack-delivery
 function claimDelivery(deliveryId) {
   if (!deliveryId) throw new BadRequest('deliveryId requerido');
 
@@ -55,53 +56,40 @@ function claimDelivery(deliveryId) {
     return { ok: false, error: 'Entrega no encontrada' };
   }
   
-  // Si ya fue entregada o está siendo reclamada, rechazar
+  // Si ya fue entregada, rechazar inmediatamente
   if (delivery.status === 'DELIVERED') {
-    log.warn(`[Addon] ⚠️ INTENTO DUPLICADO bloqueado: delivery ${deliveryId} ya entregada`);
-    return { ok: false, error: 'already_delivered', message: 'Esta entrega ya fue procesada' };
+    log.warn(`[Addon] ⚠️ BLOQUEADO: delivery ${deliveryId} ya entregada`);
+    return { ok: false, error: 'already_delivered', message: 'Ya entregada' };
   }
 
-  if (delivery.claiming_started_at) {
-    const claimTime = new Date(delivery.claiming_started_at);
-    const now = new Date();
-    const diffSeconds = (now - claimTime) / 1000;
-    
-    // Si se inició hace menos de 30 segundos, está en proceso
-    if (diffSeconds < 30) {
-      log.warn(`[Addon] ⚠️ INTENTO DUPLICADO bloqueado: delivery ${deliveryId} siendo procesada (${diffSeconds}s ago)`);
-      return { ok: false, error: 'already_claiming', message: 'Esta entrega ya está siendo procesada' };
-    }
-  }
-  
   // Si no está PENDING, error
   if (delivery.status !== 'PENDING') {
     return { ok: false, error: `Estado inválido: ${delivery.status}` };
   }
 
-  // Generar token único y marcar como "claiming"
-  const claimToken = genId('claim');
-  
+  // Verificar si la columna claim_token existe (migración 004 aplicada)
   try {
+    // Intentar marcar con token si la columna existe
+    const claimToken = genId('claim');
     const result = db.run(
       `UPDATE deliveries SET claiming_started_at = datetime('now'), claim_token = ?
-       WHERE id = ? AND status = 'PENDING' AND claiming_started_at IS NULL`,
+       WHERE id = ? AND status = 'PENDING'`,
       [claimToken, deliveryId]
     );
     
     if (result.changes === 0) {
-      log.warn(`[Addon] ⚠️ Race condition detectada en claim de ${deliveryId}`);
-      return { ok: false, error: 'race_condition', message: 'Otro proceso está reclamando esta entrega' };
+      log.warn(`[Addon] ⚠️ Delivery ${deliveryId} ya siendo procesada`);
+      return { ok: false, error: 'race_condition' };
     }
 
-    log.info(`[Addon] 🔒 Delivery ${deliveryId} bloqueada para reclamar con token ${claimToken}`);
-    return { 
-      ok: true, 
-      claimToken,
-      command: delivery.command,
-      giveCoins: delivery.give_coins || 0
-    };
+    log.info(`[Addon] 🔒 Delivery ${deliveryId} bloqueada con token ${claimToken}`);
+    return { ok: true, claimToken };
   } catch (err) {
-    log.error(`[Addon] Error al reclamar delivery ${deliveryId}: ${err.message}`);
+    // Si la columna no existe, devolver OK sin token (fallback mode)
+    if (err.message && err.message.includes('no such column')) {
+      log.warn(`[Addon] Migración 004 no aplicada, usando modo simple para ${deliveryId}`);
+      return { ok: true, claimToken: null };
+    }
     throw err;
   }
 }
@@ -110,75 +98,40 @@ function claimDelivery(deliveryId) {
 function ackDelivery(deliveryId, claimToken) {
   if (!deliveryId) throw new BadRequest('deliveryId requerido');
 
-  // Registrar el intento de ACK
-  try {
-    db.run(
-      `INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'ATTEMPT', 'Intento de confirmación')`,
-      [deliveryId]
-    );
-  } catch (e) {
-    log.warn(`[Addon] No se pudo registrar intento de ACK: ${e.message}`);
-  }
-
   const delivery = db.get('SELECT * FROM deliveries WHERE id = ?', [deliveryId]);
   if (!delivery) {
     log.warn(`[Addon] Intento de ACK en entrega inexistente: ${deliveryId}`);
-    db.run(`INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'ERROR', 'Entrega no encontrada')`, [deliveryId]);
     return { ok: false, error: 'Entrega no encontrada' };
   }
   
-  // Si ya fue entregada, no hacer nada más
+  // ⚡ PROTECCIÓN CRÍTICA: Si ya fue entregada, devolver OK pero no hacer nada más
   if (delivery.status === 'DELIVERED') {
-    log.warn(`[Addon] ⚠️ INTENTO DUPLICADO de ACK en entrega ya procesada: ${deliveryId} para ${delivery.username} - ${delivery.item_title}`);
-    db.run(`INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'DUPLICATE', 'Ya estaba entregada')`, [deliveryId]);
-    return { ok: true, already: true, message: 'Entrega ya procesada anteriormente' };
+    log.warn(`[Addon] ⚠️ BLOQUEADO: delivery ${deliveryId} ya procesada - evitando duplicado`);
+    return { ok: true, already: true, message: 'Ya procesada' };
   }
 
-  // Verificar token si fue proporcionado (nuevo sistema)
-  if (claimToken && delivery.claim_token && delivery.claim_token !== claimToken) {
-    log.error(`[Addon] Token inválido para delivery ${deliveryId}`);
-    return { ok: false, error: 'Token inválido' };
-  }
-  
-  // Si no está PENDING, error
-  if (delivery.status !== 'PENDING') {
-    log.error(`[Addon] Intento de ACK en entrega con status inválido: ${deliveryId} status=${delivery.status}`);
-    db.run(`INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'ERROR', ?)`, [deliveryId, `Status inválido: ${delivery.status}`]);
-    return { ok: false, error: `Estado inválido: ${delivery.status}` };
-  }
+  log.info(`[Addon] 🎮 Marcando como entregada: ${deliveryId} (${delivery.item_title})`);
 
-  log.info(`[Addon] 🎮 Procesando entrega ${deliveryId}: ${delivery.item_title} para ${delivery.username}`);
-
-  // Usar transacción para marcar como entregada
+  // Marcar como entregada INMEDIATAMENTE en una sola operación atómica
   try {
-    db.transaction(() => {
-      // Marcar como entregada SOLO si está PENDING
-      const result = db.run(
-        `UPDATE deliveries SET status = 'DELIVERED', delivered_at = datetime('now') 
-         WHERE id = ? AND status = 'PENDING'`,
-        [deliveryId]
-      );
-      
-      // Verificar que realmente se actualizó
-      if (result.changes === 0) {
-        log.error(`[Addon] ❌ No se pudo actualizar entrega ${deliveryId} - posible race condition o ya procesada`);
-        db.run(`INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'FAILED', 'No se pudo actualizar (changes=0)')`, [deliveryId]);
-        throw new Error('No se pudo procesar la entrega - ya fue procesada');
-      }
+    const result = db.run(
+      `UPDATE deliveries SET status = 'DELIVERED', delivered_at = datetime('now') 
+       WHERE id = ? AND status = 'PENDING'`,
+      [deliveryId]
+    );
+    
+    if (result.changes === 0) {
+      // Ya fue procesada por otro proceso
+      log.warn(`[Addon] ⚠️ Race condition: delivery ${deliveryId} ya no está PENDING`);
+      return { ok: true, already: true, message: 'Ya procesada por otro proceso' };
+    }
 
-      // YA NO DAMOS COINS AQUÍ - los coins se dan al comprar (en buyWithNC)
-      // Solo ejecutamos comandos de items
-      
-      // Registrar ACK exitoso
-      db.run(`INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'SUCCESS', 'Entregado correctamente')`, [deliveryId]);
-    });
+    log.ok(`[Addon] ✅ Delivery ${deliveryId} marcada como DELIVERED exitosamente`);
+    return { ok: true };
   } catch (err) {
-    log.error(`[Addon] ❌ Error en transacción de entrega ${deliveryId}: ${err.message}`);
+    log.error(`[Addon] ❌ Error al marcar delivery ${deliveryId}: ${err.message}`);
     throw err;
   }
-
-  log.ok(`[Addon] ✅ Entrega ACK exitoso: ${deliveryId} para ${delivery.username}`);
-  return { ok: true };
 }
 
 // ── POST /api/wallet/transfer (addon) ─────────────────────────────────────────
