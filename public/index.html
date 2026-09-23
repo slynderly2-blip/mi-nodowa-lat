@@ -26,10 +26,15 @@
       </nav>
     </aside>
 
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
     <!-- ── CONTENIDO PRINCIPAL ─────────────────────────────────── -->
     <div class="main-wrapper">
 
       <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="2" y1="5" x2="18" y2="5"/><line x1="2" y1="10" x2="18" y2="10"/><line x1="2" y1="15" x2="18" y2="15"/></svg>
+        </button>
         <h1 class="topbar-title" id="topbar-title">Catálogo</h1>
         <div class="topbar-actions" id="topbar-actions"></div>
       </header>
@@ -171,21 +176,20 @@
         </section>
 
         <!-- ESTADÍSTICAS (admin) -->
-        <section id="section-stats" class="content-section" data-title="Estadisticas">
-          <div class="stats-grid" id="stats-grid"></div>
+        <!-- PANEL ADMIN — OVERVIEW -->
+        <section id="section-admin-overview" class="content-section" data-title="Panel Admin">
+          <div class="stats-grid" id="admin-overview-stats"></div>
           <div class="card mt-4">
             <div class="card-header">
-              <h2 class="card-title">Configuración de pagos</h2>
-              <button class="btn btn-secondary btn-sm" id="btn-open-binance-config">Configurar Binance Pay</button>
+              <h2 class="card-title">Método de pago configurado</h2>
+              <button class="btn btn-ghost btn-sm" onclick="go('admin-payments')">Editar</button>
             </div>
-            <div id="binance-config-preview" class="binance-config-preview">
-              <!-- Se rellena por JS al cargar stats -->
-            </div>
+            <div id="admin-overview-payment"><p class="empty-state" style="font-size:0.85rem">Cargando...</p></div>
           </div>
         </section>
 
         <!-- PEDIDOS USDT (admin) -->
-        <section id="section-admin-orders" class="content-section" data-title="Pedidos USDT">
+        <section id="section-admin-orders" class="content-section" data-title="Gestión de Pedidos">
           <div class="toolbar-row">
             <div class="filter-tabs" id="admin-orders-tabs">
               <button class="tab-btn active" data-status="PENDING">Pendientes</button>
@@ -198,12 +202,38 @@
           <div class="pagination" id="admin-orders-pagination"></div>
         </section>
 
-        <!-- JUGADORES (admin) -->
-        <section id="section-admin-users" class="content-section" data-title="Gestionar jugadores">
-          <div class="toolbar-row">
-            <input type="search" id="admin-users-search" placeholder="Buscar jugador..." aria-label="Buscar jugador" />
+        <!-- GESTIÓN DE PRODUCTOS (admin) -->
+        <section id="section-admin-products" class="content-section" data-title="Gestión de Productos">
+          <div class="toolbar-row" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <h2 style="font-size:0.9rem;font-weight:700;color:var(--text-secondary)">Productos de la tienda</h2>
+            <button class="btn btn-primary btn-sm" id="btn-new-product">+ Nuevo producto</button>
           </div>
-          <div class="admin-users-list" id="admin-users-list"><p class="empty-state">Cargando...</p></div>
+          <div id="admin-products-list"><p class="empty-state">Cargando...</p></div>
+          <div class="pagination" id="admin-products-pagination"></div>
+        </section>
+
+        <!-- GESTIÓN DE JUGADORES (admin) -->
+        <section id="section-admin-players" class="content-section" data-title="Gestión de Jugadores">
+          <div class="toolbar-row">
+            <input type="search" id="admin-players-search" placeholder="Buscar jugador..." aria-label="Buscar jugador" style="max-width:300px;"/>
+          </div>
+          <div id="admin-players-list"><p class="empty-state">Cargando...</p></div>
+        </section>
+
+        <!-- VENTAS REALIZADAS (admin) -->
+        <section id="section-admin-sales" class="content-section" data-title="Ventas Realizadas">
+          <div class="stats-grid" id="admin-sales-summary" style="margin-bottom:20px;"></div>
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Historial de ventas</h2>
+              <div class="filter-tabs" id="admin-sales-tabs">
+                <button class="tab-btn active" data-type="ALL">Todas</button>
+                <button class="tab-btn" data-type="USDT">USDT</button>
+                <button class="tab-btn" data-type="NC">NC</button>
+              </div>
+            </div>
+            <div id="admin-sales-list"><p class="empty-state">Cargando...</p></div>
+          </div>
         </section>
 
         <!-- RECLAMOS (admin) -->
@@ -234,7 +264,7 @@
               <input type="text" id="payments-pay-id" placeholder="Ej: 1255344898" />
               <label for="payments-wallet-type">Tipo de billetera / red</label>
               <input type="text" id="payments-wallet-type" placeholder="Ej: USDT (TRC20)" />
-              <label>QR de pago (imagen que verán los compradores)</label>
+              <label>QR de pago</label>
               <div class="file-upload-area" id="payments-qr-area">
                 <input type="file" id="payments-qr-file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;" />
                 <div class="file-upload-placeholder" id="payments-qr-placeholder">
@@ -244,15 +274,28 @@
                 </div>
                 <img id="payments-qr-preview" class="file-upload-preview" style="display:none;max-width:220px;margin:0 auto;" alt="QR actual" />
               </div>
-              <button type="submit" class="btn btn-primary" style="margin-top:4px;">Guardar configuración de pagos</button>
+              <button type="submit" class="btn btn-primary" style="margin-top:4px;">Guardar configuración</button>
               <p class="form-feedback" id="payments-config-feedback" aria-live="polite"></p>
             </form>
           </div>
         </section>
+          <div class="stats-grid" id="stats-grid"></div>
+          <div class="card mt-4">
+            <div class="card-header">
+              <h2 class="card-title">Configuración de pagos</h2>
+              <button class="btn btn-secondary btn-sm" id="btn-open-binance-config">Configurar Binance Pay</button>
+            </div>
+            <div id="binance-config-preview" class="binance-config-preview">
+              <!-- Se rellena por JS al cargar stats -->
+            </div>
+          </div>
+        </section>
+
 
       </main>
     </div>
   </div>
+
 
   <!-- ═══ MODALES ═══════════════════════════════════════════════════════════ -->
 
@@ -446,6 +489,89 @@
         <button type="submit" class="btn btn-primary btn-full" style="margin-top:10px">Enviar reclamo</button>
       </form>
       <p class="form-feedback" id="report-issue-feedback" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- Modal crear/editar producto (admin) -->
+  <div class="modal-backdrop" id="modal-item-edit" role="dialog" aria-modal="true" hidden>
+    <div class="modal" style="max-width:560px;">
+      <button class="modal-close" id="modal-item-edit-close" aria-label="Cerrar">&#x2715;</button>
+      <h2 class="modal-title" id="item-modal-title">Producto</h2>
+      <form id="item-edit-form" class="modal-form" novalidate>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label for="item-id">ID único (slug)</label>
+            <input type="text" id="item-id" placeholder="rango-vip" required />
+          </div>
+          <div>
+            <label for="item-category">Categoría</label>
+            <input type="text" id="item-category" placeholder="rangos, kits, items..." required />
+          </div>
+        </div>
+        <label for="item-name">Nombre del producto</label>
+        <input type="text" id="item-name" placeholder="Rango VIP" required />
+        <label for="item-description">Descripción</label>
+        <input type="text" id="item-description" placeholder="Descripción breve..." />
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+          <div>
+            <label for="item-price-coins">Precio NC</label>
+            <input type="number" id="item-price-coins" min="0" placeholder="0" />
+          </div>
+          <div>
+            <label for="item-price-usdt">Precio USDT</label>
+            <input type="number" id="item-price-usdt" min="0" step="0.01" placeholder="0.00" />
+          </div>
+          <div>
+            <label for="item-give-coins">NC que da</label>
+            <input type="number" id="item-give-coins" min="0" placeholder="0" />
+          </div>
+        </div>
+        <label for="item-command">Comando (usa {player})</label>
+        <input type="text" id="item-command" placeholder="lp user {player} parent set vip" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label for="item-badge">Badge (opcional)</label>
+            <input type="text" id="item-badge" placeholder="Popular, Nuevo..." />
+          </div>
+          <div>
+            <label for="item-sort-order">Orden</label>
+            <input type="number" id="item-sort-order" min="0" placeholder="0" />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Guardar producto</button>
+      </form>
+      <p class="form-feedback" id="item-modal-feedback" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- Modal crear/editar producto (admin) -->
+  <div class="modal-backdrop" id="modal-item-edit" role="dialog" aria-modal="true" hidden>
+    <div class="modal" style="max-width:540px;">
+      <button class="modal-close" id="modal-item-edit-close" aria-label="Cerrar">&#x2715;</button>
+      <h2 class="modal-title" id="item-modal-title">Producto</h2>
+      <form id="item-edit-form" class="modal-form" novalidate>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><label for="item-form-id">ID único (slug)</label><input type="text" id="item-form-id" placeholder="rango-vip" /></div>
+          <div><label for="item-form-category">Categoría</label><input type="text" id="item-form-category" placeholder="rangos, kits..." /></div>
+        </div>
+        <label for="item-form-name">Nombre</label>
+        <input type="text" id="item-form-name" placeholder="Rango VIP" required />
+        <label for="item-form-desc">Descripción</label>
+        <input type="text" id="item-form-desc" placeholder="Descripción breve..." />
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+          <div><label for="item-form-price-nc">Precio NC</label><input type="number" id="item-form-price-nc" min="0" placeholder="0" /></div>
+          <div><label for="item-form-price-usdt">Precio USDT</label><input type="number" id="item-form-price-usdt" min="0" step="0.01" placeholder="0.00" /></div>
+          <div><label for="item-form-give-coins">NC que da</label><input type="number" id="item-form-give-coins" min="0" placeholder="0" /></div>
+        </div>
+        <label for="item-form-command">Comando (usa {player})</label>
+        <input type="text" id="item-form-command" placeholder="lp user {player} parent set vip" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><label for="item-form-badge">Badge</label><input type="text" id="item-form-badge" placeholder="Popular..." /></div>
+          <div><label for="item-form-order">Orden (sort)</label><input type="number" id="item-form-order" min="0" placeholder="0" /></div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Guardar producto</button>
+      </form>
+      <p class="form-feedback" id="item-modal-feedback" aria-live="polite"></p>
     </div>
   </div>
 

@@ -13,7 +13,8 @@ const State = {
   economy: { txFilter: 'all', txPage: 1 },
   adminOrders: { status: 'PENDING', page: 1 },
   inbox:   { unread: 0 },
-  adminIssuesBadge: '',
+  adminIssuesBadge:  '',
+  adminOrdersBadge:  '',
 };
 
 /* ── API ────────────────────────────────────────────────────────── */
@@ -265,6 +266,10 @@ const ICONS = {
   adminUsers:    `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/><path d="M11 7l1.5 1.5L15 6"/></svg>`,
   adminIssues:   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3.5"/><circle cx="8" cy="11.5" r=".75" fill="currentColor" stroke="none"/></svg>`,
   adminPayments: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3.5" width="14" height="9" rx="1.5"/><path d="M1 6.5h14"/><path d="M4 10h3"/></svg>`,
+  adminOverview: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12.5l4-4 3 2.5 4-6 3 2"/></svg>`,
+  adminProducts: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><path d="M12 9v6M9 12h6"/></svg>`,
+  adminPlayers:  `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="4.5" r="2.5"/><path d="M1 13c0-2.5 1.8-4 4-4s4 1.5 4 4"/><circle cx="12" cy="4.5" r="2.5"/><path d="M10 13c0-2.5 1.8-4 4-4"/></svg>`,
+  adminSales:    `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 11l3-3 3 2.5 3.5-5 3 2.5"/><path d="M13 3.5l2 2-2 2"/></svg>`,
   login:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/><path d="M11 11l3-3-3-3M14 8H6"/></svg>`,
   logout:        `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 14h3a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1h-3"/><path d="M7 11l-3-3 3-3M4 8h8"/></svg>`,
   admin:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L2 4v4c0 3.3 2.7 5.7 6 6.5 3.3-.8 6-3.2 6-6.5V4z"/></svg>`,
@@ -311,11 +316,13 @@ function renderNav() {
     if (admin) {
       html += `<div class="nav-divider"></div>
       <span class="nav-section-label">Admin</span>
-      ${navItem('stats','Estadisticas', s==='stats')}
-      ${navItem('admin-orders','Pedidos USDT', s==='admin-orders')}
-      ${navItem('admin-users','Jugadores', s==='admin-users')}
-      ${navItem('admin-issues','Reclamos', s==='admin-issues', State.adminIssuesBadge || '')}
-      ${navItem('admin-payments','Config Pagos', s==='admin-payments')}`;
+      ${navItem('admin-overview','Panel',      s==='admin-overview')}
+      ${navItem('admin-orders', 'Pedidos',     s==='admin-orders',   State.adminOrdersBadge  || '')}
+      ${navItem('admin-products','Productos',  s==='admin-products')}
+      ${navItem('admin-players', 'Jugadores',  s==='admin-players')}
+      ${navItem('admin-sales',   'Ventas',     s==='admin-sales')}
+      ${navItem('admin-issues',  'Reclamos',   s==='admin-issues',   State.adminIssuesBadge  || '')}
+      ${navItem('admin-payments','Config Pago',s==='admin-payments')}`;
     }
 
     html += `<div class="nav-divider"></div>
@@ -364,12 +371,12 @@ function renderTopbar() {
     </button>`;
 
   $('tb-avatar')?.addEventListener('click', () => go('profile'));
-  $('tb-admin')?.addEventListener('click',  () => go('stats'));
+  $('tb-admin')?.addEventListener('click',  () => go('admin-overview'));
 }
 
 /* ── Navegación ─────────────────────────────────────────────────── */
-const PRIVATE = new Set(['economy','orders','profile','inbox','stats','admin-orders','admin-users','admin-issues','admin-payments']);
-const ADMIN   = new Set(['stats','admin-orders','admin-users','admin-issues','admin-payments']);
+const PRIVATE = new Set(['economy','orders','profile','inbox','admin-overview','admin-orders','admin-products','admin-players','admin-sales','admin-issues','admin-payments']);
+const ADMIN   = new Set(['admin-overview','admin-orders','admin-products','admin-players','admin-sales','admin-issues','admin-payments']);
 
 function go(sectionId) {
   if (PRIVATE.has(sectionId) && !State.user) { openModal('modal-login'); return; }
@@ -396,9 +403,11 @@ function go(sectionId) {
     'players':         loadPlayers,
     'leaderboard':     loadLeaderboard,
     'inbox':           loadInbox,
-    'stats':           loadStats,
+    'admin-overview':  loadAdminOverview,
     'admin-orders':    loadAdminOrders,
-    'admin-users':     loadAdminUsers,
+    'admin-products':  loadAdminProducts,
+    'admin-players':   loadAdminPlayers,
+    'admin-sales':     loadAdminSales,
     'admin-issues':    loadAdminIssues,
     'admin-payments':  loadAdminPayments,
   };
@@ -1439,21 +1448,27 @@ async function loadAdminOrders(page = 1) {
     const { status } = State.adminOrders;
     const d = await GET(`/admin/orders?status=${status}&page=${page}&limit=15`);
     const orders = d.orders || [];
+
+    // Badge de pendientes en nav
+    if (status === 'PENDING') {
+      State.adminOrdersBadge = d.total > 0 ? '●' : '';
+      renderNav();
+    }
+
     if (!orders.length) { setHTML('admin-orders-list', '<p class="empty-state">Sin pedidos.</p>'); return; }
     setHTML('admin-orders-list', orders.map(o => {
       const receiptHtml = o.receipt_image
         ? `<div class="admin-order-card__receipt">
              <img src="${esc(o.receipt_image)}" alt="Comprobante" data-receipt="${esc(o.receipt_image)}" data-txid="${esc(o.txid || '')}" title="Ver comprobante">
-             <button class="btn-view-receipt" data-receipt="${esc(o.receipt_image)}" data-txid="${esc(o.txid || '')}">Ver comprobante completo</button>
+             <button class="btn-view-receipt" data-receipt="${esc(o.receipt_image)}" data-txid="${esc(o.txid || '')}">Ver comprobante</button>
            </div>`
-        : (o.txid ? `<div class="admin-order-card__receipt"><span style="font-size:0.8rem;color:var(--text-muted)">Sin imagen · TxID: ${esc(o.txid.slice(0,20))}...</span></div>` : '');
+        : (o.txid ? `<div class="admin-order-card__receipt"><span style="font-size:0.8rem;color:var(--text-muted)">TxID: ${esc(o.txid.slice(0,28))}...</span></div>` : '');
 
       return `<div class="admin-order-card">
         <div class="admin-order-card__info">
           <span class="admin-order-card__user">${esc(o.username)}</span>
-          <span class="admin-order-card__item">${esc(o.item_title || o.item_id)}${o.price_usdt ? ` · $${o.price_usdt} USDT` : ''}</span>
+          <span class="admin-order-card__item">${esc(o.item_title || o.item_id)}${o.price_usdt ? ` · <strong>$${o.price_usdt} USDT</strong>` : ''}</span>
           <span class="admin-order-card__meta">${fmtDate(o.created_at)}</span>
-          ${o.txid ? `<span class="admin-order-card__meta" style="font-size:0.78rem;word-break:break-all">TxID: ${esc(o.txid)}</span>` : ''}
           ${receiptHtml}
           ${o.admin_note ? `<span class="admin-order-card__note">Nota: ${esc(o.admin_note)}</span>` : ''}
         </div>
@@ -1466,14 +1481,9 @@ async function loadAdminOrders(page = 1) {
       </div>`;
     }).join(''));
 
-    // Botones aprobar/rechazar
     document.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', () => approveOrder(b.dataset.approve)));
     document.querySelectorAll('[data-reject]').forEach(b  => b.addEventListener('click', () => rejectOrder(b.dataset.reject)));
-
-    // Ver comprobante
-    document.querySelectorAll('[data-receipt]').forEach(el => el.addEventListener('click', () => {
-      openReceiptModal(el.dataset.receipt, el.dataset.txid);
-    }));
+    document.querySelectorAll('[data-receipt]').forEach(el => el.addEventListener('click', () => openReceiptModal(el.dataset.receipt, el.dataset.txid)));
 
     if (d.total > 15) renderPagination('admin-orders-pagination', page, Math.ceil(d.total / 15), n => loadAdminOrders(n));
   } catch (err) { setHTML('admin-orders-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
@@ -1600,59 +1610,328 @@ function initAdminOrdersTabs() {
   });
 }
 
-/* ── ADMIN: jugadores ───────────────────────────────────────────── */
-async function loadAdminUsers(search = '') {
-  setHTML('admin-users-list', '<p class="empty-state">Cargando...</p>');
+/* ── ADMIN: overview (dashboard) ───────────────────────────────── */
+async function loadAdminOverview() {
+  setHTML('admin-overview-stats', '<p class="empty-state">Cargando...</p>');
   try {
-    const p = new URLSearchParams({ limit: 30, page: 1 });
-    if (search) p.set('search', search);
-    const d = await GET(`/admin/users?${p}`);
-    const users = d.users || [];
-    if (!users.length) { setHTML('admin-users-list', '<p class="empty-state">Sin jugadores.</p>'); return; }
-    setHTML('admin-users-list', users.map(u => `
-      <div class="admin-user-row">
-        <div class="admin-user-row__info">
-          <div class="admin-user-row__avatar">${avatar(u.display_name || u.username, u.avatar, 36)}</div>
-          <div>
-            <div class="admin-user-row__name">${esc(u.display_name || u.username)}${u.is_admin ? ' <span class="badge badge--admin">Admin</span>' : ''}${u.linked ? ' <span class="badge badge--linked">MC</span>' : ''}</div>
-            <div class="admin-user-row__stats">${fmt(u.wallet)} + ${fmt(u.bank)} NC · ${fmtDate(u.last_active).split(',')[0]}</div>
-          </div>
-        </div>
-        <button class="btn btn-secondary btn-sm" data-eu="${esc(u.id)}" data-ew="${u.wallet}" data-eb="${u.bank}" data-en="${esc(u.username)}">Editar</button>
+    const [statsRes, cfgRes] = await Promise.all([GET('/admin/stats'), GET('/admin/config/payment', false)]);
+    const s   = statsRes.stats || {};
+    const cfg = cfgRes || {};
+
+    // Stats cards
+    const cards = [
+      { label:'Jugadores',          val: s.totalUsers,         icon:'👥', color:'var(--violet)' },
+      { label:'MC vinculados',       val: s.linkedUsers,        icon:'🔗', color:'var(--teal)' },
+      { label:'Productos activos',   val: s.storeItems,         icon:'📦', color:'var(--warning)' },
+      { label:'Pedidos pendientes',  val: s.pendingOrders,      icon:'⏳', color:'#e11d48', link:'admin-orders' },
+      { label:'Entregas pendientes', val: s.pendingDeliveries,  icon:'📬', color:'var(--violet)', link:'admin-issues' },
+      { label:'NC en circulación',   val: fmt(s.ncCirculating), icon:'⛁', color:'var(--teal)' },
+    ];
+    setHTML('admin-overview-stats', cards.map(c => `
+      <div class="stat-card${c.link ? ' stat-card--link" data-go="'+c.link+'"' : '"'} style="border-left:3px solid ${c.color}">
+        <div style="font-size:1.5rem;line-height:1">${c.icon}</div>
+        <span class="stat-card__value" style="color:${c.color}">${c.val ?? '—'}</span>
+        <span class="stat-card__label">${c.label}</span>
       </div>`).join(''));
-    document.querySelectorAll('[data-eu]').forEach(b => b.addEventListener('click', () => openAdminUserModal(b)));
-  } catch (err) { setHTML('admin-users-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
+    document.querySelectorAll('.stat-card--link').forEach(c =>
+      c.addEventListener('click', () => go(c.dataset.go)));
+
+    // Config de pago preview
+    const qr = cfg.binance_qr_url || '';
+    setHTML('admin-overview-payment', `
+      <div class="overview-payment-card">
+        ${qr ? `<img src="${esc(qr)}" alt="QR" style="width:72px;height:72px;object-fit:contain;border-radius:8px;border:1px solid var(--border);">` : ''}
+        <div style="font-size:0.85rem;">
+          <div><strong>Pay ID:</strong> ${esc(cfg.binance_pay_id || '—')}</div>
+          <div><strong>Billetera:</strong> ${esc(cfg.binance_wallet || '—')}</div>
+          <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="go('admin-payments')">Configurar</button>
+        </div>
+      </div>`);
+  } catch (err) { setHTML('admin-overview-stats', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
 }
 
-function openAdminUserModal(btn) {
-  $('admin-user-id').value     = btn.dataset.eu;
-  $('admin-user-wallet').value = btn.dataset.ew;
-  $('admin-user-bank').value   = btn.dataset.eb;
-  setText('modal-admin-user-title', `Editar: ${btn.dataset.en}`);
-  clearFb('admin-user-feedback');
-  openModal('modal-admin-user');
-}
+/* ── ADMIN: gestión de productos ───────────────────────────────── */
+const _prodState = { page: 1 };
+let _editingItemId = null;
+let _allItems = [];
 
-async function submitAdminUser(e) {
-  e.preventDefault();
-  const id = $('admin-user-id').value;
-  clearFb('admin-user-feedback');
-  const btn = e.submitter; btn.disabled = true;
+async function loadAdminProducts(page = 1) {
+  _prodState.page = page;
+  setHTML('admin-products-list', '<p class="empty-state">Cargando...</p>');
   try {
-    await POST(`/admin/users/${id}/wallet`, { wallet: parseInt($('admin-user-wallet').value), bank: parseInt($('admin-user-bank').value) });
-    closeModal('modal-admin-user'); toast('Guardado');
-    loadAdminUsers($('admin-users-search').value.trim());
-  } catch (err) { feedback('admin-user-feedback', err.message, true); }
-  finally { btn.disabled = false; }
+    const d = await GET(`/admin/items?page=${page}&limit=30`);
+    _allItems = d.items || [];
+    if (!_allItems.length) { setHTML('admin-products-list', '<p class="empty-state">Sin productos.</p>'); return; }
+
+    setHTML('admin-products-list', `<div class="prod-table">
+      <div class="prod-table__head">
+        <span>Producto</span><span>Categoría</span><span>NC</span><span>USDT</span><span>Da NC</span><span>Estado</span><span></span>
+      </div>
+      ${_allItems.map(item => `
+        <div class="prod-table__row">
+          <div class="prod-table__name">
+            <strong>${esc(item.name)}</strong>
+            ${item.badge ? `<span class="prod-badge">${esc(item.badge)}</span>` : ''}
+            <code style="font-size:0.68rem;color:var(--text-muted)">${esc(item.id)}</code>
+          </div>
+          <span class="prod-table__cat">${esc(item.category)}</span>
+          <span>${item.price_coins > 0 ? fmt(item.price_coins)+' NC' : '—'}</span>
+          <span>${item.price_usdt > 0 ? '$'+item.price_usdt : '—'}</span>
+          <span>${item.give_coins > 0 ? '+'+fmt(item.give_coins) : '—'}</span>
+          <span><span class="prod-status ${item.enabled ? 'prod-status--on' : 'prod-status--off'}">${item.enabled ? 'Activo' : 'Inactivo'}</span></span>
+          <div class="prod-table__actions">
+            <button class="btn btn-secondary btn-sm" data-edit-item="${esc(item.id)}">Editar</button>
+            <button class="btn ${item.enabled ? 'btn-danger' : 'btn-success'} btn-sm"
+              data-toggle-item="${esc(item.id)}" data-toggle-val="${item.enabled ? 0 : 1}">
+              ${item.enabled ? 'Desact.' : 'Activar'}
+            </button>
+          </div>
+        </div>`).join('')}
+    </div>`);
+
+    document.querySelectorAll('[data-edit-item]').forEach(b => b.addEventListener('click', () => openItemModal(b.dataset.editItem)));
+    document.querySelectorAll('[data-toggle-item]').forEach(b => b.addEventListener('click', async () => {
+      try {
+        await PATCH(`/admin/items/${b.dataset.toggleItem}`, { enabled: parseInt(b.dataset.toggleVal) });
+        toast(b.dataset.toggleVal === '1' ? 'Producto activado' : 'Producto desactivado');
+        loadAdminProducts(_prodState.page);
+      } catch(e) { toast(e.message, 'error'); }
+    }));
+
+    if (d.total > 30) renderPagination('admin-products-pagination', page, Math.ceil(d.total / 30), n => loadAdminProducts(n));
+  } catch (err) { setHTML('admin-products-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
 }
 
-function initAdminUsersSearch() {
-  let db;
-  $('admin-users-search')?.addEventListener('input', e => {
-    clearTimeout(db);
-    db = setTimeout(() => loadAdminUsers(e.target.value.trim()), 350);
+function openItemModal(itemId) {
+  _editingItemId = itemId || null;
+  const item = itemId ? _allItems.find(i => i.id === itemId) : null;
+  setText('item-modal-title', item ? `Editar: ${item.name}` : 'Nuevo producto');
+  $('item-form-id').value          = item?.id          || '';
+  $('item-form-name').value        = item?.name        || '';
+  $('item-form-category').value    = item?.category    || '';
+  $('item-form-price-nc').value    = item?.price_coins || 0;
+  $('item-form-price-usdt').value  = item?.price_usdt  || 0;
+  $('item-form-give-coins').value  = item?.give_coins  || 0;
+  $('item-form-command').value     = item?.command     || '';
+  $('item-form-desc').value        = item?.description || '';
+  $('item-form-badge').value       = item?.badge       || '';
+  $('item-form-order').value       = item?.sort_order  || 0;
+  $('item-form-id').readOnly       = !!item;
+  clearFb('item-modal-feedback');
+  openModal('modal-item-edit');
+}
+
+function initAdminProducts() {
+  $('btn-new-product')?.addEventListener('click', () => openItemModal(null));
+  $('modal-item-edit-close')?.addEventListener('click', () => closeModal('modal-item-edit'));
+  $('item-edit-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    clearFb('item-modal-feedback');
+    const btn = e.submitter; btn.disabled = true;
+    const data = {
+      id:          $('item-form-id').value.trim(),
+      name:        $('item-form-name').value.trim(),
+      category:    $('item-form-category').value.trim(),
+      price_coins: parseInt($('item-form-price-nc').value)    || 0,
+      price_usdt:  parseFloat($('item-form-price-usdt').value) || 0,
+      give_coins:  parseInt($('item-form-give-coins').value)  || 0,
+      command:     $('item-form-command').value.trim(),
+      description: $('item-form-desc').value.trim(),
+      badge:       $('item-form-badge').value.trim(),
+      sort_order:  parseInt($('item-form-order').value)       || 0,
+    };
+    try {
+      if (_editingItemId) { await PATCH(`/admin/items/${_editingItemId}`, data); toast('Producto actualizado'); }
+      else                { await POST('/admin/items', data);                    toast('Producto creado'); }
+      closeModal('modal-item-edit');
+      loadAdminProducts(_prodState.page);
+    } catch (err) { feedback('item-modal-feedback', err.message, true); }
+    finally { btn.disabled = false; }
   });
 }
+
+/* ── ADMIN: gestión de jugadores ───────────────────────────────── */
+async function loadAdminPlayers(search) {
+  const q = search ?? $('admin-players-search')?.value?.trim() ?? '';
+  setHTML('admin-players-list', '<p class="empty-state">Cargando...</p>');
+  try {
+    const p = new URLSearchParams({ limit: 40, page: 1 });
+    if (q) p.set('search', q);
+    const d = await GET(`/admin/users?${p}`);
+    const users = d.users || [];
+    if (!users.length) { setHTML('admin-players-list', '<p class="empty-state">Sin jugadores.</p>'); return; }
+    setHTML('admin-players-list', users.map(u => `
+      <div class="aplayer-row">
+        <div class="aplayer-row__left">
+          ${avatar(u.display_name || u.username, u.avatar, 38)}
+          <div class="aplayer-row__info">
+            <div class="aplayer-row__name">
+              ${esc(u.display_name || u.username)}
+              ${u.is_admin ? '<span class="badge badge--admin">Admin</span>' : ''}
+              ${u.linked    ? '<span class="badge badge--linked">MC</span>'    : ''}
+            </div>
+            <div class="aplayer-row__meta">
+              <span title="Billetera">${ICONS.economy} ${fmt(u.wallet)} NC</span>
+              <span style="color:var(--text-muted)">banco: ${fmt(u.bank)} NC</span>
+              <span style="color:var(--text-muted)">${fmtDate(u.last_active).split(',')[0]}</span>
+            </div>
+          </div>
+        </div>
+        <div class="aplayer-row__actions">
+          <button class="btn btn-secondary btn-sm"
+            data-peu="${esc(u.id)}" data-pew="${u.wallet}" data-peb="${u.bank}" data-pen="${esc(u.username)}">
+            Editar saldo
+          </button>
+          <button class="btn btn-ghost btn-sm" data-view-player="${esc(u.username)}">Ver cuenta</button>
+        </div>
+      </div>`).join(''));
+
+    document.querySelectorAll('[data-peu]').forEach(b => b.addEventListener('click', () => {
+      $('admin-user-id').value = b.dataset.peu;
+      $('admin-user-wallet').value = b.dataset.pew;
+      $('admin-user-bank').value   = b.dataset.peb;
+      setText('modal-admin-user-title', `Saldo: ${b.dataset.pen}`);
+      clearFb('admin-user-feedback');
+      openModal('modal-admin-user');
+    }));
+    document.querySelectorAll('[data-view-player]').forEach(b => b.addEventListener('click', () => viewPlayerAccount(b.dataset.viewPlayer)));
+  } catch (err) { setHTML('admin-players-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
+}
+
+async function viewPlayerAccount(username) {
+  setText('modal-player-profile-title', `Cuenta: ${username}`);
+  setHTML('modal-player-profile-body', '<p class="empty-state">Cargando...</p>');
+  openModal('modal-player-profile');
+  try {
+    const [profileRes, ordersRes] = await Promise.all([
+      GET(`/users/profile/${encodeURIComponent(username)}`, false),
+      GET(`/admin/orders?status=ALL&limit=5`),
+    ]);
+    const u    = profileRes.user;
+    const name = u.display_name || u.username;
+    const orders = (ordersRes.orders || []).filter(o => o.username.toLowerCase() === username.toLowerCase()).slice(0, 5);
+
+    setHTML('modal-player-profile-body', `
+      <div class="modal-player-header" style="margin-bottom:14px">
+        ${avatar(name, u.avatar, 52)}
+        <div>
+          <div class="modal-player-name">${esc(name)}</div>
+          <div class="modal-player-user">@${esc(u.username)}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">
+            ${u.linked ? '✓ MC vinculado' : '✗ Sin vincular'} · Miembro desde ${fmtDate(u.created_at).split(',')[0]}
+          </div>
+        </div>
+      </div>
+      <div class="modal-player-stats" style="margin-bottom:14px">
+        <div class="modal-player-stat"><span>Billetera</span><strong style="color:var(--violet)">${fmt(u.wallet)} NC</strong></div>
+        <div class="modal-player-stat"><span>Banco</span><strong style="color:var(--teal)">${fmt(u.bank)} NC</strong></div>
+        <div class="modal-player-stat"><span>Total</span><strong>${fmt((u.wallet||0)+(u.bank||0))} NC</strong></div>
+      </div>
+      ${orders.length ? `
+        <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Últimos pedidos</div>
+        ${orders.map(o => `
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:0.82rem">
+            <span>${esc(o.item_title)}</span>
+            <span style="color:var(--text-muted)">${statusBadge(o.status)}</span>
+          </div>`).join('')}` : ''}
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm"
+          onclick="closeModal('modal-player-profile');go('admin-players');setTimeout(()=>{ $('admin-players-search').value='${esc(username)}';loadAdminPlayers('${esc(username)}'); },100)">
+          Editar saldo
+        </button>
+      </div>`);
+  } catch { setHTML('modal-player-profile-body', '<p class="empty-state">Error al cargar.</p>'); }
+}
+
+function initAdminPlayers() {
+  let _dbt;
+  $('admin-players-search')?.addEventListener('input', e => {
+    clearTimeout(_dbt);
+    _dbt = setTimeout(() => loadAdminPlayers(e.target.value.trim()), 350);
+  });
+}
+
+/* ── ADMIN: ventas realizadas ──────────────────────────────────── */
+const _salesState = { type: 'ALL' };
+
+async function loadAdminSales() {
+  setHTML('admin-sales-list', '<p class="empty-state">Cargando...</p>');
+  setHTML('admin-sales-summary', '');
+  try {
+    const [ordersRes, deliveriesRes] = await Promise.all([
+      GET('/admin/orders?status=APPROVED&limit=100'),
+      GET('/admin/deliveries?status=DELIVERED&limit=100'),
+    ]);
+
+    const usdtSales = (ordersRes.orders || []).map(o => ({
+      _type:  'USDT',
+      user:   o.username,
+      item:   o.item_title || o.item_id,
+      amount: `$${o.price_usdt}`,
+      nc:     o.give_coins > 0 ? `+${fmt(o.give_coins)} NC` : '',
+      date:   o.reviewed_at || o.created_at,
+    }));
+
+    const ncSales = (deliveriesRes.deliveries || [])
+      .filter(d => (d.source === 'STORE_NC' || d.source === 'STORE_USDT_AUTO') && d.price_coins > 0)
+      .map(d => ({
+        _type:  'NC',
+        user:   d.username,
+        item:   d.item_title,
+        amount: `${fmt(d.price_coins)} NC`,
+        nc:     '',
+        date:   d.delivered_at || d.created_at,
+      }));
+
+    const all = [...usdtSales, ...ncSales].sort((a, b) => new Date(b.date) - new Date(a.date));
+    let shown = _salesState.type === 'ALL' ? all
+      : all.filter(s => s._type === _salesState.type);
+
+    // Resumen
+    const totalUsdt = usdtSales.reduce((s, o) => s + parseFloat(o.amount.replace('$','') || 0), 0);
+    setHTML('admin-sales-summary', [
+      ['Ventas USDT',    usdtSales.length,          'var(--teal)'],
+      ['Ingresos USDT', `$${totalUsdt.toFixed(2)}`, 'var(--teal)'],
+      ['Ventas con NC',  ncSales.length,            'var(--violet)'],
+      ['Total ventas',   all.length,                'var(--text-primary)'],
+    ].map(([label, val, color]) => `
+      <div class="stat-card" style="border-left:3px solid ${color}">
+        <span class="stat-card__value" style="color:${color}">${val}</span>
+        <span class="stat-card__label">${label}</span>
+      </div>`).join(''));
+
+    if (!shown.length) { setHTML('admin-sales-list', '<p class="empty-state">Sin ventas.</p>'); return; }
+
+    setHTML('admin-sales-list', shown.map(s => `
+      <div class="sale-row">
+        <div class="sale-row__info">
+          <span class="sale-row__user">${esc(s.user)}</span>
+          <span class="sale-row__item">${esc(s.item)}</span>
+          <span class="sale-row__date">${fmtDate(s.date)}</span>
+        </div>
+        <div class="sale-row__right">
+          <span class="sale-row__amount ${s._type === 'USDT' ? 'sale-usdt' : 'sale-nc'}">${esc(s.amount)}</span>
+          ${s.nc ? `<span class="sale-row__nc">${esc(s.nc)}</span>` : ''}
+          <span class="sale-type-badge sale-type--${s._type.toLowerCase()}">${s._type}</span>
+        </div>
+      </div>`).join(''));
+  } catch (err) { setHTML('admin-sales-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
+}
+
+function initAdminSalesTabs() {
+  $('admin-sales-tabs')?.querySelectorAll('.tab-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      $('admin-sales-tabs').querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      _salesState.type = b.dataset.type;
+      loadAdminSales();
+    });
+  });
+}
+
+/* ── ADMIN: jugadores (legacy redirect) ────────────────────────── */
+async function loadAdminUsers(search = '') { return loadAdminPlayers(search); }
+function initAdminUsersSearch() { initAdminPlayers(); }
 
 /* ── Paginación ─────────────────────────────────────────────────── */
 function renderPagination(containerId, cur, total, onPage) {
@@ -1695,11 +1974,30 @@ async function init() {
   initBinanceConfig();
   initUSDTReceiptUpload();
   initAdminPayments();
+  initAdminProducts();
+  initAdminPlayers();
+  initAdminSalesTabs();
 
   $('modal-buy-nc-confirm')?.addEventListener('click', confirmBuyNC);
   $('usdt-form')?.addEventListener('submit', submitUSDT);
   $('wallet-action-form')?.addEventListener('submit', submitWalletAction);
   $('admin-user-form')?.addEventListener('submit', submitAdminUser);
+
+  // ── Sidebar hamburger (mobile) ───────────────────────────────
+  $('sidebar-toggle')?.addEventListener('click', () => {
+    $('sidebar')?.classList.toggle('open');
+    $('sidebar-overlay')?.classList.toggle('show');
+  });
+  $('sidebar-overlay')?.addEventListener('click', () => {
+    $('sidebar')?.classList.remove('open');
+    $('sidebar-overlay')?.classList.remove('show');
+  });
+  $('sidebar-nav')?.addEventListener('click', e => {
+    if (e.target.closest('[data-section]') && window.innerWidth <= 768) {
+      $('sidebar')?.classList.remove('open');
+      $('sidebar-overlay')?.classList.remove('show');
+    }
+  });
 
   go('catalog');
 }
