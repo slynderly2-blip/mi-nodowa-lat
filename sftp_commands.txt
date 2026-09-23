@@ -1,0 +1,2 @@
+cd development_behavior_packs/nodowa_economy_connector_bp
+ls

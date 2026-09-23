@@ -496,13 +496,29 @@ function openBuyNC(id) {
 }
 async function confirmBuyNC() {
   if (!_buyNC) return;
-  const btn = $('modal-buy-nc-confirm'); btn.disabled = true;
+  
+  // PREVENIR DOBLE CLICK - verificar si ya está procesando
+  const btn = $('modal-buy-nc-confirm');
+  if (btn.disabled || btn.textContent.includes('Procesando')) return;
+  
+  // Marcar como procesando INMEDIATAMENTE
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Procesando...';
+  
   try {
     await POST('/store/buy-nc', { itemId: _buyNC });
-    await refreshBalance(); renderTopbar();
-    closeModal('modal-buy-nc'); toast('Compra exitosa'); _buyNC = null;
-  } catch (err) { feedback('buy-nc-feedback', err.message, true); }
-  finally { btn.disabled = false; }
+    await refreshBalance(); 
+    renderTopbar();
+    closeModal('modal-buy-nc'); 
+    toast('Compra exitosa'); 
+    _buyNC = null;
+  } catch (err) { 
+    feedback('buy-nc-feedback', err.message, true); 
+  } finally { 
+    btn.disabled = false; 
+    btn.textContent = originalText;
+  }
 }
 
 /* ── Compra USDT ────────────────────────────────────────────────── */

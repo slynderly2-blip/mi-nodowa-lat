@@ -66,7 +66,15 @@ async function start() {
   // 1. Inicializar DB
   await initDB();
 
-  // 2. Auto-seed si la tienda está vacía
+  // 2. Resetear deliveries atascadas en DELIVERING (por si el servidor se reinició a mitad)
+  const stuck = run(
+    `UPDATE deliveries SET status = 'PENDING' WHERE status = 'DELIVERING'`
+  );
+  if (stuck.changes > 0) {
+    log.warn(`[Startup] Reseteadas ${stuck.changes} entregas atascadas en DELIVERING → PENDING`);
+  }
+
+  // 3. Auto-seed si la tienda está vacía
   await autoSeed();
 
   const app = express();

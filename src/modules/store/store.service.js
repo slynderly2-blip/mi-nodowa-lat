@@ -43,6 +43,19 @@ function buyWithNC(username, itemId) {
   if (!item.price_coins || item.price_coins <= 0) throw new BadRequest('Este artículo no se puede comprar con Nodocoins');
   if (user.wallet < item.price_coins) throw new BadRequest(`Saldo insuficiente. Necesitas ${item.price_coins} NC, tienes ${user.wallet} NC.`);
 
+  // PROTECCIÓN ANTI-DUPLICADO: Verificar si ya existe una compra reciente del mismo item
+  const recentPurchase = db.get(
+    `SELECT id FROM deliveries 
+     WHERE username = ? AND item_title = ? AND status = 'PENDING'
+     AND created_at > datetime('now', '-30 seconds')`,
+    [user.username, item.name]
+  );
+  
+  if (recentPurchase) {
+    log.warn(`[Store] ⚠️ BLOQUEO ANTI-DUPLICADO: ${username} intentó comprar ${item.name} dos veces en 30s`);
+    throw new BadRequest('Ya tienes una compra reciente de este artículo en proceso. Espera unos segundos.');
+  }
+
   const deliveryId = genId('del');
   const txId       = genId('tx');
   const msgId      = genId('msg');
@@ -89,7 +102,7 @@ function buyWithNC(username, itemId) {
     );
   });
 
-  log.ok(`[Store] Compra NC: ${username} compró ${item.name} x ${item.price_coins} NC`);
+  log.ok(`[Store] ✅ Compra NC: ${username} compró ${item.name} x ${item.price_coins} NC (ID: ${deliveryId})`);
   return { ok: true, deliveryId, itemTitle: item.name, priceCoins: item.price_coins };
 }
 
