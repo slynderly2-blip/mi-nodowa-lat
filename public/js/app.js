@@ -56,9 +56,33 @@ function fmtDate(s) {
 function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+// Genera UUID determinista a partir del nombre del usuario (siempre el mismo para el mismo nombre)
+function hashUser(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = ((hash << 5) - hash) + name.charCodeAt(i);
+    hash = hash & hash;
+  }
+  // Convertir a UUID formato: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+  const hex = Math.abs(hash).toString(16).padStart(8, '0');
+  const parts = [
+    hex.slice(0,8),
+    hex.slice(0,4),
+    '4' + hex.slice(1,4), // Version 4
+    ((parseInt(hex[0], 16) & 0x3) | 0x8).toString(16) + hex.slice(1,4),
+    hex.repeat(3).slice(0,12)
+  ];
+  return parts.join('-');
+}
+
 function avatar(name, url, size = 40) {
-  if (url) return `<img src="${esc(url)}" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="avatar-letter" style="display:none;width:${size}px;height:${size}px">${esc((name||'?')[0]).toUpperCase()}</span>`;
-  return `<span class="avatar-letter" style="width:${size}px;height:${size}px">${esc((name||'?')[0]).toUpperCase()}</span>`;
+  // Si tiene URL personalizada, usarla primero
+  if (url) {
+    return `<img src="${esc(url)}" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.src='https://crafatar.com/avatars/${hashUser(name)}?overlay&size=${size*2}'">`;
+  }
+  // Usar Crafatar para generar un rostro de Minecraft determinista
+  const uuid = hashUser(name);
+  return `<img src="https://crafatar.com/avatars/${uuid}?overlay&size=${size*2}" alt="${esc(name)}" class="avatar-img" width="${size}" height="${size}" style="border-radius:50%;object-fit:cover;image-rendering:pixelated;">`;
 }
 
 function statusBadge(s) {
