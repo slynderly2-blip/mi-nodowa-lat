@@ -389,12 +389,17 @@ function navigateTo(sectionId) {
 
   /* Actualizar título topbar */
   const section = document.getElementById(`section-${sectionId}`);
-  const title   = section ? section.dataset.title : 'Tienda';
+  if (!section) {
+    console.error(`[Nav] ❌ Elemento #section-${sectionId} no existe en el DOM`);
+    return;
+  }
+  const title = section.dataset.title || sectionId;
   $('topbar-title').textContent = title;
 
   /* Mostrar sección activa */
   document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-  if (section) section.classList.add('active');
+  section.classList.add('active');
+  console.log('[Nav] Sección activa:', section.id, '| display:', getComputedStyle(section).display);
 
   /* Actualizar nav activo */
   document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
@@ -804,13 +809,17 @@ async function submitUSDTOrder(e) {
   }
 }
 
-/* ── 15. BILLETERA ───────────────────────────────────────────────────────── */
 async function loadWallet() {
+  console.log('[Wallet] Cargando billetera…');
   await refreshBalance();
   renderTopbar();
 
-  $('wallet-amount').textContent = `${formatNumber(State.wallet.wallet)} NC`;
-  $('bank-amount').textContent   = `${formatNumber(State.wallet.bank)} NC`;
+  const walletEl = $('wallet-amount');
+  const bankEl   = $('bank-amount');
+  console.log('[Wallet] elementos DOM:', { walletEl: !!walletEl, bankEl: !!bankEl });
+
+  if (walletEl) walletEl.textContent = `${formatNumber(State.wallet.wallet)} NC`;
+  if (bankEl)   bankEl.textContent   = `${formatNumber(State.wallet.bank)} NC`;
 
   loadTransactions();
 }
@@ -818,19 +827,21 @@ async function loadWallet() {
 async function loadTransactions(page = 1) {
   State.wallet.txPage = page;
   const list = $('tx-list');
+  if (!list) { console.error('[Wallet] #tx-list no encontrado en el DOM'); return; }
   list.innerHTML = '<p class="empty-state">Cargando…</p>';
 
   try {
     const data = await get(`/wallet/transactions?page=${page}&limit=15`);
+    console.log('[Wallet] transactions response:', JSON.stringify(data).slice(0, 200));
     const txs  = data.transactions || data.items || [];
 
     if (!txs.length) {
-      list.innerHTML = '<p class="empty-state">Sin transacciones.</p>';
+      list.innerHTML = '<p class="empty-state">Sin transacciones aún.</p>';
       return;
     }
 
     list.innerHTML = txs.map(tx => {
-      const isCredit = tx.to_user === State.user.username ||
+      const isCredit = tx.to_user === State.user?.username ||
                        ['BONUS','DELIVERY'].includes(tx.type);
       const sign     = isCredit ? '+' : '−';
       const cls      = isCredit ? 'tx-row__amount--credit' : 'tx-row__amount--debit';
@@ -851,7 +862,8 @@ async function loadTransactions(page = 1) {
       renderPagination('tx-pagination', page, Math.ceil(data.total / 15), p => loadTransactions(p));
     }
   } catch (err) {
-    list.innerHTML = `<p class="empty-state">${err.message}</p>`;
+    console.error('[Wallet] Error transacciones:', err);
+    list.innerHTML = `<p class="empty-state">Error: ${err.message}</p>`;
   }
 }
 
@@ -979,10 +991,12 @@ async function loadBank() {
 /* ── 17. MIS PEDIDOS ─────────────────────────────────────────────────────── */
 async function loadOrders(page = 1) {
   const list = $('orders-list');
+  if (!list) { console.error('[Orders] #orders-list no encontrado'); return; }
   list.innerHTML = '<p class="empty-state">Cargando…</p>';
 
   try {
     const data = await get(`/orders?page=${page}`);
+    console.log('[Orders] response:', JSON.stringify(data).slice(0, 200));
     const orders = data.orders || [];
 
     if (!orders.length) {
@@ -1015,9 +1029,13 @@ async function loadOrders(page = 1) {
 /* ── 18. MI PERFIL ───────────────────────────────────────────────────────── */
 async function loadProfile() {
   const u = State.user;
-  if (!u) return;
+  if (!u) { console.warn('[Profile] Sin usuario'); return; }
+  console.log('[Profile] Cargando perfil para:', u.username);
 
-  $('profile-card').innerHTML = `
+  const card = $('profile-card');
+  if (!card) { console.error('[Profile] #profile-card no encontrado'); return; }
+
+  card.innerHTML = `
     <div class="profile-avatar">${(u.display_name || u.username || '?')[0].toUpperCase()}</div>
     <div class="profile-info">
       <span class="profile-name">${escHtml(u.display_name || u.username)}</span>
