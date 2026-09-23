@@ -291,11 +291,11 @@ input, button, select, textarea { font-size: inherit; }
 /* Secciones intercambiables */
 .content-section {
   display: none;
-  animation: fadeIn 0.18s ease;
 }
 
 .content-section.active {
   display: block;
+  animation: fadeIn 0.18s ease;
 }
 
 @keyframes fadeIn {
@@ -1106,9 +1106,6 @@ input::placeholder { color: var(--text-muted); }
   flex-direction: column;
   gap: 12px;
 }
-
-/* Asegurar que hidden siempre oculta, aunque haya display en CSS */
-[hidden] { display: none !important; }
 
 .modal-footer {
   display: flex;

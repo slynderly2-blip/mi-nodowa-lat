@@ -396,9 +396,13 @@ function navigateTo(sectionId) {
   const title = section.dataset.title || sectionId;
   $('topbar-title').textContent = title;
 
-  /* Mostrar sección activa */
-  document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+  /* Mostrar sección activa — forzar display también via style por si el CSS no aplica */
+  document.querySelectorAll('.content-section').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
   section.classList.add('active');
+  section.style.display = 'block';
   console.log('[Nav] Sección activa:', section.id, '| display:', getComputedStyle(section).display);
 
   /* Actualizar nav activo */
