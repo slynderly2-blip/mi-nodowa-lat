@@ -1689,7 +1689,14 @@ async function loadAdminProducts(page = 1) {
         </div>`).join('')}
     </div>`);
 
-    document.querySelectorAll('[data-edit-item]').forEach(b => b.addEventListener('click', () => openItemModal(b.dataset.editItem)));
+    document.querySelectorAll('[data-edit-item]').forEach(b => {
+      b.addEventListener('click', () => {
+        const itemId = b.dataset.editItem;
+        // Buscar SIEMPRE en _allItems actual (acabamos de cargarlos)
+        const item = _allItems.find(i => String(i.id) === String(itemId)) || null;
+        openItemModal(itemId, item);
+      });
+    });
     document.querySelectorAll('[data-toggle-item]').forEach(b => b.addEventListener('click', async () => {
       try {
         await PATCH(`/admin/items/${b.dataset.toggleItem}`, { enabled: parseInt(b.dataset.toggleVal) });
@@ -1702,11 +1709,11 @@ async function loadAdminProducts(page = 1) {
   } catch (err) { setHTML('admin-products-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
 }
 
-function openItemModal(itemId) {
+function openItemModal(itemId, itemDirect) {
   _editingItemId = itemId || null;
 
-  // Buscar en el array local primero; si no está, limpiar formulario
-  const item = itemId ? (_allItems.find(i => i.id === itemId) || null) : null;
+  // Usar el item pasado directamente, o buscarlo en _allItems como fallback
+  const item = itemDirect || (itemId ? (_allItems.find(i => String(i.id) === String(itemId)) || null) : null);
 
   setText('item-modal-title', item ? `Editar: ${item.name}` : 'Nuevo producto');
   $('item-form-id').value          = item?.id          ?? '';
@@ -1721,12 +1728,12 @@ function openItemModal(itemId) {
   $('item-form-order').value       = item?.sort_order  ?? 0;
   $('item-form-id').readOnly       = !!item;
 
-  // Si tenemos el ID pero no encontramos en local (ej: recarga), cargar desde API
+  // Si tenemos ID pero no item (caso raro: paginación diferente), cargar desde API
   if (itemId && !item) {
     GET(`/admin/items?page=1&limit=500`).then(d => {
-      const found = (d.items || []).find(i => i.id === itemId);
+      const found = (d.items || []).find(i => String(i.id) === String(itemId));
       if (found) {
-        _allItems = d.items; // actualizar cache
+        _allItems = d.items;
         setText('item-modal-title', `Editar: ${found.name}`);
         $('item-form-id').value          = found.id          ?? '';
         $('item-form-name').value        = found.name        ?? '';
