@@ -503,7 +503,9 @@ async function refreshBalance() {
     const data = await get('/wallet/balance');
     State.wallet.wallet = data.wallet ?? 0;
     State.wallet.bank   = data.bank   ?? 0;
-  } catch { /* silencioso */ }
+  } catch (err) {
+    console.warn('[Balance] No se pudo cargar el balance:', err.message);
+  }
 }
 
 /* ── 12. CATÁLOGO ────────────────────────────────────────────────────────── */
@@ -538,16 +540,19 @@ async function loadCatalog() {
 
     const data = await get(`/store/items?${params}`, false);
     State.catalog.items = data.items || [];
-    State.catalog.total = data.total || 0;
+    State.catalog.total = data.total || data.items?.length || 0;
 
-    renderCatalogCategories(data.categories || []);
+    // categories viene como [{category, count}] — extraer solo los strings
+    const cats = (data.categories || []).map(c => typeof c === 'string' ? c : c.category);
+    renderCatalogCategories(cats);
     renderCatalogItems();
     renderPagination('catalog-pagination', page, Math.ceil(State.catalog.total / 24), p => {
       State.catalog.page = p;
       loadCatalog();
     });
   } catch (err) {
-    grid.innerHTML = `<p class="empty-state">Error al cargar: ${err.message}</p>`;
+    console.error('[Catalog] Error:', err);
+    grid.innerHTML = `<p class="empty-state">Error al cargar el catálogo: ${err.message}</p>`;
   }
 }
 
@@ -575,7 +580,7 @@ function renderCatalogItems() {
   const grid = $('items-grid');
 
   if (!State.catalog.items.length) {
-    grid.innerHTML = '<p class="empty-state">No hay productos en esta categoría.</p>';
+    grid.innerHTML = `<p class="empty-state">No hay productos en esta categoría.${State.user?.is_admin ? '<br><small>Ve a Administración → Items para agregar productos.</small>' : ''}</p>`;
     return;
   }
 
