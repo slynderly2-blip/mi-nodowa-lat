@@ -94,21 +94,56 @@ function me(username) {
   return { ok: true, user: safeUser(user) };
 }
 
-// ── Generar código de vinculación ─────────────────────────────────────────────
-function generateLinkCode(username) {
-  // Limpiar tokens expirados o previos del usuario
-  db.run(`DELETE FROM link_tokens WHERE username = ? OR expires_at < datetime('now')`, [username]);
+// ── Solicitar código de vinculación (sin auth — flujo web→MC) ─────────────────
+async function requestLinkCode(username) {
+  if (!username || username.trim().length < 2)
+    throw new BadRequest('Nickname de Minecraft requerido (mínimo 2 caracteres)');
 
-  const code = genLinkCode();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutos
+  const nick = username.trim();
+
+  // Crear usuario si no existe (cuenta base, sin contraseña)
+  let user = db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [nick]);
+  if (!user) {
+    db.run(
+      `INSERT INTO users (username, display_name, wallet, bank, linked, is_admin, created_at, last_active)
+       VALUES (?, ?, 0, 0, 0, 0, datetime('now'), datetime('now'))`,
+      [nick, nick]
+    );
+    user = db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [nick]);
+  }
+
+  // Limpiar tokens anteriores del usuario
+  db.run(`DELETE FROM link_tokens WHERE username = ? OR expires_at < datetime('now')`, [nick]);
+
+  const code      = genLinkCode();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
 
   db.run(
-    `INSERT OR REPLACE INTO link_tokens (code, username, expires_at, used)
-     VALUES (?, ?, ?, 0)`,
-    [code, username, expiresAt]
+    `INSERT INTO link_tokens (code, username, session_token, expires_at, used) VALUES (?, ?, NULL, ?, 0)`,
+    [code, nick, expiresAt]
   );
 
-  return { ok: true, code, expiresAt };
+  log.info(`[Auth] Código de vinculación generado para: ${nick} → ${code}`);
+  return { ok: true, code, expiresAt, username: nick };
+}
+
+// ── Verificar si el código ya fue usado (polling desde el frontend) ────────────
+function checkLinkStatus(code) {
+  const token = db.get(
+    `SELECT * FROM link_tokens WHERE code = ? AND expires_at > datetime('now')`,
+    [code]
+  );
+  if (!token) return { ok: false, status: 'expired' };
+  if (!token.used) return { ok: false, status: 'pending' };
+
+  // Ya fue usado — devolver JWT
+  const user = db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [token.username]);
+  if (!user) return { ok: false, status: 'error' };
+
+  const jwt_token = makeToken(user);
+  // Limpiar token usado
+  db.run(`DELETE FROM link_tokens WHERE code = ?`, [code]);
+  return { ok: true, status: 'linked', token: jwt_token, user: safeUser(user) };
 }
 
 // ── Verificar vinculación (llamado desde addon) ───────────────────────────────
@@ -162,4 +197,4 @@ function safeUser(u) {
   return safe;
 }
 
-module.exports = { register, login, adminLogin, me, generateLinkCode, verifyLink, makeToken, safeUser, genId };
+module.exports = { register, login, adminLogin, me, requestLinkCode, checkLinkStatus, generateLinkCode: requestLinkCode, verifyLink, makeToken, safeUser, genId };

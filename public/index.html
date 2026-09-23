@@ -195,36 +195,54 @@
        MODALES
   ═══════════════════════════════════════════════════════════ -->
 
-  <!-- Modal Login -->
+  <!-- Modal Login — flujo MC: nickname → código → /link en servidor -->
   <div class="modal-backdrop" id="modal-login" role="dialog" aria-modal="true" aria-labelledby="modal-login-title" hidden>
     <div class="modal">
       <button class="modal-close" id="modal-login-close" aria-label="Cerrar">✕</button>
-      <h2 class="modal-title" id="modal-login-title">Iniciar sesión</h2>
 
-      <div class="modal-tabs">
-        <button class="modal-tab active" data-tab="login">Entrar</button>
-        <button class="modal-tab" data-tab="register">Registrarse</button>
+      <!-- Paso 1: ingresar nickname -->
+      <div id="login-step-1">
+        <h2 class="modal-title" id="modal-login-title">Iniciar sesión</h2>
+        <p class="modal-subtitle">Ingresa tu nickname exacto del servidor de Minecraft.</p>
+        <form id="link-request-form" class="modal-form" novalidate>
+          <label for="link-username">Nickname de Minecraft</label>
+          <input type="text" id="link-username" autocomplete="off" required
+                 placeholder="Ej: Steve123" maxlength="32" />
+          <button type="submit" class="btn btn-primary btn-full">Generar código</button>
+          <p class="form-feedback" id="link-request-feedback" aria-live="polite"></p>
+        </form>
+        <p class="modal-hint">¿Eres admin? <button class="link-btn" id="show-admin-login">Entrar con contraseña</button></p>
       </div>
 
-      <!-- Tab: Login -->
-      <form id="login-form" class="modal-form" novalidate>
-        <label for="login-username">Usuario</label>
-        <input type="text" id="login-username" autocomplete="username" required placeholder="Tu nombre de usuario" />
-        <label for="login-password">Contraseña</label>
-        <input type="password" id="login-password" autocomplete="current-password" required placeholder="••••••••" />
-        <button type="submit" class="btn btn-primary btn-full">Entrar</button>
-        <p class="form-feedback" id="login-feedback" aria-live="polite"></p>
-      </form>
+      <!-- Paso 2: mostrar código y esperar confirmación -->
+      <div id="login-step-2" hidden>
+        <h2 class="modal-title">Escribe este código en Minecraft</h2>
+        <p class="modal-subtitle">En el servidor escribe el siguiente comando:</p>
+        <div class="link-code-display">
+          <code class="link-command">/link <span id="modal-link-code">------</span></code>
+        </div>
+        <div class="link-waiting">
+          <span class="spinner" aria-hidden="true"></span>
+          <span id="link-wait-text">Esperando confirmación…</span>
+        </div>
+        <p class="link-expires-note" id="link-expires-note"></p>
+        <button class="btn btn-ghost btn-full mt-sm" id="btn-back-step1">← Cambiar nickname</button>
+      </div>
 
-      <!-- Tab: Registro (oculto por defecto) -->
-      <form id="register-form" class="modal-form" hidden novalidate>
-        <label for="register-username">Usuario</label>
-        <input type="text" id="register-username" autocomplete="username" required placeholder="Tu nombre de usuario" minlength="2" maxlength="32" />
-        <label for="register-password">Contraseña</label>
-        <input type="password" id="register-password" autocomplete="new-password" required placeholder="Mínimo 6 caracteres" minlength="6" />
-        <button type="submit" class="btn btn-primary btn-full">Crear cuenta</button>
-        <p class="form-feedback" id="register-feedback" aria-live="polite"></p>
-      </form>
+      <!-- Login admin (oculto por defecto) -->
+      <div id="login-admin-panel" hidden>
+        <h2 class="modal-title">Acceso administrador</h2>
+        <form id="admin-login-form" class="modal-form" novalidate>
+          <label for="admin-login-username">Usuario</label>
+          <input type="text" id="admin-login-username" autocomplete="username" required placeholder="admin" />
+          <label for="admin-login-password">Contraseña</label>
+          <input type="password" id="admin-login-password" autocomplete="current-password" required placeholder="••••••••" />
+          <button type="submit" class="btn btn-primary btn-full">Entrar</button>
+          <p class="form-feedback" id="admin-login-feedback" aria-live="polite"></p>
+        </form>
+        <p class="modal-hint"><button class="link-btn" id="show-link-login">← Volver al login con Minecraft</button></p>
+      </div>
+
     </div>
   </div>
 

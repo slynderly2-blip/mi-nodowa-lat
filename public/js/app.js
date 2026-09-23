@@ -141,7 +141,10 @@ function initModals() {
   // Cerrar al hacer click en el backdrop
   document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
     backdrop.addEventListener('click', e => {
-      if (e.target === backdrop) backdrop.hidden = true;
+      if (e.target === backdrop) {
+        backdrop.hidden = true;
+        if (backdrop.id === 'modal-login') resetLoginModal();
+      }
     });
   });
 
@@ -154,7 +157,10 @@ function initModals() {
     ['modal-admin-user-close',  'modal-admin-user'],
   ].forEach(([btnId, modalId]) => {
     const btn = $(btnId);
-    if (btn) btn.addEventListener('click', () => closeModal(modalId));
+    if (btn) btn.addEventListener('click', () => {
+      closeModal(modalId);
+      if (modalId === 'modal-login') resetLoginModal();
+    });
   });
 
   // Cancelar compra NC
@@ -345,59 +351,131 @@ function navigateTo(sectionId) {
   }
 }
 
-/* ── 10. Auth — modales login/registro ───────────────────────────────────── */
+/* ── 10. Auth — flujo MC: nickname → código → polling ────────────────────── */
+let _linkPollInterval = null;
+let _linkCode         = null;
+
 function initAuthModal() {
-  /* Tabs del modal */
-  document.querySelectorAll('.modal-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const target = tab.dataset.tab;
-      document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-
-      $('login-form').hidden    = (target !== 'login');
-      $('register-form').hidden = (target !== 'register');
-      clearFeedback('login-feedback');
-      clearFeedback('register-feedback');
-    });
-  });
-
-  /* Form login */
-  $('login-form').addEventListener('submit', async e => {
+  /* Paso 1: formulario de nickname */
+  $('link-request-form').addEventListener('submit', async e => {
     e.preventDefault();
-    clearFeedback('login-feedback');
-    const username = $('login-username').value.trim();
-    const password = $('login-password').value;
-    if (!username || !password) return;
+    clearFeedback('link-request-feedback');
+    const username = $('link-username').value.trim();
+    if (!username) return;
+
+    const btn = e.submitter || e.target.querySelector('button[type=submit]');
+    btn.disabled = true;
+    btn.textContent = 'Generando…';
 
     try {
-      const data = await post('/auth/login', { username, password }, false);
-      saveSession(data.token, data.user);
-      closeModal('modal-login');
-      await afterAuth();
-      toast(`Bienvenido, ${data.user.display_name || data.user.username}`, 'ok');
+      const data = await post('/auth/request-link', { username }, false);
+      _linkCode = data.code;
+      showLinkStep2(data);
     } catch (err) {
-      setFeedback('login-feedback', err.message, true);
+      setFeedback('link-request-feedback', err.message, true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Generar código';
     }
   });
 
-  /* Form registro */
-  $('register-form').addEventListener('submit', async e => {
+  /* Volver al paso 1 */
+  $('btn-back-step1').addEventListener('click', () => {
+    stopLinkPolling();
+    $('login-step-2').hidden = true;
+    $('login-step-1').hidden = false;
+  });
+
+  /* Panel admin */
+  $('show-admin-login').addEventListener('click', () => {
+    $('login-step-1').hidden    = true;
+    $('login-admin-panel').hidden = false;
+  });
+
+  $('show-link-login').addEventListener('click', () => {
+    $('login-admin-panel').hidden = true;
+    $('login-step-1').hidden    = false;
+  });
+
+  /* Form admin login */
+  $('admin-login-form').addEventListener('submit', async e => {
     e.preventDefault();
-    clearFeedback('register-feedback');
-    const username = $('register-username').value.trim();
-    const password = $('register-password').value;
+    clearFeedback('admin-login-feedback');
+    const username = $('admin-login-username').value.trim();
+    const password = $('admin-login-password').value;
     if (!username || !password) return;
 
+    const btn = e.submitter || e.target.querySelector('button[type=submit]');
+    btn.disabled = true;
+
     try {
-      const data = await post('/auth/register', { username, password }, false);
+      const data = await post('/auth/admin-login', { username, password }, false);
       saveSession(data.token, data.user);
       closeModal('modal-login');
+      resetLoginModal();
       await afterAuth();
-      toast(`Cuenta creada. Bienvenido, ${data.user.display_name || data.user.username}`, 'ok');
+      toast(`Bienvenido admin, ${data.user.display_name || data.user.username}`, 'ok');
     } catch (err) {
-      setFeedback('register-feedback', err.message, true);
+      setFeedback('admin-login-feedback', err.message, true);
+    } finally {
+      btn.disabled = false;
     }
   });
+}
+
+function showLinkStep2(data) {
+  $('login-step-1').hidden  = true;
+  $('login-step-2').hidden  = false;
+  $('modal-link-code').textContent = data.code;
+
+  const expires = new Date(data.expiresAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  $('link-expires-note').textContent = `El código expira a las ${expires}`;
+  $('link-wait-text').textContent = 'Esperando confirmación…';
+
+  startLinkPolling(data.code);
+}
+
+function startLinkPolling(code) {
+  stopLinkPolling();
+  _linkPollInterval = setInterval(async () => {
+    try {
+      const data = await get(`/auth/check-link/${code}`, false);
+
+      if (data.status === 'expired') {
+        stopLinkPolling();
+        $('link-wait-text').textContent = 'Código expirado.';
+        return;
+      }
+
+      if (data.ok && data.status === 'linked') {
+        stopLinkPolling();
+        $('link-wait-text').textContent = '¡Vinculado!';
+        saveSession(data.token, data.user);
+        closeModal('modal-login');
+        resetLoginModal();
+        await afterAuth();
+        toast(`¡Bienvenido, ${data.user.display_name || data.user.username}!`, 'ok');
+      }
+    } catch { /* silencioso */ }
+  }, 2500);
+}
+
+function stopLinkPolling() {
+  if (_linkPollInterval) {
+    clearInterval(_linkPollInterval);
+    _linkPollInterval = null;
+  }
+}
+
+function resetLoginModal() {
+  stopLinkPolling();
+  _linkCode = null;
+  $('login-step-1').hidden    = false;
+  $('login-step-2').hidden    = true;
+  $('login-admin-panel').hidden = true;
+  $('link-username').value    = '';
+  clearFeedback('link-request-feedback');
+  clearFeedback('admin-login-feedback');
 }
 
 async function afterAuth() {
