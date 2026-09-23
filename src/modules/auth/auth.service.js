@@ -72,6 +72,42 @@ async function login(username, password) {
 
 // ── Login Admin ───────────────────────────────────────────────────────────────
 async function adminLogin(username, password) {
+  // NUEVO: Primero verificar si coincide con variables de entorno
+  const envAdminUser = process.env.ADMIN_USERNAME;
+  const envAdminPass = process.env.ADMIN_PASSWORD;
+  
+  if (envAdminUser && envAdminPass && username === envAdminUser && password === envAdminPass) {
+    // Admin desde variables de entorno - acceso directo sin DB
+    log.ok(`[Auth] Admin login via ENV: ${username}`);
+    
+    // Buscar o crear usuario admin en DB
+    let user = db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [username]);
+    if (!user) {
+      const hash = await bcrypt.hash(password, 10);
+      db.run(
+        `INSERT INTO users (username, display_name, password_hash, wallet, bank, linked, is_admin, created_at, last_active)
+         VALUES (?, ?, ?, 0, 0, 1, 1, datetime('now'), datetime('now'))`,
+        [username, username, hash]
+      );
+      user = db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [username]);
+      log.ok(`[Auth] Admin user created from ENV: ${username}`);
+    } else if (!user.is_admin) {
+      // Actualizar a admin si no lo era
+      db.run(`UPDATE users SET is_admin = 1 WHERE id = ?`, [user.id]);
+      user.is_admin = 1;
+      log.ok(`[Auth] User promoted to admin: ${username}`);
+    }
+    
+    db.run(`UPDATE users SET last_active = datetime('now') WHERE id = ?`, [user.id]);
+    const token = jwt.sign(
+      { id: user.id, username: user.username, isAdmin: true },
+      cfg.jwt.secret,
+      { expiresIn: cfg.jwt.adminExpires }
+    );
+    return { ok: true, token, user: safeUser(user) };
+  }
+  
+  // Fallback: verificar contra BD (admins existentes)
   const user = db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE AND is_admin = 1', [username]);
   if (!user) throw new Unauthorized('Credenciales de administrador inválidas');
 

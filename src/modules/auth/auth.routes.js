@@ -38,6 +38,20 @@ router.post('/admin-login', authLimiter, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// POST /api/auth/create-first-admin — SOLO para setup inicial (sin auth)
+router.post('/create-first-admin', async (req, res, next) => {
+  try {
+    const { username, password, secret } = req.body;
+    
+    // Clave secreta para prevenir abuso
+    if (secret !== process.env.JWT_SECRET) {
+      return res.status(403).json({ ok: false, error: 'Acceso denegado' });
+    }
+    
+    res.json(await svc.createAdmin(username, password));
+  } catch (e) { next(e); }
+});
+
 // GET /api/auth/me — info del usuario autenticado
 router.get('/me', requireAuth, (req, res, next) => {
   try {
