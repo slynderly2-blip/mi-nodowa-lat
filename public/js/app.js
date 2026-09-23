@@ -2025,6 +2025,32 @@ function initAdminSalesTabs() {
 async function loadAdminUsers(search = '') { return loadAdminPlayers(search); }
 function initAdminUsersSearch() { initAdminPlayers(); }
 
+function openAdminUserModal(btn) {
+  $('admin-user-id').value     = btn.dataset.eu || btn.dataset.peu || '';
+  $('admin-user-wallet').value = btn.dataset.ew || btn.dataset.pew || '';
+  $('admin-user-bank').value   = btn.dataset.eb || btn.dataset.peb || '';
+  setText('modal-admin-user-title', `Editar saldo: ${btn.dataset.en || btn.dataset.pen || ''}`);
+  clearFb('admin-user-feedback');
+  openModal('modal-admin-user');
+}
+
+async function submitAdminUser(e) {
+  e.preventDefault();
+  const id = $('admin-user-id').value;
+  clearFb('admin-user-feedback');
+  const btn = e.submitter; btn.disabled = true;
+  try {
+    await POST(`/admin/users/${id}/wallet`, {
+      wallet: parseInt($('admin-user-wallet').value),
+      bank:   parseInt($('admin-user-bank').value)
+    });
+    closeModal('modal-admin-user');
+    toast('Saldo actualizado');
+    loadAdminPlayers($('admin-players-search')?.value?.trim() || '');
+  } catch (err) { feedback('admin-user-feedback', err.message, true); }
+  finally { btn.disabled = false; }
+}
+
 /* ── Paginación ─────────────────────────────────────────────────── */
 function renderPagination(containerId, cur, total, onPage) {
   const c = $(containerId);
@@ -2045,8 +2071,14 @@ function renderPagination(containerId, cur, total, onPage) {
 
 /* ── Init ───────────────────────────────────────────────────────── */
 async function init() {
+  // Cargar catálogo en paralelo con la sesión — es endpoint público
+  const catalogReady = loadCatalog();
+
   await restoreSession();
   if (State.user) { await Promise.all([refreshBalance(), fetchUnread()]); }
+
+  // Esperar que el catálogo termine antes de renderizar el nav (para badges, etc.)
+  await catalogReady.catch(() => {});
 
   renderNav();
   renderTopbar();
@@ -2075,23 +2107,58 @@ async function init() {
   $('wallet-action-form')?.addEventListener('submit', submitWalletAction);
   $('admin-user-form')?.addEventListener('submit', submitAdminUser);
 
-  // ── Sidebar hamburger (mobile) ───────────────────────────────
-  $('sidebar-toggle')?.addEventListener('click', () => {
-    $('sidebar')?.classList.toggle('open');
-    $('sidebar-overlay')?.classList.toggle('show');
-  });
-  $('sidebar-overlay')?.addEventListener('click', () => {
-    $('sidebar')?.classList.remove('open');
-    $('sidebar-overlay')?.classList.remove('show');
-  });
+  // ── Sidebar hamburger (desktop + mobile) ───────────────────────
+  const sidebar  = $('sidebar');
+  const wrapper  = document.querySelector('.main-wrapper');
+  const overlay  = $('sidebar-overlay');
+
+  function openSidebar() {
+    sidebar?.classList.remove('collapsed');
+    overlay?.classList.add('show');
+    wrapper?.classList.remove('sidebar-collapsed');
+    try { localStorage.setItem('sidebarOpen', '1'); } catch {}
+  }
+  function closeSidebar() {
+    sidebar?.classList.add('collapsed');
+    overlay?.classList.remove('show');
+    wrapper?.classList.add('sidebar-collapsed');
+    try { localStorage.setItem('sidebarOpen', '0'); } catch {}
+  }
+  function toggleSidebar() {
+    if (sidebar?.classList.contains('collapsed')) openSidebar();
+    else closeSidebar();
+  }
+
+  // Restaurar preferencia guardada
+  try {
+    if (localStorage.getItem('sidebarOpen') === '0') {
+      sidebar?.classList.add('collapsed');
+      wrapper?.classList.add('sidebar-collapsed');
+    }
+  } catch {}
+
+  // En mobile, siempre empezar colapsado sin importar preferencia
+  if (window.innerWidth <= 768) {
+    sidebar?.classList.add('collapsed');
+    overlay?.classList.remove('show');
+  }
+
+  $('sidebar-toggle')?.addEventListener('click', toggleSidebar);
+  overlay?.addEventListener('click', closeSidebar);
   $('sidebar-nav')?.addEventListener('click', e => {
     if (e.target.closest('[data-section]') && window.innerWidth <= 768) {
-      $('sidebar')?.classList.remove('open');
-      $('sidebar-overlay')?.classList.remove('show');
+      closeSidebar();
     }
   });
 
-  go('catalog');
+  // Activar sección catálogo sin recargar (ya cargó en paralelo al inicio)
+  State.section = 'catalog';
+  document.querySelectorAll('.content-section').forEach(s => { s.classList.remove('active'); s.style.display = 'none'; });
+  const catalogSec = document.getElementById('section-catalog');
+  if (catalogSec) { catalogSec.classList.add('active'); catalogSec.style.display = 'block'; }
+  document.querySelectorAll('.nav-item[data-section]').forEach(b => b.classList.toggle('active', b.dataset.section === 'catalog'));
+  setText('topbar-title', 'Catálogo');
+
   checkImpersonateRestore();
 }
 

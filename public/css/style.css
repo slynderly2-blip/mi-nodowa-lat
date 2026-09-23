@@ -217,8 +217,9 @@ input, button, select, textarea { font-size: inherit; }
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
+  gap: 8px;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 24px 0 16px;
   flex-shrink: 0;
   position: sticky;
   top: 0;
@@ -1869,7 +1870,7 @@ input::placeholder { color: var(--text-muted); }
 
 /* ── Sidebar toggle (hamburger) ────────────────────────────────── */
 .sidebar-toggle {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   background: none;
@@ -1880,10 +1881,23 @@ input::placeholder { color: var(--text-muted); }
   cursor: pointer;
   flex-shrink: 0;
   position: relative;
-  z-index: 300; /* encima del overlay y del sidebar */
+  z-index: 300;
+  transition: background 0.15s;
 }
 .sidebar-toggle:hover { background: var(--bg-hover); }
 .sidebar-overlay { display: none; }
+
+/* ── Sidebar colapsado en desktop ──────────────────────────────── */
+.sidebar.collapsed {
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+}
+.sidebar {
+  transition: transform 0.25s ease;
+}
+.main-wrapper.sidebar-collapsed {
+  margin-left: 0 !important;
+}
 
 /* ── Admin productos table ───────────────────────────────────── */
 .products-table { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
@@ -1960,7 +1974,7 @@ input::placeholder { color: var(--text-muted); }
 }
 
 @media (max-width: 768px) {
-  .sidebar-toggle { display: flex !important; }
+  .sidebar-toggle { display: flex; }
 
   /* Sidebar deslizable — usa transform, NO left */
   .sidebar {
@@ -1973,11 +1987,12 @@ input::placeholder { color: var(--text-muted); }
     z-index: 200 !important;
     border-right: 1px solid var(--border) !important;
   }
-  .sidebar.open {
+  /* En mobile: abierto cuando NO tiene .collapsed */
+  .sidebar:not(.collapsed) {
     transform: translateX(0) !important;
     box-shadow: 4px 0 24px rgba(0,0,0,0.18) !important;
   }
-  
+
   .sidebar-overlay {
     display: none;
     position: fixed;
@@ -1986,7 +2001,7 @@ input::placeholder { color: var(--text-muted); }
     z-index: 199;
   }
   .sidebar-overlay.show { display: block; }
-  
+
   .main-wrapper { width: 100%; margin-left: 0 !important; overflow: visible; }
   .topbar { padding: 0 12px; gap: 8px; }
   .topbar-title { font-size: 0.9rem; }
