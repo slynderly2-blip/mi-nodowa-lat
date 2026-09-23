@@ -49,58 +49,80 @@ function getPendingDeliveries(playerName) {
 function ackDelivery(deliveryId) {
   if (!deliveryId) throw new BadRequest('deliveryId requerido');
 
+  // Registrar el intento de ACK
+  try {
+    db.run(
+      `INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'ATTEMPT', 'Intento de confirmación')`,
+      [deliveryId]
+    );
+  } catch (e) {
+    log.warn(`[Addon] No se pudo registrar intento de ACK: ${e.message}`);
+  }
+
   // Usar FOR UPDATE para bloquear la fila y evitar race conditions
   const delivery = db.get('SELECT * FROM deliveries WHERE id = ?', [deliveryId]);
   if (!delivery) {
     log.warn(`[Addon] Intento de ACK en entrega inexistente: ${deliveryId}`);
+    db.run(`INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'ERROR', 'Entrega no encontrada')`, [deliveryId]);
     return { ok: false, error: 'Entrega no encontrada' };
   }
   
   // Si ya fue entregada, no hacer nada más
   if (delivery.status === 'DELIVERED') {
-    log.warn(`[Addon] Intento DUPLICADO de ACK en entrega ya procesada: ${deliveryId} para ${delivery.username}`);
+    log.warn(`[Addon] ⚠️ INTENTO DUPLICADO de ACK en entrega ya procesada: ${deliveryId} para ${delivery.username} - ${delivery.item_title}`);
+    db.run(`INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'DUPLICATE', 'Ya estaba entregada')`, [deliveryId]);
     return { ok: true, already: true, message: 'Entrega ya procesada anteriormente' };
   }
   
   // Si no está PENDING, error
   if (delivery.status !== 'PENDING') {
     log.error(`[Addon] Intento de ACK en entrega con status inválido: ${deliveryId} status=${delivery.status}`);
+    db.run(`INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'ERROR', ?)`, [deliveryId, `Status inválido: ${delivery.status}`]);
     return { ok: false, error: `Estado inválido: ${delivery.status}` };
   }
 
-  log.info(`[Addon] Procesando entrega ${deliveryId}: ${delivery.item_title} para ${delivery.username} (coins: ${delivery.give_coins || 0})`);
+  log.info(`[Addon] 🎮 Procesando entrega ${deliveryId}: ${delivery.item_title} para ${delivery.username} (coins: ${delivery.give_coins || 0})`);
 
   // Usar transacción para evitar condiciones de carrera (entregas duplicadas)
-  db.transaction(() => {
-    // Marcar como entregada SOLO si está PENDING
-    const result = db.run(
-      `UPDATE deliveries SET status = 'DELIVERED', delivered_at = datetime('now') 
-       WHERE id = ? AND status = 'PENDING'`,
-      [deliveryId]
-    );
-    
-    // Verificar que realmente se actualizó
-    if (result.changes === 0) {
-      log.error(`[Addon] No se pudo actualizar entrega ${deliveryId} - posible race condition`);
-      throw new Error('No se pudo procesar la entrega');
-    }
-
-    // Si la entrega da coins, actualizar wallet
-    if (delivery.give_coins > 0) {
-      log.info(`[Addon] Otorgando ${delivery.give_coins} NC a ${delivery.username}`);
-      db.run(
-        `UPDATE users SET wallet = wallet + ? WHERE username = ? COLLATE NOCASE`,
-        [delivery.give_coins, delivery.username]
+  try {
+    db.transaction(() => {
+      // Marcar como entregada SOLO si está PENDING
+      const result = db.run(
+        `UPDATE deliveries SET status = 'DELIVERED', delivered_at = datetime('now') 
+         WHERE id = ? AND status = 'PENDING'`,
+        [deliveryId]
       );
-      db.run(
-        `INSERT INTO transactions (id, from_user, to_user, amount, type, note)
-         VALUES (?, 'SYSTEM', ?, ?, 'DELIVERY', ?)`,
-        [genId('tx'), delivery.username, delivery.give_coins, `Entrega: ${delivery.item_title}`]
-      );
-    }
-  });
+      
+      // Verificar que realmente se actualizó
+      if (result.changes === 0) {
+        log.error(`[Addon] ❌ No se pudo actualizar entrega ${deliveryId} - posible race condition o ya procesada`);
+        db.run(`INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'FAILED', 'No se pudo actualizar (changes=0)')`, [deliveryId]);
+        throw new Error('No se pudo procesar la entrega - ya fue procesada');
+      }
 
-  log.ok(`[Addon] Entrega ACK exitoso: ${deliveryId} para ${delivery.username}`);
+      // Si la entrega da coins, actualizar wallet
+      if (delivery.give_coins > 0) {
+        log.info(`[Addon] 💰 Otorgando ${delivery.give_coins} NC a ${delivery.username}`);
+        db.run(
+          `UPDATE users SET wallet = wallet + ? WHERE username = ? COLLATE NOCASE`,
+          [delivery.give_coins, delivery.username]
+        );
+        db.run(
+          `INSERT INTO transactions (id, from_user, to_user, amount, type, note)
+           VALUES (?, 'SYSTEM', ?, ?, 'DELIVERY', ?)`,
+          [genId('tx'), delivery.username, delivery.give_coins, `Entrega: ${delivery.item_title}`]
+        );
+      }
+      
+      // Registrar ACK exitoso
+      db.run(`INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'SUCCESS', 'Entregado correctamente')`, [deliveryId]);
+    });
+  } catch (err) {
+    log.error(`[Addon] ❌ Error en transacción de entrega ${deliveryId}: ${err.message}`);
+    throw err;
+  }
+
+  log.ok(`[Addon] ✅ Entrega ACK exitoso: ${deliveryId} para ${delivery.username}`);
   return { ok: true };
 }
 

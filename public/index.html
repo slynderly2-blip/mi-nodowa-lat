@@ -108,16 +108,7 @@
                 <form id="profile-edit-form" class="modal-form" novalidate>
                   <label for="edit-display-name">Nombre visible</label>
                   <input type="text" id="edit-display-name" maxlength="32" placeholder="Tu nombre" />
-                  
-                  <label>Imagen de avatar</label>
-                  <div style="margin-bottom:16px;">
-                    <div id="avatar-preview" style="width:100px;height:100px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;border:2px dashed #9ca3af;transition:border-color 0.2s;" onclick="document.getElementById('edit-avatar-file').click()">
-                      <span style="color:#6b7280;font-size:14px;text-align:center;padding:8px;">Haz clic para subir foto</span>
-                    </div>
-                    <input type="file" id="edit-avatar-file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;" />
-                    <small style="color:#888;display:block;margin-top:8px;">JPG, PNG, GIF o WEBP. Máximo 5MB</small>
-                  </div>
-                  
+                  <input type="file" id="edit-avatar-file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;" />
                   <button type="submit" class="btn btn-primary">Guardar cambios</button>
                 </form>
                 <p class="form-feedback" id="profile-edit-feedback" aria-live="polite"></p>

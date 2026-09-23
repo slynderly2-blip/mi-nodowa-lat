@@ -659,8 +659,11 @@ async function loadProfile() {
 
   const name = u.display_name || u.username;
   setHTML('profile-avatar-card', `
-    <div class="profile-avatar-wrap">
+    <div class="profile-avatar-wrap" style="cursor:pointer;position:relative;" id="profile-avatar-clickable" title="Haz clic para cambiar tu foto">
       ${avatar(name, u.avatar, 80)}
+      <div style="position:absolute;bottom:0;right:0;background:#7C3AED;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:3px solid white;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+      </div>
     </div>
     <div class="profile-name-big">${esc(name)}</div>
     <div class="profile-username">@${esc(u.username)}</div>
@@ -670,6 +673,11 @@ async function loadProfile() {
     </div>
     ${u.linked ? '<div class="profile-linked-badge">Cuenta MC vinculada</div>' : ''}
   `);
+  
+  // Hacer el avatar clickeable para subir foto
+  $('profile-avatar-clickable')?.addEventListener('click', () => {
+    $('edit-avatar-file').click();
+  });
 
   setHTML('profile-info-card', `
     <div class="profile-info-row"><span>Usuario</span><strong>${esc(u.username)}</strong></div>
@@ -682,18 +690,6 @@ async function loadProfile() {
   // prefill edit form
   const dn = $('edit-display-name');
   if (dn) dn.value = u.display_name || '';
-  
-  // Mostrar avatar actual en el preview
-  const preview = $('avatar-preview');
-  if (preview && u.avatar) {
-    preview.innerHTML = `<img src="${esc(u.avatar)}" style="width:100%;height:100%;object-fit:cover;" alt="Avatar actual" onerror="this.parentElement.innerHTML='<span style=\\'color:#6b7280;font-size:14px;text-align:center;padding:8px;\\'>Haz clic para subir foto</span>'">`;
-    preview.style.border = '2px solid #7C3AED';
-  } else if (preview) {
-    // Intentar mostrar skin de Minecraft
-    const skinUrl = `https://crafatar.com/avatars/${esc(u.username)}?overlay&default=MHF_Steve&size=200`;
-    preview.innerHTML = `<img src="${skinUrl}" style="width:100%;height:100%;object-fit:cover;" alt="Skin de Minecraft" onerror="this.parentElement.innerHTML='<span style=\\'color:#6b7280;font-size:14px;text-align:center;padding:8px;\\'>Haz clic para subir foto</span>'">`;
-    preview.style.border = '2px dashed #9ca3af';
-  }
 
   // link status
   if (u.linked) {
@@ -723,17 +719,40 @@ async function genLinkCode() {
 }
 
 function initProfileEdit() {
-  // Preview de avatar cuando se selecciona archivo
-  $('edit-avatar-file')?.addEventListener('change', (e) => {
+  // Cuando se selecciona archivo, subirlo automáticamente
+  $('edit-avatar-file')?.addEventListener('change', async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const preview = $('avatar-preview');
-        preview.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;" alt="Preview">`;
-        preview.style.border = '2px solid #7C3AED';
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    
+    clearFb('profile-edit-feedback');
+    feedback('profile-edit-feedback', 'Subiendo foto...');
+    
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      
+      const uploadRes = await fetch('/api/users/profile/upload-avatar', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${State.token}` },
+        body: formData
+      });
+      
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json();
+        throw new Error(err.error || 'Error al subir la imagen');
+      }
+      
+      const uploadData = await uploadRes.json();
+      State.user = uploadData.user;
+      saveSession(State.token, uploadData.user);
+      
+      renderNav(); renderTopbar();
+      loadProfile();
+      feedback('profile-edit-feedback', '¡Foto actualizada!');
+      toast('Foto de perfil actualizada', 'success');
+    } catch (err) {
+      feedback('profile-edit-feedback', err.message, true);
+      toast(err.message, 'error');
     }
   });
 
@@ -741,53 +760,23 @@ function initProfileEdit() {
     e.preventDefault();
     clearFb('profile-edit-feedback');
     const display_name = $('edit-display-name').value.trim();
-    const avatar_file  = $('edit-avatar-file').files[0];
     const btn = e.submitter; btn.disabled = true;
     
     try {
-      let updated = false;
-      
-      // Si hay un archivo, subirlo primero
-      if (avatar_file) {
-        const formData = new FormData();
-        formData.append('avatar', avatar_file);
-        
-        const uploadRes = await fetch('/api/users/profile/upload-avatar', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${State.token}` },
-          body: formData
-        });
-        
-        if (!uploadRes.ok) {
-          const err = await uploadRes.json();
-          throw new Error(err.error || 'Error al subir la imagen');
-        }
-        
-        const uploadData = await uploadRes.json();
-        State.user = uploadData.user;
-        saveSession(State.token, uploadData.user);
-        updated = true;
-      }
-      
-      // Actualizar display_name si se proporcionó
-      if (display_name) {
-        const body = { display_name };
-        const d = await PATCH('/users/profile', body);
-        State.user = d.user;
-        saveSession(State.token, d.user);
-        updated = true;
-      }
-      
-      if (updated) {
-        renderNav(); renderTopbar();
-        loadProfile();
-        feedback('profile-edit-feedback', 'Perfil actualizado');
-        // Limpiar el input de archivo
-        $('edit-avatar-file').value = '';
-      } else {
+      if (!display_name) {
         feedback('profile-edit-feedback', 'No hay cambios para guardar');
+        return;
       }
       
+      const body = { display_name };
+      const d = await PATCH('/users/profile', body);
+      State.user = d.user;
+      saveSession(State.token, d.user);
+      
+      renderNav(); renderTopbar();
+      loadProfile();
+      feedback('profile-edit-feedback', 'Perfil actualizado');
+      toast('Nombre actualizado', 'success');
     } catch (err) { 
       feedback('profile-edit-feedback', err.message, true); 
     } finally { 
