@@ -19,10 +19,17 @@ router.get('/pending-deliveries', addonLimiter, (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// POST /api/addon/claim-delivery
+router.post('/claim-delivery', addonLimiter, (req, res, next) => {
+  try {
+    res.json(svc.claimDelivery(req.body.deliveryId));
+  } catch (e) { next(e); }
+});
+
 // POST /api/addon/ack-delivery
 router.post('/ack-delivery', addonLimiter, (req, res, next) => {
   try {
-    res.json(svc.ackDelivery(req.body.deliveryId));
+    res.json(svc.ackDelivery(req.body.deliveryId, req.body.claimToken));
   } catch (e) { next(e); }
 });
 

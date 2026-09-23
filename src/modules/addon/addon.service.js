@@ -45,8 +45,69 @@ function getPendingDeliveries(playerName) {
   return { ok: true, deliveries };
 }
 
+// ── POST /api/addon/claim-delivery ───────────────────────────────────────────
+// Este endpoint se llama ANTES de ejecutar comandos para prevenir duplicación
+function claimDelivery(deliveryId) {
+  if (!deliveryId) throw new BadRequest('deliveryId requerido');
+
+  const delivery = db.get('SELECT * FROM deliveries WHERE id = ?', [deliveryId]);
+  if (!delivery) {
+    return { ok: false, error: 'Entrega no encontrada' };
+  }
+  
+  // Si ya fue entregada o está siendo reclamada, rechazar
+  if (delivery.status === 'DELIVERED') {
+    log.warn(`[Addon] ⚠️ INTENTO DUPLICADO bloqueado: delivery ${deliveryId} ya entregada`);
+    return { ok: false, error: 'already_delivered', message: 'Esta entrega ya fue procesada' };
+  }
+
+  if (delivery.claiming_started_at) {
+    const claimTime = new Date(delivery.claiming_started_at);
+    const now = new Date();
+    const diffSeconds = (now - claimTime) / 1000;
+    
+    // Si se inició hace menos de 30 segundos, está en proceso
+    if (diffSeconds < 30) {
+      log.warn(`[Addon] ⚠️ INTENTO DUPLICADO bloqueado: delivery ${deliveryId} siendo procesada (${diffSeconds}s ago)`);
+      return { ok: false, error: 'already_claiming', message: 'Esta entrega ya está siendo procesada' };
+    }
+  }
+  
+  // Si no está PENDING, error
+  if (delivery.status !== 'PENDING') {
+    return { ok: false, error: `Estado inválido: ${delivery.status}` };
+  }
+
+  // Generar token único y marcar como "claiming"
+  const claimToken = genId('claim');
+  
+  try {
+    const result = db.run(
+      `UPDATE deliveries SET claiming_started_at = datetime('now'), claim_token = ?
+       WHERE id = ? AND status = 'PENDING' AND claiming_started_at IS NULL`,
+      [claimToken, deliveryId]
+    );
+    
+    if (result.changes === 0) {
+      log.warn(`[Addon] ⚠️ Race condition detectada en claim de ${deliveryId}`);
+      return { ok: false, error: 'race_condition', message: 'Otro proceso está reclamando esta entrega' };
+    }
+
+    log.info(`[Addon] 🔒 Delivery ${deliveryId} bloqueada para reclamar con token ${claimToken}`);
+    return { 
+      ok: true, 
+      claimToken,
+      command: delivery.command,
+      giveCoins: delivery.give_coins || 0
+    };
+  } catch (err) {
+    log.error(`[Addon] Error al reclamar delivery ${deliveryId}: ${err.message}`);
+    throw err;
+  }
+}
+
 // ── POST /api/addon/ack-delivery ─────────────────────────────────────────────
-function ackDelivery(deliveryId) {
+function ackDelivery(deliveryId, claimToken) {
   if (!deliveryId) throw new BadRequest('deliveryId requerido');
 
   // Registrar el intento de ACK
@@ -71,6 +132,12 @@ function ackDelivery(deliveryId) {
     log.warn(`[Addon] ⚠️ INTENTO DUPLICADO de ACK en entrega ya procesada: ${deliveryId} para ${delivery.username} - ${delivery.item_title}`);
     db.run(`INSERT INTO delivery_acks (delivery_id, status, note) VALUES (?, 'DUPLICATE', 'Ya estaba entregada')`, [deliveryId]);
     return { ok: true, already: true, message: 'Entrega ya procesada anteriormente' };
+  }
+
+  // Verificar token si fue proporcionado (nuevo sistema)
+  if (claimToken && delivery.claim_token && delivery.claim_token !== claimToken) {
+    log.error(`[Addon] Token inválido para delivery ${deliveryId}`);
+    return { ok: false, error: 'Token inválido' };
   }
   
   // Si no está PENDING, error
@@ -153,4 +220,4 @@ function addonTransfer(fromUser, toUser, amount) {
   return { ok: true };
 }
 
-module.exports = { getBalance, getPendingDeliveries, ackDelivery, addonTransfer };
+module.exports = { getBalance, getPendingDeliveries, claimDelivery, ackDelivery, addonTransfer };
