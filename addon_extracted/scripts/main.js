@@ -93,7 +93,10 @@ async function syncBalance(player) {
 // ── Consulta de pedidos pendientes ───────────────────────────────────────────
 async function fetchPendingDeliveries(player) {
   try {
-    const res = await httpGet(`${BACKEND_URL}/api/addon/pending-deliveries?player=${encodeURIComponent(player.name)}`);
+    const url = `${BACKEND_URL}/api/addon/pending-deliveries?player=${encodeURIComponent(player.name)}`;
+    console.log(`[Nodowa] GET ${url}`);
+    const res = await httpGet(url);
+    console.log(`[Nodowa] pending-deliveries response:`, JSON.stringify(res));
     if (res?.ok && Array.isArray(res.deliveries)) {
       return res.deliveries;
     }
@@ -110,7 +113,9 @@ async function fetchPendingDeliveries(player) {
 async function executeDelivery(player, del) {
   // Llamar al backend UNA SOLA VEZ — marca DELIVERED atómicamente
   // Si ya fue procesada, el backend devuelve ok:false y no ejecutamos nada
+  console.log(`[Nodowa] POST /api/addon/execute-delivery → deliveryId=${del.id} player=${player.name}`);
   const result = await httpPost(`${BACKEND_URL}/api/addon/execute-delivery`, { deliveryId: del.id });
+  console.log(`[Nodowa] execute-delivery response:`, JSON.stringify(result));
 
   if (!result) {
     player.sendMessage("§c[Nodowa] Sin respuesta del servidor. Intenta más tarde.");
@@ -119,13 +124,18 @@ async function executeDelivery(player, del) {
 
   if (!result.ok) {
     // already:true = ya fue entregada antes, silencioso
-    if (result.already) return;
+    if (result.already) {
+      console.log(`[Nodowa] delivery ${del.id} ya procesada (already=true) — sin ejecutar comando`);
+      return;
+    }
     player.sendMessage(`§c[Nodowa] No se pudo procesar: ${result.error || 'error desconocido'}`);
     return;
   }
 
-  // Backend confirmó — ejecutar comando UNA sola vez
-  const cmd = del.command || '';
+  // FIX BUG 1+2: usar el comando devuelto por el backend, NO el del snapshot
+  // El backend devuelve result.delivery.command — esa es la fuente de verdad
+  const cmd = (result.delivery?.command) || '';
+  console.log(`[Nodowa] ejecutando comando: "${cmd}"`);
   if (cmd.trim()) {
     const exec = cmd.trim().replace(/\{player\}/g, `"${player.name}"`).replace(/^\//, '');
     try {
@@ -209,10 +219,22 @@ async function openBuzonMenu(player) {
 }
 
 // ── CONFIRMACIÓN DE ENTREGA INDIVIDUAL ───────────────────────────────────────
-// Set para trackear deliveries que ya están siendo procesadas en este cliente
-const _processingDeliveries = new Set();function openDeliveryConfirm(player, del, totalCount) {
+// Set para trackear deliveries que ya están siendo procesadas en este cliente.
+// La clave NUNCA se elimina una vez que el backend confirma la entrega —
+// esto previene el bug de reclamar infinitamente desde el snapshot stale.
+const _processingDeliveries = new Set();
+// Set separado para deliveries ya completadas en esta sesión (no limpiar)
+const _completedDeliveries = new Set();
+
+function openDeliveryConfirm(player, del, totalCount) {
   const productName = del.productName ?? del.product ?? "Compra de tienda";
   const productDesc = del.description ? `\n§7Detalle: §f${del.description}` : "";
+
+  // FIX BUG 1: si esta delivery ya fue completada en esta sesión, no mostrar
+  if (_completedDeliveries.has(del.id)) {
+    console.log(`[Nodowa] delivery ${del.id} ya completada esta sesión, ignorando`);
+    return;
+  }
 
   showForm(player, () => {
     const form = new ActionFormData();
@@ -243,25 +265,41 @@ const _processingDeliveries = new Set();function openDeliveryConfirm(player, del
     }
 
     if (res.selection === 0) {
-      // PROTECCIÓN CLIENTE: bloquear si ya está procesando este delivery
+      // FIX BUG 1+2: doble guardia — processing evita concurrencia, completed evita reentrada
       const deliveryKey = `${p.name}:${del.id}`;
-      if (_processingDeliveries.has(deliveryKey)) return;
+      if (_processingDeliveries.has(deliveryKey)) {
+        console.log(`[Nodowa] ${deliveryKey} ya en proceso, ignorando click duplicado`);
+        return;
+      }
+      if (_completedDeliveries.has(del.id)) {
+        console.log(`[Nodowa] ${del.id} ya completada, ignorando`);
+        return;
+      }
       _processingDeliveries.add(deliveryKey);
 
       try {
         await executeDelivery(p, del);
+
+        // FIX BUG 1: marcar como completada ANTES de limpiar processing
+        // así cualquier reintento del form no puede ejecutar de nuevo
+        _completedDeliveries.add(del.id);
+
         await syncBalance(p);
         try { p.playSound("random.levelup", { volume: 1.0, pitch: 1.2 }); } catch (_) {}
         const remaining = await fetchPendingDeliveries(p);
         showDeliverySuccess(p, productName, remaining.length);
       } catch (err) {
         console.error("[NodowaEconomy] Error entregando:", err);
-        if (!String(err.message).includes('bloqueada')) {
+        // Solo limpiar processing en caso de error real — dejar que reintente
+        _processingDeliveries.delete(deliveryKey);
+        if (!String(err?.message || '').includes('bloqueada')) {
           p.sendMessage("§c[Nodowa] Error al procesar la entrega. Intenta nuevamente.");
         }
-      } finally {
-        _processingDeliveries.delete(deliveryKey);
+        return;
       }
+      // En éxito: NO llamar _processingDeliveries.delete — la clave queda hasta
+      // que el servidor confirme via fetchPendingDeliveries que no existe más
+      _processingDeliveries.delete(deliveryKey);
     }
   });
 }

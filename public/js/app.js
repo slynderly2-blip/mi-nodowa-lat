@@ -18,13 +18,57 @@ const State = {
 /* ── API ────────────────────────────────────────────────────────── */
 const API = '/api';
 
+// ── Logger de API ─────────────────────────────────────────────────
+// Muestra todas las peticiones y respuestas en la consola del navegador.
+// Formato: [API] METHOD /path → status ms | payload (si aplica)
+const _apiLog = {
+  _t0: {},
+  req(method, path, body) {
+    const key = `${method}:${path}:${Date.now()}`;
+    this._t0[key] = performance.now();
+    const payload = body ? ` ← ${JSON.stringify(body).slice(0, 120)}` : '';
+    console.groupCollapsed(`%c[API] ${method} ${path}${payload}`, 'color:#7C3AED;font-weight:600');
+    if (body) console.log('body:', body);
+    console.trace('origin');
+    console.groupEnd();
+    return key;
+  },
+  res(key, method, path, status, data, ms) {
+    const ok = status >= 200 && status < 300;
+    const style = ok ? 'color:#16a34a;font-weight:600' : 'color:#dc2626;font-weight:600';
+    console.log(
+      `%c[API] ${method} ${path} → ${status} (${ms}ms)`,
+      style,
+      ok ? data : { error: data }
+    );
+    delete this._t0[key];
+  },
+  err(method, path, err, ms) {
+    console.error(`[API] ${method} ${path} → ERROR (${ms}ms)`, err.message);
+  }
+};
+
 async function req(method, path, body, auth = true) {
+  const t0 = performance.now();
+  _apiLog.req(method, path, body);
+
   const headers = { 'Content-Type': 'application/json' };
   if (auth && State.token) headers['Authorization'] = `Bearer ${State.token}`;
   const opts = { method, headers };
   if (body) opts.body = JSON.stringify(body);
-  const res  = await fetch(API + path, opts);
-  const data = await res.json().catch(() => ({}));
+
+  let res, data;
+  try {
+    res  = await fetch(API + path, opts);
+    data = await res.json().catch(() => ({}));
+  } catch (fetchErr) {
+    _apiLog.err(method, path, fetchErr, Math.round(performance.now() - t0));
+    throw fetchErr;
+  }
+
+  const ms = Math.round(performance.now() - t0);
+  _apiLog.res(null, method, path, res.status, data, ms);
+
   if (!res.ok) throw new Error(data.message || data.error || `Error ${res.status}`);
   return data;
 }
