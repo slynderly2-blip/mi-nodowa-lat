@@ -49,33 +49,34 @@ function getPendingDeliveries(playerName) {
 function claimDelivery(deliveryId) {
   if (!deliveryId) throw new BadRequest('deliveryId requerido');
 
-  // ATOMICO: Marcar como DELIVERING en una sola operación
-  // Si ya fue marcada por otro proceso, changes=0 y bloqueamos
-  try {
-    const result = db.run(
-      `UPDATE deliveries SET status = 'DELIVERING'
-       WHERE id = ? AND status = 'PENDING'`,
-      [deliveryId]
-    );
-
-    if (result.changes === 0) {
-      // Ya está DELIVERING o DELIVERED - otro proceso la tomó primero
-      const delivery = db.get('SELECT status FROM deliveries WHERE id = ?', [deliveryId]);
-      if (!delivery) return { ok: false, error: 'Entrega no encontrada' };
-      if (delivery.status === 'DELIVERED') {
-        log.warn(`[Addon] ⚠️ BLOQUEADO: delivery ${deliveryId} ya entregada`);
-        return { ok: false, error: 'already_delivered' };
-      }
-      log.warn(`[Addon] ⚠️ BLOQUEADO: delivery ${deliveryId} siendo procesada (status=${delivery.status})`);
-      return { ok: false, error: 'already_claiming' };
-    }
-
-    log.info(`[Addon] 🔒 Delivery ${deliveryId} tomada para entrega`);
-    return { ok: true, claimToken: deliveryId };
-  } catch (err) {
-    log.error(`[Addon] Error en claim ${deliveryId}: ${err.message}`);
-    throw err;
+  const delivery = db.get('SELECT * FROM deliveries WHERE id = ?', [deliveryId]);
+  if (!delivery) return { ok: false, error: 'Entrega no encontrada' };
+  if (delivery.status === 'DELIVERED') {
+    log.warn(`[Addon] ⚠️ BLOQUEADO: ${deliveryId} ya entregada`);
+    return { ok: false, error: 'already_delivered' };
   }
+
+  // Si está atascada en DELIVERING, resetear a PENDING para que pueda reintentarse
+  if (delivery.status === 'DELIVERING') {
+    log.warn(`[Addon] Reseteando delivery atascada ${deliveryId}`);
+    db.run(`UPDATE deliveries SET status = 'PENDING' WHERE id = ? AND status = 'DELIVERING'`, [deliveryId]);
+  }
+
+  // Marcar atómicamente como DELIVERING
+  const result = db.run(
+    `UPDATE deliveries SET status = 'DELIVERING' WHERE id = ? AND status = 'PENDING'`,
+    [deliveryId]
+  );
+
+  if (result.changes === 0) {
+    const d = db.get('SELECT status FROM deliveries WHERE id = ?', [deliveryId]);
+    log.warn(`[Addon] ⚠️ No se pudo hacer claim de ${deliveryId}, status=${d?.status}`);
+    if (d?.status === 'DELIVERED') return { ok: false, error: 'already_delivered' };
+    return { ok: false, error: 'already_claiming' };
+  }
+
+  log.info(`[Addon] 🔒 Delivery ${deliveryId} tomada`);
+  return { ok: true, claimToken: deliveryId };
 }
 
 // ── POST /api/addon/ack-delivery ─────────────────────────────────────────────
