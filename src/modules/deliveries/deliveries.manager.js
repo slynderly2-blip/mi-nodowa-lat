@@ -57,9 +57,14 @@ function executeDelivery(deliveryId) {
   );
 
   if (result.changes === 0) {
-    // Ya fue ejecutada antes — el addon NO debe ejecutar el comando
+    // Verificar si existe
     const d = db.get('SELECT status, username, item_title FROM deliveries WHERE id = ?', [deliveryId]);
-    log.warn(`[Deliveries] ⚠️ BLOQUEADO: ${deliveryId} ya procesada (status=${d?.status})`);
+    if (!d) {
+      log.warn(`[Deliveries] execute: ${deliveryId} no existe`);
+      return { ok: false, error: 'not_found' };
+    }
+    // Ya fue ejecutada — el addon NO debe ejecutar el comando
+    log.warn(`[Deliveries] ⚠️ BLOQUEADO: ${deliveryId} ya procesada (status=${d.status})`);
     return { ok: false, already: true };
   }
 
