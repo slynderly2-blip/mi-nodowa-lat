@@ -239,6 +239,24 @@ input, button, select, textarea { font-size: inherit; }
   gap: 10px;
 }
 
+/* Logo en topbar — solo visible en mobile */
+.topbar-logo {
+  display: none;
+  align-items: center;
+  gap: 7px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.topbar-logo__text {
+  font-size: 1rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #a78bfa 0%, #5eead4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.3px;
+}
+
 /* Balance inline en topbar */
 .topbar-balance {
   display: flex;
@@ -446,17 +464,17 @@ input, button, select, textarea { font-size: inherit; }
 
 /* Badge de item */
 .item-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 0.65rem;
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.62rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 2px 7px;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
   border-radius: 20px;
   background: var(--warning);
-  color: #000;
+  color: #fff;
+  margin-bottom: 2px;
 }
 
 /* ── 8. Cards genéricas ──────────────────────────────────────────────────── */
@@ -2013,7 +2031,8 @@ input::placeholder { color: var(--text-muted); }
 
   .main-wrapper { width: 100%; margin-left: 0 !important; overflow: visible; }
   .topbar { padding: 0 12px; gap: 8px; }
-  .topbar-title { font-size: 0.9rem; }
+  .topbar-title { display: none; } /* en mobile se ve el logo, no el título */
+  .topbar-logo  { display: flex; } /* mostrar logo Nodowa en mobile */
   .main-content { padding: 14px 12px 30px; }
 
   .econ-balances { grid-template-columns: 1fr 1fr; }
