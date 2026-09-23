@@ -494,58 +494,6 @@
 
   <!-- Modal crear/editar producto (admin) -->
   <div class="modal-backdrop" id="modal-item-edit" role="dialog" aria-modal="true" hidden>
-    <div class="modal" style="max-width:560px;">
-      <button class="modal-close" id="modal-item-edit-close" aria-label="Cerrar">&#x2715;</button>
-      <h2 class="modal-title" id="item-modal-title">Producto</h2>
-      <form id="item-edit-form" class="modal-form" novalidate>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div>
-            <label for="item-id">ID único (slug)</label>
-            <input type="text" id="item-id" placeholder="rango-vip" required />
-          </div>
-          <div>
-            <label for="item-category">Categoría</label>
-            <input type="text" id="item-category" placeholder="rangos, kits, items..." required />
-          </div>
-        </div>
-        <label for="item-name">Nombre del producto</label>
-        <input type="text" id="item-name" placeholder="Rango VIP" required />
-        <label for="item-description">Descripción</label>
-        <input type="text" id="item-description" placeholder="Descripción breve..." />
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-          <div>
-            <label for="item-price-coins">Precio NC</label>
-            <input type="number" id="item-price-coins" min="0" placeholder="0" />
-          </div>
-          <div>
-            <label for="item-price-usdt">Precio USDT</label>
-            <input type="number" id="item-price-usdt" min="0" step="0.01" placeholder="0.00" />
-          </div>
-          <div>
-            <label for="item-give-coins">NC que da</label>
-            <input type="number" id="item-give-coins" min="0" placeholder="0" />
-          </div>
-        </div>
-        <label for="item-command">Comando (usa {player})</label>
-        <input type="text" id="item-command" placeholder="lp user {player} parent set vip" />
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div>
-            <label for="item-badge">Badge (opcional)</label>
-            <input type="text" id="item-badge" placeholder="Popular, Nuevo..." />
-          </div>
-          <div>
-            <label for="item-sort-order">Orden</label>
-            <input type="number" id="item-sort-order" min="0" placeholder="0" />
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary btn-full">Guardar producto</button>
-      </form>
-      <p class="form-feedback" id="item-modal-feedback" aria-live="polite"></p>
-    </div>
-  </div>
-
-  <!-- Modal crear/editar producto (admin) -->
-  <div class="modal-backdrop" id="modal-item-edit" role="dialog" aria-modal="true" hidden>
     <div class="modal" style="max-width:540px;">
       <button class="modal-close" id="modal-item-edit-close" aria-label="Cerrar">&#x2715;</button>
       <h2 class="modal-title" id="item-modal-title">Producto</h2>
