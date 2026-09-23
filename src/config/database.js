@@ -1,26 +1,29 @@
 'use strict';
 /**
  * src/config/database.js
- * Conexión SQLite usando sql.js (puro WebAssembly, sin compilación nativa)
- * Sincrónico, WAL mode para mayor rendimiento concurrente.
+ * Conexión SQLite usando sql.js (puro WebAssembly, sin compilación nativa).
+ *
+ * Estrategia de persistencia:
+ *  - Cada run() o transaction() marca _dirty = true
+ *  - Un timer de 500ms escribe al disco si hay cambios pendientes
+ *  - Al exit/SIGINT/SIGTERM escribe inmediatamente
+ *  - Escritura atómica: escribe a .tmp y renombra
  */
 
 const path = require('path');
 const fs   = require('fs');
 const cfg  = require('./index');
 
-let _db   = null;
-let SQL   = null;
+let _db     = null;
+let SQL     = null;
 let _dbPath = null;
+let _dirty  = false;
+let _persistTimer = null;
 
-/**
- * Inicializa la base de datos SQLite.
- * Aplica el schema si la DB es nueva.
- */
+/* ── Inicialización ──────────────────────────────────────────────────────── */
 async function initDB() {
   if (_db) return _db;
 
-  // sql.js debe cargarse async
   const initSqlJs = require('sql.js');
   SQL = await initSqlJs();
 
@@ -28,7 +31,6 @@ async function initDB() {
   const dbDir = path.dirname(_dbPath);
   if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
-  // Cargar DB existente o crear nueva
   if (fs.existsSync(_dbPath)) {
     const fileBuffer = fs.readFileSync(_dbPath);
     _db = new SQL.Database(fileBuffer);
@@ -36,7 +38,6 @@ async function initDB() {
     _db = new SQL.Database();
   }
 
-  // Aplicar pragmas y schema
   _db.run('PRAGMA foreign_keys = ON;');
   _db.run('PRAGMA synchronous = NORMAL;');
 
@@ -49,86 +50,79 @@ async function initDB() {
     _db.run(schema);
   }
 
-  // Auto-guardar en disco cada 5 segundos
-  setInterval(persistDB, 5000);
-  // Guardar al salir
+  // Timer de flush: escribe al disco si hay cambios cada 500ms
+  _persistTimer = setInterval(() => {
+    if (_dirty) persistDB();
+  }, 500);
+  _persistTimer.unref(); // no bloquear el event loop al cerrar
+
+  // Flush inmediato al salir
   process.on('exit',    persistDB);
   process.on('SIGINT',  () => { persistDB(); process.exit(0); });
   process.on('SIGTERM', () => { persistDB(); process.exit(0); });
+  process.on('uncaughtException', (err) => {
+    console.error('[DB] Excepción no capturada, guardando DB:', err.message);
+    persistDB();
+    process.exit(1);
+  });
 
   console.log(`[DB] SQLite iniciado: ${_dbPath}`);
   return _db;
 }
 
+/* ── Persistencia ────────────────────────────────────────────────────────── */
 function persistDB() {
-  if (!_db || !_dbPath) return;
+  if (!_db || !_dbPath || !_dirty) return;
   try {
     const data = _db.export();
     const buf  = Buffer.from(data);
-    // Escritura atómica: escribir temp, luego renombrar
-    const tmp = _dbPath + '.tmp';
+    const tmp  = _dbPath + '.tmp';
     fs.writeFileSync(tmp, buf);
     fs.renameSync(tmp, _dbPath);
+    _dirty = false;
   } catch (e) {
     console.error('[DB] Error al persistir:', e.message);
   }
 }
 
-/**
- * Obtiene la instancia DB (debe llamarse después de initDB())
- */
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
 function getDB() {
   if (!_db) throw new Error('DB no inicializada. Llama a initDB() primero.');
   return _db;
 }
 
-// ── Helpers de query ─────────────────────────────────────────────────────────
-
-/**
- * Ejecuta un SELECT y retorna array de objetos
- * @param {string} sql
- * @param {any[]} params
- */
+/** SELECT — retorna array de objetos */
 function query(sql, params = []) {
-  const db = getDB();
+  const db   = getDB();
   const stmt = db.prepare(sql);
   stmt.bind(params);
   const rows = [];
-  while (stmt.step()) {
-    rows.push(stmt.getAsObject());
-  }
+  while (stmt.step()) rows.push(stmt.getAsObject());
   stmt.free();
   return rows;
 }
 
-/**
- * Ejecuta INSERT/UPDATE/DELETE
- */
+/** INSERT / UPDATE / DELETE */
 function run(sql, params = []) {
   const db = getDB();
   db.run(sql, params);
-  // Retorna { changes, lastInsertRowid } aprox.
-  const changes = db.getRowsModified();
-  return { changes };
+  _dirty = true;
+  return { changes: db.getRowsModified() };
 }
 
-/**
- * Retorna una sola fila o null
- */
+/** Retorna una sola fila o null */
 function get(sql, params = []) {
-  const rows = query(sql, params);
-  return rows[0] ?? null;
+  return query(sql, params)[0] ?? null;
 }
 
-/**
- * Ejecuta múltiples statements en una transacción
- */
+/** Múltiples operaciones en una transacción atómica */
 function transaction(fn) {
   const db = getDB();
   db.run('BEGIN');
   try {
     const result = fn(db);
     db.run('COMMIT');
+    _dirty = true;
     return result;
   } catch (err) {
     db.run('ROLLBACK');

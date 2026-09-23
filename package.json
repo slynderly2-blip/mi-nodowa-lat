@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "seed": "node migrations/002_seed.js",
     "migrate": "node migrations/002_migrate_json.js",
     "migrate:schema": "node -e \"require('./src/config/database.js')\"",
     "test": "echo \"No tests yet\""
