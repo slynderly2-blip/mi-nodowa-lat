@@ -277,6 +277,7 @@ const ICONS = {
   adminOrders:   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h6"/><circle cx="13" cy="11" r="2.5"/><path d="M13 9.5v1.5l1 1"/></svg>`,
   adminUsers:    `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/><path d="M11 7l1.5 1.5L15 6"/></svg>`,
   adminIssues:   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3.5"/><circle cx="8" cy="11.5" r=".75" fill="currentColor" stroke="none"/></svg>`,
+  adminPayments: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3.5" width="14" height="9" rx="1.5"/><path d="M1 6.5h14"/><path d="M4 10h3"/></svg>`,
   login:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/><path d="M11 11l3-3-3-3M14 8H6"/></svg>`,
   logout:        `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 14h3a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1h-3"/><path d="M7 11l-3-3 3-3M4 8h8"/></svg>`,
   admin:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L2 4v4c0 3.3 2.7 5.7 6 6.5 3.3-.8 6-3.2 6-6.5V4z"/></svg>`,
@@ -326,7 +327,8 @@ function renderNav() {
       ${navItem('stats','Estadisticas', s==='stats')}
       ${navItem('admin-orders','Pedidos USDT', s==='admin-orders')}
       ${navItem('admin-users','Jugadores', s==='admin-users')}
-      ${navItem('admin-issues','Reclamos', s==='admin-issues', State.adminIssuesBadge || '')}`;
+      ${navItem('admin-issues','Reclamos', s==='admin-issues', State.adminIssuesBadge || '')}
+      ${navItem('admin-payments','Config Pagos', s==='admin-payments')}`;
     }
 
     html += `<div class="nav-divider"></div>
@@ -372,8 +374,8 @@ function renderTopbar() {
 }
 
 /* ── Navegación ─────────────────────────────────────────────────── */
-const PRIVATE = new Set(['economy','orders','profile','inbox','stats','admin-orders','admin-users','admin-issues']);
-const ADMIN   = new Set(['stats','admin-orders','admin-users','admin-issues']);
+const PRIVATE = new Set(['economy','orders','profile','inbox','stats','admin-orders','admin-users','admin-issues','admin-payments']);
+const ADMIN   = new Set(['stats','admin-orders','admin-users','admin-issues','admin-payments']);
 
 function go(sectionId) {
   if (PRIVATE.has(sectionId) && !State.user) { openModal('modal-login'); return; }
@@ -393,17 +395,18 @@ function go(sectionId) {
   document.querySelectorAll('.nav-item[data-section]').forEach(b => b.classList.toggle('active', b.dataset.section === sectionId));
 
   const loaders = {
-    'catalog':       loadCatalog,
-    'economy':       loadEconomy,
-    'orders':        loadOrders,
-    'profile':       loadProfile,
-    'players':       loadPlayers,
-    'leaderboard':   loadLeaderboard,
-    'inbox':         loadInbox,
-    'stats':         loadStats,
-    'admin-orders':  loadAdminOrders,
-    'admin-users':   loadAdminUsers,
-    'admin-issues':  loadAdminIssues,
+    'catalog':         loadCatalog,
+    'economy':         loadEconomy,
+    'orders':          loadOrders,
+    'profile':         loadProfile,
+    'players':         loadPlayers,
+    'leaderboard':     loadLeaderboard,
+    'inbox':           loadInbox,
+    'stats':           loadStats,
+    'admin-orders':    loadAdminOrders,
+    'admin-users':     loadAdminUsers,
+    'admin-issues':    loadAdminIssues,
+    'admin-payments':  loadAdminPayments,
   };
   loaders[sectionId]?.();
 }
@@ -1326,6 +1329,106 @@ function initReceiptModal() {
   $('modal-receipt-view-close')?.addEventListener('click', () => closeModal('modal-receipt-view'));
 }
 
+/* ── ADMIN: Config de pagos (sección dedicada) ──────────────────── */
+async function loadAdminPayments() {
+  try {
+    const d   = await GET('/admin/config');
+    const cfg = d.config || {};
+    const qrUrl     = cfg.binance_qr_url || '';
+    const payId     = cfg.binance_pay_id || '';
+    const walletTyp = cfg.binance_wallet  || '';
+
+    // Preview actual
+    setHTML('payments-config-preview', `
+      ${qrUrl
+        ? `<img src="${esc(qrUrl)}" alt="QR Binance" style="width:100px;height:100px;object-fit:contain;border-radius:8px;border:1px solid var(--border);">`
+        : `<div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:var(--bg-hover);border-radius:8px;border:1px dashed var(--border);color:var(--text-muted);font-size:0.78rem;text-align:center;">Sin QR</div>`}
+      <div style="font-size:0.88rem;color:var(--text-secondary);">
+        <div><strong>Pay ID:</strong> ${esc(payId || '—')}</div>
+        <div><strong>Billetera:</strong> ${esc(walletTyp || '—')}</div>
+        ${qrUrl ? `<div style="margin-top:4px;font-size:0.75rem;color:var(--text-muted)">Los compradores verán este QR al pagar con USDT.</div>` : ''}
+      </div>`);
+
+    // Prefill el form
+    $('payments-pay-id').value      = payId;
+    $('payments-wallet-type').value = walletTyp;
+    if (qrUrl) {
+      $('payments-qr-preview').src                  = qrUrl;
+      $('payments-qr-preview').style.display        = 'block';
+      $('payments-qr-placeholder').style.display    = 'none';
+    } else {
+      $('payments-qr-preview').style.display        = 'none';
+      $('payments-qr-placeholder').style.display    = 'flex';
+    }
+  } catch (err) {
+    setHTML('payments-config-preview', `<span style="color:var(--danger);font-size:0.85rem">Error: ${esc(err.message)}</span>`);
+  }
+}
+
+function initAdminPayments() {
+  // Click en área de QR
+  const qrArea    = $('payments-qr-area');
+  const qrInput   = $('payments-qr-file');
+  const qrPreview = $('payments-qr-preview');
+  const qrHolder  = $('payments-qr-placeholder');
+
+  qrArea?.addEventListener('click', () => qrInput?.click());
+  qrArea?.addEventListener('dragover', e => { e.preventDefault(); qrArea.classList.add('drag-over'); });
+  qrArea?.addEventListener('dragleave', () => qrArea.classList.remove('drag-over'));
+  qrArea?.addEventListener('drop', e => {
+    e.preventDefault(); qrArea.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) _previewQrFile(file, qrPreview, qrHolder);
+  });
+  qrInput?.addEventListener('change', () => {
+    if (qrInput.files[0]) _previewQrFile(qrInput.files[0], qrPreview, qrHolder);
+  });
+
+  $('payments-config-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    clearFb('payments-config-feedback');
+    const btn = e.submitter; btn.disabled = true; btn.textContent = 'Guardando...';
+    try {
+      const payId     = $('payments-pay-id').value.trim();
+      const walletTyp = $('payments-wallet-type').value.trim();
+
+      if (payId)     await POST('/admin/config', { key: 'binance_pay_id', value: payId });
+      if (walletTyp) await POST('/admin/config', { key: 'binance_wallet',  value: walletTyp });
+
+      if (qrInput?.files[0]) {
+        feedback('payments-config-feedback', 'Subiendo QR...');
+        const fd = new FormData();
+        fd.append('qr', qrInput.files[0]);
+        const res = await fetch('/api/admin/config/upload-qr', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${State.token}` },
+          body: fd
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al subir QR');
+      }
+
+      feedback('payments-config-feedback', '¡Configuración guardada!');
+      toast('Configuración de pagos actualizada', 'success');
+      loadAdminPayments(); // refresca preview
+    } catch (err) {
+      feedback('payments-config-feedback', err.message, true);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Guardar configuración de pagos';
+    }
+  });
+}
+
+function _previewQrFile(file, preview, placeholder) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+    if (placeholder) placeholder.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
 /* ── ADMIN: pedidos USDT ────────────────────────────────────────── */
 async function loadAdminOrders(page = 1) {
   State.adminOrders.page = page;
@@ -1589,6 +1692,7 @@ async function init() {
   initReceiptModal();
   initBinanceConfig();
   initUSDTReceiptUpload();
+  initAdminPayments();
 
   $('modal-buy-nc-confirm')?.addEventListener('click', confirmBuyNC);
   $('usdt-form')?.addEventListener('submit', submitUSDT);

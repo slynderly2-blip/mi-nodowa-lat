@@ -195,6 +195,36 @@
           <div class="pagination" id="admin-issues-pagination"></div>
         </section>
 
+        <!-- CONFIG PAGOS (admin) -->
+        <section id="section-admin-payments" class="content-section" data-title="Config Pagos">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Método de pago activo</h2>
+            </div>
+            <div id="payments-config-preview" class="binance-config-preview" style="margin-bottom:20px;">
+              <span style="color:var(--text-muted);font-size:0.85rem">Cargando...</span>
+            </div>
+            <form id="payments-config-form" class="modal-form" novalidate style="max-width:480px;">
+              <label for="payments-pay-id">Binance Pay ID</label>
+              <input type="text" id="payments-pay-id" placeholder="Ej: 1255344898" />
+              <label for="payments-wallet-type">Tipo de billetera / red</label>
+              <input type="text" id="payments-wallet-type" placeholder="Ej: USDT (TRC20)" />
+              <label>QR de pago (imagen que verán los compradores)</label>
+              <div class="file-upload-area" id="payments-qr-area">
+                <input type="file" id="payments-qr-file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;" />
+                <div class="file-upload-placeholder" id="payments-qr-placeholder">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <span>Toca para subir tu QR de Binance Pay</span>
+                  <span class="file-upload-hint">JPG, PNG, WEBP · máx 5 MB</span>
+                </div>
+                <img id="payments-qr-preview" class="file-upload-preview" style="display:none;max-width:220px;margin:0 auto;" alt="QR actual" />
+              </div>
+              <button type="submit" class="btn btn-primary" style="margin-top:4px;">Guardar configuración de pagos</button>
+              <p class="form-feedback" id="payments-config-feedback" aria-live="polite"></p>
+            </form>
+          </div>
+        </section>
+
       </main>
     </div>
   </div>
