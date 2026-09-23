@@ -72,8 +72,6 @@ input, button, select, textarea { font-size: inherit; }
 
 /* ── 3. Layout principal ─────────────────────────────────────────────────── */
 .app-layout {
-  display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr;
   min-height: 100dvh;
 }
 
@@ -81,6 +79,7 @@ input, button, select, textarea { font-size: inherit; }
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
+  margin-left: var(--sidebar-width);
   overflow: hidden;
 }
 
