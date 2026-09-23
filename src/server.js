@@ -2,6 +2,7 @@
 /**
  * src/server.js
  * Entry point — Nodowa Tienda
+ * v4.3.0 - Sistema anti-duplicación de entregas
  */
 
 const path    = require('path');
