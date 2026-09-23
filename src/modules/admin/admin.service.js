@@ -285,4 +285,14 @@ function setConfig(key, value) {
   return { ok: true };
 }
 
-module.exports = { getStats, listOrders, approveOrder, rejectOrder, listUsers, setWallet, createAdminUser, listAllItems, createItem, updateItem, deleteItem, listDeliveries, getConfig, setConfig, listIssues, requeueIssue, refundIssue, ignoreIssue, createIssue };
+function impersonateUser(userId, adminUsername) {
+  const user = db.get('SELECT * FROM users WHERE id = ?', [userId]);
+  if (!user) throw new NotFound('Usuario no encontrado');
+  const { makeToken, safeUser } = require('../auth/auth.service');
+  // Token de corta duración para la sesión impersonada
+  const token = makeToken(user);
+  log.warn(`[Admin] ${adminUsername} impersonando a ${user.username}`);
+  return { ok: true, token, user: safeUser(user), impersonatedBy: adminUsername };
+}
+
+module.exports = { getStats, listOrders, approveOrder, rejectOrder, listUsers, setWallet, createAdminUser, listAllItems, createItem, updateItem, deleteItem, listDeliveries, getConfig, setConfig, listIssues, requeueIssue, refundIssue, ignoreIssue, createIssue, impersonateUser };

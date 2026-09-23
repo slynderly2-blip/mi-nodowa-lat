@@ -1782,7 +1782,7 @@ async function loadAdminPlayers(search) {
             data-peu="${esc(u.id)}" data-pew="${u.wallet}" data-peb="${u.bank}" data-pen="${esc(u.username)}">
             Editar saldo
           </button>
-          <button class="btn btn-ghost btn-sm" data-view-player="${esc(u.username)}">Ver cuenta</button>
+          <button class="btn btn-ghost btn-sm" data-view-player="${esc(u.username)}" data-view-id="${esc(u.id)}">Entrar como</button>
         </div>
       </div>`).join(''));
 
@@ -1794,10 +1794,76 @@ async function loadAdminPlayers(search) {
       clearFb('admin-user-feedback');
       openModal('modal-admin-user');
     }));
-    document.querySelectorAll('[data-view-player]').forEach(b => b.addEventListener('click', () => viewPlayerAccount(b.dataset.viewPlayer)));
+    document.querySelectorAll('[data-view-player]').forEach(b => b.addEventListener('click', () => impersonatePlayer(b.dataset.viewId, b.dataset.viewPlayer)));
   } catch (err) { setHTML('admin-players-list', `<p class="empty-state">Error: ${esc(err.message)}</p>`); }
 }
 
+/* ── Impersonar jugador ─────────────────────────────────────────
+   El admin entra como ese jugador: ve su saldo, pedidos, buzón.
+   Un banner naranja persiste arriba hasta que el admin "salga".
+   El token original del admin se guarda en sessionStorage.
+   ──────────────────────────────────────────────────────────────── */
+async function impersonatePlayer(userId, username) {
+  if (!confirm(`¿Entrar como ${username}?\n\nVerás la web desde su perspectiva. Un banner te recordará que estás en modo admin.`)) return;
+  try {
+    const d = await POST(`/admin/users/${userId}/impersonate`, {});
+    if (!d.ok) { toast(d.error || 'Error al impersonar', 'error'); return; }
+
+    // Guardar sesión real del admin
+    sessionStorage.setItem('nodowa_admin_session', JSON.stringify({
+      token: State.token,
+      user:  State.user,
+    }));
+
+    // Activar sesión del jugador
+    saveSession(d.token, d.user);
+    await afterLogin();
+    showImpersonateBanner(d.user.display_name || d.user.username, d.impersonatedBy);
+    toast(`Entrando como ${username}`, 'info');
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+function showImpersonateBanner(playerName, adminName) {
+  let banner = $('impersonate-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'impersonate-banner';
+    document.body.prepend(banner);
+  }
+  banner.innerHTML = `
+    <span>👁 Modo admin: estás viendo la cuenta de <strong>${esc(playerName)}</strong></span>
+    <button id="btn-exit-impersonate">Salir y volver a mi cuenta</button>`;
+  banner.style.display = 'flex';
+  $('btn-exit-impersonate')?.addEventListener('click', exitImpersonate);
+}
+
+async function exitImpersonate() {
+  const saved = sessionStorage.getItem('nodowa_admin_session');
+  if (!saved) { doLogout(); return; }
+  try {
+    const { token, user } = JSON.parse(saved);
+    sessionStorage.removeItem('nodowa_admin_session');
+    saveSession(token, user);
+    await afterLogin();
+    const banner = $('impersonate-banner');
+    if (banner) banner.style.display = 'none';
+    go('admin-players');
+    toast('Sesión admin restaurada');
+  } catch { doLogout(); }
+}
+
+// Restaurar banner si hay sesión admin guardada (recarga de página)
+function checkImpersonateRestore() {
+  const saved = sessionStorage.getItem('nodowa_admin_session');
+  if (saved && State.user) {
+    try {
+      const { user: adminUser } = JSON.parse(saved);
+      showImpersonateBanner(State.user.display_name || State.user.username, adminUser.username);
+    } catch {}
+  }
+}
+
+// viewPlayerAccount sigue disponible para abrir perfil en modal sin impersonar
 async function viewPlayerAccount(username) {
   setText('modal-player-profile-title', `Cuenta: ${username}`);
   setHTML('modal-player-profile-body', '<p class="empty-state">Cargando...</p>');
@@ -1832,7 +1898,7 @@ async function viewPlayerAccount(username) {
         ${orders.map(o => `
           <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:0.82rem">
             <span>${esc(o.item_title)}</span>
-            <span style="color:var(--text-muted)">${statusBadge(o.status)}</span>
+            <span>${statusBadge(o.status)}</span>
           </div>`).join('')}` : ''}
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-secondary btn-sm"
@@ -2000,6 +2066,7 @@ async function init() {
   });
 
   go('catalog');
+  checkImpersonateRestore();
 }
 
 document.addEventListener('DOMContentLoaded', init);

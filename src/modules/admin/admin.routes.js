@@ -59,6 +59,11 @@ router.get('/config/payment', (req, res, next) => {
   } catch(e) { next(e); }
 });
 
+// POST /api/admin/users/:id/impersonate — admin entra a la cuenta de un jugador
+router.post('/users/:id/impersonate', requireAuth, requireAdmin, (req, res, next) => {
+  try { res.json(svc.impersonateUser(req.params.id, req.user.username)); } catch(e) { next(e); }
+});
+
 // POST /api/admin/config/upload-qr  — sube QR de Binance Pay
 router.post('/config/upload-qr', requireAuth, requireAdmin, uploadQR.single('qr'), (req, res, next) => {
   try {
