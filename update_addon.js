@@ -13,63 +13,89 @@ const config = {
 };
 
 async function updateAddon() {
-  const localAddon = 'nodowa_economy_addon_final.mcpack';
-  const remotePath = '/development_behavior_packs/nodowa_economy_connector_bp';
+  // Usar el mcpack con los bugs corregidos
+  const localAddon  = 'nodowa_economy_addon_fixed.mcpack';
+  const remotePath  = '/development_behavior_packs/nodowa_economy_connector_bp';
   const extractPath = './addon_temp';
 
   try {
-    console.log('📦 Extrayendo addon FINAL...');
+    // ── 1. Extraer mcpack localmente ─────────────────────────────
+    console.log(`📦 Extrayendo ${localAddon}...`);
+    if (!fs.existsSync(localAddon)) {
+      throw new Error(`No se encontró el archivo ${localAddon}. Verifica que exista en la raíz del proyecto.`);
+    }
     if (fs.existsSync(extractPath)) {
       fs.rmSync(extractPath, { recursive: true });
     }
-    
     const zip = new AdmZip(localAddon);
     zip.extractAllTo(extractPath, true);
     console.log('✓ Extraído');
 
-    console.log('\n🌐 Conectando a servidor...');
+    // ── 2. Conectar ──────────────────────────────────────────────
+    console.log('\n🌐 Conectando a servidor SFTP...');
     await sftp.connect(config);
     console.log('✓ Conectado');
 
-    console.log('\n🗑️ Limpiando carpeta remota...');
-    const files = await sftp.list(remotePath);
-    for (const file of files) {
-      if (file.name !== '.' && file.name !== '..') {
-        try {
-          await sftp.delete(`${remotePath}/${file.name}`);
-        } catch {}
-      }
-    }
-    console.log(`✓ ${files.length} archivos eliminados`);
+    // ── 3. Limpiar carpeta remota (recursivo) ────────────────────
+    console.log('\n🗑️  Limpiando carpeta remota...');
+    let deleted = 0;
 
-    console.log('\n📤 Subiendo archivos CORREGIDOS...');
-    const uploadDir = async (localDir, remoteDir) => {
-      const items = fs.readdirSync(localDir, { withFileTypes: true });
-      for (const item of items) {
-        const localPath = path.join(localDir, item.name);
-        const remotePath = `${remoteDir}/${item.name}`;
-        
-        if (item.isDirectory()) {
-          try {
-            await sftp.mkdir(remotePath, true);
-          } catch {}
-          await uploadDir(localPath, remotePath);
+    async function clearRemote(dir) {
+      let entries;
+      try {
+        entries = await sftp.list(dir);
+      } catch {
+        return; // carpeta no existe aún, ok
+      }
+      for (const entry of entries) {
+        if (entry.name === '.' || entry.name === '..') continue;
+        const full = `${dir}/${entry.name}`;
+        if (entry.type === 'd') {
+          await clearRemote(full);
+          try { await sftp.rmdir(full); } catch { /* ignorar si no vacía */ }
         } else {
-          console.log(`  → ${item.name}`);
-          await sftp.put(localPath, remotePath);
+          await sftp.delete(full);
+          deleted++;
         }
       }
-    };
+    }
+
+    await clearRemote(remotePath);
+    console.log(`✓ ${deleted} archivo(s) eliminado(s)`);
+
+    // ── 4. Subir archivos corregidos ─────────────────────────────
+    console.log('\n📤 Subiendo archivos corregidos...');
+    let uploaded = 0;
+
+    async function uploadDir(localDir, remoteDir) {
+      // Asegurarse de que el directorio remoto existe
+      try { await sftp.mkdir(remoteDir, true); } catch { /* ya existe */ }
+
+      const items = fs.readdirSync(localDir, { withFileTypes: true });
+      for (const item of items) {
+        const localFull  = path.join(localDir, item.name);
+        const remoteFull = `${remoteDir}/${item.name}`;
+        if (item.isDirectory()) {
+          await uploadDir(localFull, remoteFull);
+        } else {
+          console.log(`  ↑ ${remoteFull.replace(remotePath, '')}`);
+          await sftp.put(localFull, remoteFull);
+          uploaded++;
+        }
+      }
+    }
 
     await uploadDir(extractPath, remotePath);
-    
-    console.log('\n✅ ADDON FINAL SUBIDO - DUPLICACIÓN ARREGLADA');
-    console.log('   REINICIA EL SERVIDOR: stop');
+    console.log(`✓ ${uploaded} archivo(s) subido(s)`);
+
+    console.log('\n✅ Addon actualizado correctamente.');
+    console.log('   Reinicia el servidor Minecraft para aplicar los cambios: stop');
 
   } catch (err) {
-    console.error('❌ Error:', err.message);
+    console.error('\n❌ Error:', err.message);
+    process.exitCode = 1;
   } finally {
-    await sftp.end();
+    try { await sftp.end(); } catch { /* ignorar */ }
     if (fs.existsSync(extractPath)) {
       fs.rmSync(extractPath, { recursive: true });
     }
