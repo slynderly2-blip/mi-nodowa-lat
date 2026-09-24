@@ -23,7 +23,7 @@ router.get('/check-link/:code', async (req, res, next) => {
 });
 
 // POST /api/auth/verify-link — llamado desde el addon MC con el código
-router.post('/verify-link', async (req, res, next) => {
+router.post('/verify-link', authLimiter, async (req, res, next) => {
   try {
     const { code, player, xuid } = req.body;
     res.json(await svc.verifyLink(String(code || ''), player, xuid));

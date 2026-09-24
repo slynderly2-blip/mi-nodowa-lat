@@ -175,14 +175,17 @@ async function verifyLink(code, playerName, xuid) {
 
   const { username } = linkToken;
 
+  // ✅ Verificar que quien usa el código es el jugador que lo generó
+  if (username && username.toLowerCase() !== playerName.trim().toLowerCase()) {
+    return { ok: false, error: 'Este código no pertenece a tu cuenta de Minecraft' };
+  }
+
   const user = db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [username]);
   if (!user) return { ok: false, error: 'Usuario no encontrado' };
 
   const alreadyLinked = !!user.linked;
   const bonusNc       = alreadyLinked ? 0 : 500;
-
-  // Generar JWT para que el polling del frontend lo recoja
-  const jwtToken = makeToken(user);
+  const jwtToken      = makeToken(user);
 
   db.transaction(() => {
     if (!alreadyLinked) {
